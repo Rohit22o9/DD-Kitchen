@@ -479,7 +479,13 @@ export const api = {
       (b) => b.id === id || (data.reference_code && b.reference_code === data.reference_code)
     );
     if (idx !== -1) {
-      bookings[idx] = { ...bookings[idx], ...data } as Booking;
+      bookings[idx] = {
+        ...bookings[idx],
+        ...data,
+        payment_status: data.payment_status || bookings[idx].payment_status || 'unpaid',
+        status: (data.status as any) || bookings[idx].status || 'pending',
+        total_price: Number(bookings[idx].total_price || bookings[idx].total_cost || 0),
+      } as Booking;
       saveStoredBookings(bookings);
       return bookings[idx];
     }

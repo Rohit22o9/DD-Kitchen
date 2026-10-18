@@ -174,22 +174,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
     try {
       const updated = await api.updateBookingStatus(token, bookingId, {
         status: newStatus,
-        payment_status: newPayment,
+        payment_status: newPayment || selectedBooking?.payment_status || 'unpaid',
         admin_notes: actionNotes.trim() || undefined,
         reference_code: selectedBooking?.reference_code,
       });
       setBookings((prev) =>
         prev.map((b) =>
           b.id === updated.id || (b.reference_code && b.reference_code === updated.reference_code)
-            ? { ...b, ...updated }
+            ? {
+                ...b,
+                ...updated,
+                payment_status: updated.payment_status || b.payment_status || 'unpaid',
+                status: (updated.status as any) || b.status,
+              }
             : b
         )
       );
       setSelectedBooking(null);
       setActionNotes('');
       // Refresh stats
-      const s = await api.getDashboardStats(token);
-      setStats(s);
+      try {
+        const s = await api.getDashboardStats(token);
+        setStats(s);
+      } catch {}
     } catch (err: any) {
       setBookingError(err.message || 'Failed to update booking status');
     } finally {
@@ -447,38 +454,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
             <div className="bg-white p-4 rounded-2xl border border-brand-mint-border shadow-soft-sm">
               <span className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">Total Requests</span>
-              <div className="text-2xl font-black text-brand-dark mt-1">{stats.total_bookings}</div>
-              <span className="text-[10px] text-brand-muted">{stats.total_hours_booked} Hours Total</span>
+              <div className="text-2xl font-black text-brand-dark mt-1">{stats.total_bookings ?? 0}</div>
+              <span className="text-[10px] text-brand-muted">{stats.total_hours_booked ?? 0} Hours Total</span>
             </div>
 
             <div className="bg-white p-4 rounded-2xl border border-amber-200 bg-amber-50/30 shadow-soft-sm">
               <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800">Pending Review</span>
-              <div className="text-2xl font-black text-amber-700 mt-1">{stats.pending_requests}</div>
+              <div className="text-2xl font-black text-amber-700 mt-1">{stats.pending_requests ?? 0}</div>
               <span className="text-[10px] text-amber-700">Awaiting approval</span>
             </div>
 
             <div className="bg-white p-4 rounded-2xl border border-blue-200 bg-blue-50/30 shadow-soft-sm">
               <span className="text-[11px] font-bold uppercase tracking-wider text-blue-800">Approved</span>
-              <div className="text-2xl font-black text-blue-700 mt-1">{stats.approved_count}</div>
+              <div className="text-2xl font-black text-blue-700 mt-1">{stats.approved_count ?? 0}</div>
               <span className="text-[10px] text-blue-700">Awaiting payment</span>
             </div>
 
             <div className="bg-white p-4 rounded-2xl border border-emerald-200 bg-emerald-50/30 shadow-soft-sm">
               <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">Confirmed</span>
-              <div className="text-2xl font-black text-emerald-700 mt-1">{stats.confirmed_count}</div>
+              <div className="text-2xl font-black text-emerald-700 mt-1">{stats.confirmed_count ?? 0}</div>
               <span className="text-[10px] text-emerald-700">Ready for check-in</span>
             </div>
 
             <div className="bg-white p-4 rounded-2xl border border-brand-mint-border shadow-soft-sm">
               <span className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">Confirmed Rev.</span>
-              <div className="text-2xl font-black text-brand-forest mt-1">${stats.total_confirmed_revenue}</div>
-              <span className="text-[10px] text-brand-muted">+${stats.pipeline_revenue} pipeline</span>
+              <div className="text-2xl font-black text-brand-forest mt-1">${stats.total_confirmed_revenue ?? 0}</div>
+              <span className="text-[10px] text-brand-muted">+${stats.pipeline_revenue ?? 0} pipeline</span>
             </div>
 
             <div className="bg-white p-4 rounded-2xl border border-brand-mint-border shadow-soft-sm">
               <span className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">Enquiries</span>
-              <div className="text-2xl font-black text-brand-dark mt-1">{stats.total_enquiries}</div>
-              <span className="text-[10px] text-brand-orange font-bold">{stats.new_enquiries} New</span>
+              <div className="text-2xl font-black text-brand-dark mt-1">{stats.total_enquiries ?? 0}</div>
+              <span className="text-[10px] text-brand-orange font-bold">{stats.new_enquiries ?? 0} New</span>
             </div>
           </div>
         )}
@@ -628,7 +635,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
                           </td>
 
                           <td className="px-5 py-4 font-mono font-bold text-brand-dark">
-                            ${b.total_price.toFixed(2)}
+                            ${Number(b.total_price || b.total_cost || 0).toFixed(2)}
                           </td>
 
                           <td className="px-5 py-4">
@@ -659,7 +666,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
                                   : 'bg-gray-100 text-gray-700'
                               }`}
                             >
-                              {b.payment_status.replace('_', ' ')}
+                              {(b.payment_status || 'unpaid').replace('_', ' ')}
                             </span>
                           </td>
 
@@ -1089,7 +1096,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
               <div><strong className="text-brand-dark">Date & Slot:</strong> {selectedBooking.booking_date} ({selectedBooking.start_time} - {selectedBooking.end_time})</div>
               <div><strong className="text-brand-dark">Intended Use:</strong> {selectedBooking.intended_use}</div>
               <div><strong className="text-brand-dark">Equipment:</strong> {selectedBooking.equipment_requirements || 'Standard'}</div>
-              <div><strong className="text-brand-dark">Total Fee:</strong> ${selectedBooking.total_price.toFixed(2)} AUD</div>
+              <div><strong className="text-brand-dark">Total Fee:</strong> ${Number(selectedBooking.total_price || selectedBooking.total_cost || 0).toFixed(2)} AUD</div>
             </div>
 
             <div>
