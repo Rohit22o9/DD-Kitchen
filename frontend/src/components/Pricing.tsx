@@ -77,16 +77,16 @@ export const Pricing: React.FC<PricingProps> = ({ config, onSelectDuration }) =>
   ];
 
   return (
-    <section id="pricing" className="py-20 lg:py-28 bg-brand-cream/40 relative">
+    <section id="pricing" className="py-10 lg:py-14 bg-brand-cream/40 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
+        <div className="text-center max-w-3xl mx-auto mb-10">
           <span className="text-xs font-bold uppercase tracking-widest text-brand-orange bg-brand-orange-light px-3.5 py-1.5 rounded-full inline-block mb-3">
             Transparent Hourly Rates
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-brand-dark tracking-tight">
-            Pay for the Hours You Need.
+            Flexible Kitchen Pricing
           </h2>
           <p className="text-base sm:text-lg text-brand-muted mt-3">
             Flexible commercial kitchen access designed around your production schedule. No hidden lease fees or long-term lock-ins.

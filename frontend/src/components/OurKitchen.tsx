@@ -36,7 +36,7 @@ export const OurKitchen: React.FC<OurKitchenProps> = ({ onCheckAvailability, onL
   ];
 
   return (
-    <section id="our-kitchen" className="py-16 lg:py-24 bg-white relative">
+    <section id="our-kitchen" className="py-10 lg:py-14 bg-white relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Layout matching reference image: Left headline + copy + 2 buttons, Right 3 photo cards */}

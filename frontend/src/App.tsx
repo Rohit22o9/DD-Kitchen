@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
+import { ComeSeeOurKitchen } from './components/ComeSeeOurKitchen';
 import { BookingEngine } from './components/BookingEngine';
 import { BookingConfirmationModal } from './components/BookingConfirmationModal';
 import { OurKitchen } from './components/OurKitchen';
@@ -107,6 +108,9 @@ export function App() {
           onQuickBook={(d, t, dur) => scrollToBooking(d, t, dur)}
           onExploreFacilities={() => scrollToSection('facilities')}
         />
+
+        {/* 1.5. Come See Our Kitchen Walkthrough Banner */}
+        <ComeSeeOurKitchen config={config} />
 
         {/* 2. Our Kitchen Section */}
         <OurKitchen

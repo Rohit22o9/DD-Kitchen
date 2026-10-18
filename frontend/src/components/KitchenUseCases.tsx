@@ -54,16 +54,16 @@ export const KitchenUseCases: React.FC<KitchenUseCasesProps> = ({ onStartBooking
   ];
 
   return (
-    <section id="use-cases" className="py-20 lg:py-24 bg-white relative border-b border-gray-100">
+    <section id="use-cases" className="py-10 lg:py-14 bg-white relative border-b border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header styled cleanly matching the editorial reference */}
-        <div className="text-center max-w-4xl mx-auto mb-14">
+        <div className="text-center max-w-4xl mx-auto mb-10">
           <span className="text-xs font-bold uppercase tracking-widest text-brand-forest bg-brand-mint px-3.5 py-1.5 rounded-full inline-block mb-3 border border-brand-mint-border">
             Commercial Production Options
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-brand-dark tracking-tight">
-            How Can You Use Our Fully Equipped Commercial Kitchens?
+            One Kitchen. Endless Possibilities.
           </h2>
           <div className="w-24 h-1 bg-brand-orange mx-auto mt-4 rounded-full" />
         </div>

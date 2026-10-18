@@ -209,17 +209,17 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
   ];
 
   return (
-    <section id="booking-section" className="py-16 lg:py-24 bg-white relative">
+    <section id="booking-section" className="py-10 lg:py-14 bg-white relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-12 sm:mb-16">
+        <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-10">
           <div className="inline-flex items-center space-x-2 bg-brand-orange-light text-brand-orange px-3.5 py-1.5 rounded-full text-xs font-bold tracking-wide uppercase mb-3">
             <Sparkles className="w-3.5 h-3.5" />
             <span>Dedicated Rental Booking System</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-brand-dark tracking-tight">
-            Reserve Your Commercial Kitchen Hours
+            Book Your Kitchen
           </h2>
           <p className="text-base sm:text-lg text-brand-muted mt-3">
             Choose your date and time slot, configure equipment needs, view transparent pricing, 

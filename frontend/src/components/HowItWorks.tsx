@@ -42,16 +42,16 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ onStartBooking }) => {
   ];
 
   return (
-    <section id="how-it-works" className="py-20 lg:py-28 bg-white relative">
+    <section id="how-it-works" className="py-10 lg:py-14 bg-white relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
+        <div className="text-center max-w-3xl mx-auto mb-10">
           <span className="text-xs font-bold uppercase tracking-widest text-brand-forest bg-brand-mint px-3.5 py-1.5 rounded-full inline-block mb-3 border border-brand-mint-border">
             Seamless 4-Step Process
           </span>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-brand-dark tracking-tight">
-            How Renting With Daily Drop Works
+            Rent a Kitchen in 4 Easy Steps
           </h2>
           <p className="text-base sm:text-lg text-brand-muted mt-3">
             From discovering available kitchen hours to checking in with your digital PIN, 

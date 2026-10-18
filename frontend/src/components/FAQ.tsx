@@ -67,11 +67,11 @@ export const FAQ: React.FC = () => {
   );
 
   return (
-    <section id="faq" className="py-20 lg:py-28 bg-brand-cream/40 relative">
+    <section id="faq" className="py-10 lg:py-14 bg-brand-cream/40 relative">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-8">
           <span className="text-xs font-bold uppercase tracking-widest text-brand-forest bg-brand-mint px-3.5 py-1.5 rounded-full inline-block mb-3 border border-brand-mint-border">
             Got Questions?
           </span>

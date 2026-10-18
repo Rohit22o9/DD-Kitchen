@@ -88,7 +88,7 @@ export interface BlockedSlot {
 export interface EnquiryInput {
   name?: string;
   full_name?: string;
-  phone: string;
+  phone?: string;
   email: string;
   business_name?: string;
   preferred_date?: string;
@@ -105,7 +105,7 @@ export interface Enquiry {
   reference_code?: string;
   name?: string;
   full_name?: string;
-  phone: string;
+  phone?: string;
   email: string;
   business_name?: string;
   preferred_date?: string;

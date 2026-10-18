@@ -79,16 +79,16 @@ export const WhoCanRent: React.FC<WhoCanRentProps> = ({ onSelectSegment }) => {
   ];
 
   return (
-    <section className="py-20 lg:py-28 bg-brand-cream/40 relative">
+    <section className="py-10 lg:py-14 bg-brand-cream/40 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Header */}
-        <div className="text-center max-w-3xl mx-auto mb-14">
+        <div className="text-center max-w-3xl mx-auto mb-10">
           <span className="text-xs font-bold uppercase tracking-widest text-brand-orange bg-brand-orange-light px-3.5 py-1.5 rounded-full inline-block mb-3">
             Tailored For Food Creators
           </span>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-brand-dark tracking-tight">
-            Who Can Rent Our Commercial Kitchen?
+            Who Can Rent our Kitchen?
           </h2>
           <p className="text-base sm:text-lg text-brand-muted mt-3">
             Whether you need 2 hours to test a recipe or 8 hours every Friday to prep for weekend catering, 

@@ -8,7 +8,8 @@ import {
   CheckCircle, 
   AlertCircle, 
   Loader2,
-  Clock
+  ArrowRight,
+  ClipboardList
 } from 'lucide-react';
 import { KitchenConfig, EnquiryInput } from '../types';
 import { api } from '../services/api';
@@ -19,13 +20,8 @@ interface ContactProps {
 
 export const Contact: React.FC<ContactProps> = ({ config }) => {
   const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [businessName, setBusinessName] = useState('');
-  const [preferredDate, setPreferredDate] = useState('');
-  const [estimatedHours, setEstimatedHours] = useState('');
-  const [businessType, setBusinessType] = useState('Cloud Kitchen');
-  const [registeredInVicPark, setRegisteredInVicPark] = useState('No');
+  const [enquiryType, setEnquiryType] = useState('');
   const [message, setMessage] = useState('');
 
   const [loading, setLoading] = useState(false);
@@ -34,32 +30,28 @@ export const Contact: React.FC<ContactProps> = ({ config }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!enquiryType) {
+      setError('Please select what you need from the dropdown.');
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
       const payload: EnquiryInput = {
         name: name.trim(),
-        phone: phone.trim(),
         email: email.trim(),
-        business_name: businessName.trim() || undefined,
-        preferred_date: preferredDate.trim() || undefined,
-        estimated_hours: estimatedHours.trim() || undefined,
-        business_type: businessType,
-        registered_in_victoria_park: registeredInVicPark,
+        business_type: enquiryType,
         message: message.trim(),
       };
       await api.submitEnquiry(payload);
       setSuccess(true);
       setName('');
-      setPhone('');
       setEmail('');
-      setBusinessName('');
-      setPreferredDate('');
-      setEstimatedHours('');
-      setRegisteredInVicPark('No');
+      setEnquiryType('');
       setMessage('');
+      setTimeout(() => setSuccess(false), 6000);
     } catch (err: any) {
-      setError(err.message || 'Failed to submit enquiry. Please try again or reach out by phone.');
+      setError(err.message || 'Failed to submit enquiry. Please try again or reach out directly.');
     } finally {
       setLoading(false);
     }
@@ -67,371 +59,214 @@ export const Contact: React.FC<ContactProps> = ({ config }) => {
 
   const phoneDisplay = config?.kitchen_phone || '0479 175 705';
   const emailDisplay = config?.kitchen_email || 'hello@dailydrop.today';
-  const addressDisplay = config?.kitchen_address || 'Unit 1, 1 Lichfield Street, Victoria Park, Perth, WA, 6101';
+  const addressDisplay = config?.kitchen_address || 'Unit 1, 1 Lichfield Street, Victoria Park WA 6101';
   const whatsappNum = config?.kitchen_whatsapp || '+61479175705';
 
   return (
-    <section id="contact" className="py-20 lg:py-28 bg-white relative">
+    <section id="contact" className="py-10 lg:py-16 bg-brand-cream/50 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Sleek Compact Full-Width Banner: Schedule an In-Person Facility Walkthrough */}
-        <div className="mb-10 rounded-2xl bg-gradient-to-r from-brand-forest via-[#1B3F2D] to-brand-forest text-white p-5 sm:p-6 lg:py-4.5 lg:px-7 shadow-md border border-emerald-700/40 relative overflow-hidden">
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            
-            {/* Left: Info */}
-            <div className="space-y-1.5 max-w-3xl">
-              <div className="flex items-center space-x-2">
-                <span className="w-2 h-2 rounded-full bg-brand-orange animate-pulse shrink-0" />
-                <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
-                  Schedule an In-Person Facility Walkthrough
-                </h3>
-                <span className="hidden sm:inline-block text-[11px] font-semibold text-emerald-300 bg-white/10 px-2.5 py-0.5 rounded-full">
-                  Free 15-Min Tour
-                </span>
-              </div>
-              
-              <p className="text-xs text-gray-200 leading-relaxed font-normal">
-                Want to inspect our Rational combi ovens, refrigeration space, and prep lines in person before booking? Drop by or request a walkthrough time with our kitchen team.
-              </p>
-
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-emerald-200/90 font-medium pt-0.5">
-                <span className="flex items-center space-x-1">
-                  <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Inspect Equipment Live</span>
-                </span>
-                <span className="flex items-center space-x-1">
-                  <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Meet Facility Manager</span>
-                </span>
-                <span className="flex items-center space-x-1">
-                  <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Unit 1, 1 Lichfield St, Victoria Park</span>
-                </span>
-              </div>
-            </div>
-
-            {/* Right: Compact Action Buttons */}
-            <div className="flex items-center gap-2.5 shrink-0 pt-1 md:pt-0">
-              <a
-                href={`tel:${phoneDisplay.replace(/\s+/g, '')}`}
-                className="bg-brand-orange hover:bg-brand-orange-hover text-white py-2.5 px-4 rounded-xl font-bold text-xs flex items-center space-x-1.5 shadow-sm hover:shadow-glow-orange transition-all text-center cursor-pointer"
-              >
-                <Phone className="w-3.5 h-3.5" />
-                <span>Call {phoneDisplay}</span>
-              </a>
-              {whatsappNum && (
-                <a
-                  href={`https://wa.me/${whatsappNum.replace(/[^0-9]/g, '')}?text=Hello%20Daily%20Drop%20Kitchen,%20I'd%20like%20to%20schedule%20an%20in-person%20facility%20walkthrough.`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-white/10 hover:bg-white/20 text-white border border-white/20 py-2.5 px-3.5 rounded-xl font-bold text-xs flex items-center space-x-1.5 transition-all text-center cursor-pointer"
-                >
-                  <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>WhatsApp</span>
-                </a>
-              )}
-            </div>
-
-          </div>
-        </div>
-
-        {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <span className="text-xs font-bold uppercase tracking-widest text-brand-orange bg-brand-orange-light px-3.5 py-1.5 rounded-full inline-block mb-3">
-            Custom Rental Enquiries
+        {/* Section Header matching Image 2 */}
+        <div className="text-center max-w-3xl mx-auto mb-10">
+          <span className="text-[11px] font-bold uppercase tracking-widest text-brand-orange bg-brand-orange-light px-3.5 py-1.5 rounded-full inline-block mb-3">
+            QUESTIONS & CUSTOM BOOKINGS
           </span>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-brand-dark tracking-tight">
-            Connect With Our Kitchen Facility Team
+            Let's Talk About Your Kitchen Needs
           </h2>
-          <p className="text-base sm:text-lg text-brand-muted mt-3">
-            Need specialised equipment, monthly long-term shifts, or have bespoke production requirements? 
-            Speak directly with our kitchen management.
+          <p className="text-sm sm:text-base text-brand-muted mt-3 max-w-2xl mx-auto leading-relaxed">
+            Need regular kitchen access, specialised equipment, or a customised rental arrangement? Get in touch with our team to discuss your requirements.
           </p>
         </div>
 
-        {/* Contact Container Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+        {/* 2-Card Layout matching Image 2 */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start max-w-5xl mx-auto">
           
-          {/* Left Column: Direct Contact Info & WhatsApp */}
-          <div className="lg:col-span-5 space-y-6">
-            
-            <div className="bg-brand-cream/60 rounded-3xl p-7 border border-brand-mint-border space-y-6 shadow-soft-sm">
-              <h3 className="text-xl font-extrabold text-brand-dark">Facility Location & Direct Contacts</h3>
-              
-              <div className="space-y-5 text-xs sm:text-sm">
-                <div className="flex items-start space-x-3.5">
-                  <div className="w-10 h-10 rounded-xl bg-brand-mint text-brand-forest flex items-center justify-center shrink-0">
-                    <MapPin className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-brand-dark">Daily Drop Kitchen Hub 1</h4>
-                    <p className="text-brand-muted mt-0.5">{addressDisplay}</p>
-                    <span className="text-[11px] text-brand-forest font-semibold mt-1 inline-block">
-                      Victoria Park Commercial Precinct
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-3.5">
-                  <div className="w-10 h-10 rounded-xl bg-brand-mint text-brand-forest flex items-center justify-center shrink-0">
-                    <Phone className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-brand-dark">Phone Enquiries & On-Site Support</h4>
-                    <p className="text-brand-muted mt-0.5">{phoneDisplay}</p>
-                    <p className="text-[11px] text-brand-muted">Mon – Sun: 7:00 AM – 7:00 PM AWST</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-3.5">
-                  <div className="w-10 h-10 rounded-xl bg-brand-mint text-brand-forest flex items-center justify-center shrink-0">
-                    <Mail className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-brand-dark">Email Inquiries & Invoicing</h4>
-                    <p className="text-brand-muted mt-0.5">{emailDisplay}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-3.5">
-                  <div className="w-10 h-10 rounded-xl bg-brand-mint text-brand-forest flex items-center justify-center shrink-0">
-                    <Clock className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-brand-dark">Kitchen Operating Schedule</h4>
-                    <p className="text-brand-muted mt-0.5">Kitchen Timings 24 hours available (24/7 for booked shifts)</p>
-                  </div>
-                </div>
+          {/* Left Card: Visit or Contact Us (5 cols) */}
+          <div className="lg:col-span-5 bg-[#0C120E] text-white rounded-3xl p-7 sm:p-8 border border-emerald-950/80 shadow-xl flex flex-col justify-between space-y-7">
+            <div className="space-y-6">
+              <div className="flex items-center space-x-2.5 pb-4 border-b border-white/10">
+                <MapPin className="w-5 h-5 text-emerald-400" />
+                <h3 className="text-lg font-bold text-white tracking-tight">
+                  Visit or Contact Us
+                </h3>
               </div>
 
-              {/* WhatsApp Quick Connect Button */}
-              {whatsappNum && (
-                <div className="pt-4 border-t border-brand-mint-border">
-                  <a
-                    href={`https://wa.me/${whatsappNum.replace(/[^0-9]/g, '')}?text=Hello%20Daily%20Drop%20Kitchen,%20I'm%20interested%20in%20hourly%20commercial%20kitchen%20rental.`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3.5 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center space-x-2 transition-all shadow-soft"
+              <div className="space-y-4 text-sm text-gray-300">
+                <div>
+                  <h4 className="font-extrabold text-white text-base">Daily Drop Kitchens</h4>
+                  <p className="text-xs sm:text-sm text-gray-300 mt-1 leading-relaxed">
+                    {addressDisplay}
+                  </p>
+                </div>
+
+                <div className="pt-2 space-y-3">
+                  <a 
+                    href={`tel:${phoneDisplay.replace(/\s+/g, '')}`} 
+                    className="flex items-center space-x-3 text-gray-200 hover:text-white transition-colors group"
                   >
-                    <MessageSquare className="w-4 h-4" />
-                    <span>Chat on WhatsApp Directly</span>
+                    <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-emerald-400 group-hover:bg-emerald-500/20">
+                      <Phone className="w-4 h-4" />
+                    </div>
+                    <span className="font-medium text-xs sm:text-sm">{phoneDisplay}</span>
+                  </a>
+
+                  <a 
+                    href={`mailto:${emailDisplay}`} 
+                    className="flex items-center space-x-3 text-gray-200 hover:text-white transition-colors group"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-emerald-400 group-hover:bg-emerald-500/20">
+                      <Mail className="w-4 h-4" />
+                    </div>
+                    <span className="font-medium text-xs sm:text-sm">{emailDisplay}</span>
                   </a>
                 </div>
-              )}
+              </div>
             </div>
 
+            {/* Chat on WhatsApp Button */}
+            {whatsappNum && (
+              <div className="pt-2">
+                <a
+                  href={`https://wa.me/${whatsappNum.replace(/[^0-9]/g, '')}?text=Hello%20Daily%20Drop%20Kitchen,%20I'd%20like%20to%20enquire%20about%20kitchen%20rental.`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full bg-[#1EA952] hover:bg-[#1B9949] text-white py-3.5 px-5 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center space-x-2.5 shadow-md transition-all duration-200 transform hover:-translate-y-0.5 cursor-pointer"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span>Chat on WhatsApp</span>
+                </a>
+              </div>
+            )}
           </div>
 
-          {/* Right Column: Custom Enquiry Form */}
-          <div className="lg:col-span-7">
-            <div className="bg-white rounded-3xl p-7 sm:p-9 border border-brand-mint-border shadow-soft-lg">
-              <h3 className="text-xl font-extrabold text-brand-dark mb-1">
-                Custom Rental Enquiry
-              </h3>
-              <p className="text-xs sm:text-sm text-brand-muted mb-6">
-                Fill in your details below and our kitchen team will reply with rate options and availability.
-              </p>
-
-              {success ? (
-                <div className="p-6 rounded-2xl bg-emerald-50 border border-emerald-200 text-center space-y-3">
-                  <CheckCircle className="w-10 h-10 text-emerald-600 mx-auto" />
-                  <h4 className="text-lg font-bold text-emerald-900">Enquiry Received!</h4>
-                  <p className="text-xs sm:text-sm text-emerald-700 max-w-md mx-auto">
-                    Thank you. Our kitchen facility manager has received your message and will contact you via email or phone within 2 business hours.
-                  </p>
-                  <button
-                    onClick={() => setSuccess(false)}
-                    className="mt-3 text-xs font-bold text-emerald-800 underline underline-offset-2"
-                  >
-                    Send another enquiry
-                  </button>
-                </div>
-              ) : (
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  {error && (
-                    <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center space-x-2">
-                      <AlertCircle className="w-4 h-4 shrink-0" />
-                      <span>{error}</span>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1.5">
-                        Your Name *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="John Smith"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs sm:text-sm text-brand-dark focus:ring-2 focus:ring-brand-forest focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1.5">
-                        Phone Number *
-                      </label>
-                      <input
-                        type="tel"
-                        required
-                        placeholder="+61 400 000 000"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs sm:text-sm text-brand-dark focus:ring-2 focus:ring-brand-forest focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1.5">
-                        Email Address *
-                      </label>
-                      <input
-                        type="email"
-                        required
-                        placeholder="john@kitchenbrand.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs sm:text-sm text-brand-dark focus:ring-2 focus:ring-brand-forest focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1.5">
-                        Business Name (Optional)
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Sedap Place"
-                        value={businessName}
-                        onChange={(e) => setBusinessName(e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs sm:text-sm text-brand-dark focus:ring-2 focus:ring-brand-forest focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1.5">
-                        Type of Food Business
-                      </label>
-                      <select
-                        value={businessType}
-                        onChange={(e) => setBusinessType(e.target.value)}
-                        className="w-full px-3 py-2.5 rounded-xl border border-gray-300 text-xs sm:text-sm text-brand-dark focus:ring-2 focus:ring-brand-forest focus:outline-none"
-                      >
-                        <option value="Cloud Kitchen">Cloud Kitchen</option>
-                        <option value="Restaurant / Cafe">Restaurant / Cafe</option>
-                        <option value="Catering Business">Catering Business</option>
-                        <option value="Bakery / Pastry">Bakery / Pastry</option>
-                        <option value="Food CPG / Startup">Food CPG / Startup</option>
-                        <option value="Private Chef">Private Chef</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1.5">
-                        Preferred Date / Range
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Next month or weekly"
-                        value={preferredDate}
-                        onChange={(e) => setPreferredDate(e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs sm:text-sm text-brand-dark focus:ring-2 focus:ring-brand-forest focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1.5">
-                        Estimated Hours
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. 15 hrs / week"
-                        value={estimatedHours}
-                        onChange={(e) => setEstimatedHours(e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs sm:text-sm text-brand-dark focus:ring-2 focus:ring-brand-forest focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Town of Victoria Park Registration Question */}
-                  <div className="p-4 rounded-xl bg-brand-cream/60 border border-brand-mint-border">
-                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-2">
-                      Is your food business registered in the Town of Victoria Park? *
-                    </label>
-                    <div className="flex items-center space-x-6">
-                      <label className="flex items-center space-x-2 text-xs font-semibold text-brand-dark cursor-pointer">
-                        <input
-                          type="radio"
-                          name="registeredVicPark"
-                          value="Yes"
-                          checked={registeredInVicPark === 'Yes'}
-                          onChange={() => setRegisteredInVicPark('Yes')}
-                          className="text-brand-forest focus:ring-brand-forest h-4 w-4"
-                        />
-                        <span>Yes</span>
-                      </label>
-                      <label className="flex items-center space-x-2 text-xs font-semibold text-brand-dark cursor-pointer">
-                        <input
-                          type="radio"
-                          name="registeredVicPark"
-                          value="No"
-                          checked={registeredInVicPark === 'No'}
-                          onChange={() => setRegisteredInVicPark('No')}
-                          className="text-brand-forest focus:ring-brand-forest h-4 w-4"
-                        />
-                        <span>No</span>
-                      </label>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1.5">
-                      Message & Requirements *
-                    </label>
-                    <textarea
-                      rows={4}
-                      required
-                      placeholder="Tell us about the equipment you need, timeline, or storage requirements..."
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs sm:text-sm text-brand-dark focus:ring-2 focus:ring-brand-forest focus:outline-none"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full bg-brand-forest hover:bg-brand-forest-light text-white py-3.5 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center space-x-2 transition-all shadow-soft"
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Sending Enquiry...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-4 h-4" />
-                        <span>Submit Custom Rental Enquiry</span>
-                      </>
-                    )}
-                  </button>
-
-                  <p className="text-[11px] text-center text-brand-muted mt-2">
-                    Rental enquiries are sent directly to{' '}
-                    <a href="mailto:hello@dailydrop.today" className="font-bold text-brand-forest underline">
-                      hello@dailydrop.today
-                    </a>
-                  </p>
-                </form>
-              )}
+          {/* Right Card: Custom Rental Enquiry (7 cols) */}
+          <div className="lg:col-span-7 bg-[#0C120E] text-white rounded-3xl p-7 sm:p-8 border border-emerald-950/80 shadow-xl">
+            <div className="flex items-center space-x-2.5 pb-4 border-b border-white/10 mb-5">
+              <ClipboardList className="w-5 h-5 text-emerald-400" />
+              <div>
+                <h3 className="text-lg font-bold text-white tracking-tight">
+                  Custom Rental Enquiry
+                </h3>
+              </div>
             </div>
+
+            <p className="text-xs text-gray-300 leading-relaxed mb-6">
+              Tell us what you need and we'll help you find a suitable rental arrangement.
+            </p>
+
+            {success && (
+              <div className="mb-6 p-4 rounded-xl bg-emerald-900/50 border border-emerald-500 text-emerald-200 text-xs flex items-start space-x-2.5 animate-fadeIn">
+                <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold">Thank you for your enquiry!</p>
+                  <p className="mt-0.5 text-gray-300">Our kitchen team has received your message and will reply with rate options and availability.</p>
+                </div>
+              </div>
+            )}
+
+            {error && (
+              <div className="mb-6 p-3.5 rounded-xl bg-red-950/70 border border-red-500/50 text-red-200 text-xs flex items-center space-x-2">
+                <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                  Your name
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Full name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#141C16] border border-gray-700/60 text-white placeholder-gray-500 text-xs sm:text-sm focus:border-emerald-500 focus:outline-none transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                  Email address
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#141C16] border border-gray-700/60 text-white placeholder-gray-500 text-xs sm:text-sm focus:border-emerald-500 focus:outline-none transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                  What do you need?
+                </label>
+                <select
+                  required
+                  value={enquiryType}
+                  onChange={(e) => setEnquiryType(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#141C16] border border-gray-700/60 text-white text-xs sm:text-sm focus:border-emerald-500 focus:outline-none transition-colors"
+                >
+                  <option value="" disabled className="bg-[#141C16] text-gray-500">
+                    Select enquiry type
+                  </option>
+                  <option value="Recurring kitchen rental" className="bg-[#141C16] text-white">
+                    Recurring kitchen rental
+                  </option>
+                  <option value="Special equipment requirements" className="bg-[#141C16] text-white">
+                    Special equipment requirements
+                  </option>
+                  <option value="Long-term kitchen hire" className="bg-[#141C16] text-white">
+                    Long-term kitchen hire
+                  </option>
+                  <option value="General enquiry" className="bg-[#141C16] text-white">
+                    General enquiry
+                  </option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                  Message
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  placeholder="Tell us about your requirements..."
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#141C16] border border-gray-700/60 text-white placeholder-gray-500 text-xs sm:text-sm focus:border-emerald-500 focus:outline-none transition-colors"
+                />
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-[#152319] hover:bg-[#1A2E20] border border-emerald-700/40 text-white py-3 px-5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-sm hover:border-emerald-500"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
+                      <span>Sending Enquiry...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Send Enquiry</span>
+                      <ArrowRight className="w-4 h-4 text-emerald-400" />
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <p className="text-[11px] text-gray-500 text-center pt-1">
+                Layout preview; submission requires connection to your website backend.
+              </p>
+            </form>
           </div>
 
         </div>

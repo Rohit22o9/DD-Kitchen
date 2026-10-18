@@ -258,7 +258,7 @@ export const api = {
       full_name: personName,
       business_name: data.business_name,
       email: data.email,
-      phone: data.phone,
+      phone: data.phone || '',
       preferred_contact: data.preferred_contact || 'Email',
       rental_type: data.rental_type || 'General Enquiry',
       registered_in_victoria_park: String(data.registered_in_victoria_park ?? ''),
