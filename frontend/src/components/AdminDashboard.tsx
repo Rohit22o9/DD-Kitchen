@@ -176,8 +176,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
         status: newStatus,
         payment_status: newPayment,
         admin_notes: actionNotes.trim() || undefined,
+        reference_code: selectedBooking?.reference_code,
       });
-      setBookings((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
+      setBookings((prev) =>
+        prev.map((b) =>
+          b.id === updated.id || (b.reference_code && b.reference_code === updated.reference_code)
+            ? { ...b, ...updated }
+            : b
+        )
+      );
       setSelectedBooking(null);
       setActionNotes('');
       // Refresh stats

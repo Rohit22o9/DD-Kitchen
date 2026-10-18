@@ -151,6 +151,33 @@ function doPost(e) {
         reference_code: enqRef,
         message: "Enquiry saved successfully in Google Sheets"
       })).setMimeType(ContentService.MimeType.JSON);
+
+    } else if (action === "update_booking_status") {
+      var bookingsSheet = ss.getSheetByName("Bookings");
+      var rows = bookingsSheet.getDataRange().getValues();
+      var targetRef = data.reference_code || "";
+      var targetId = Number(data.booking_id) || 0;
+      var found = false;
+
+      for (var i = 1; i < rows.length; i++) {
+        var rowRef = rows[i][1];
+        if ((targetRef && rowRef === targetRef) || (targetId && i === targetId)) {
+          // Column 17 (Q) is Status, Column 18 (R) is Notes
+          if (data.status) {
+            bookingsSheet.getRange(i + 1, 17).setValue(data.status);
+          }
+          if (data.admin_notes) {
+            bookingsSheet.getRange(i + 1, 18).setValue(data.admin_notes);
+          }
+          found = true;
+          break;
+        }
+      }
+
+      return ContentService.createTextOutput(JSON.stringify({
+        status: found ? "success" : "not_found",
+        message: found ? "Booking status updated in Google Sheet" : "Booking reference not found in sheet"
+      })).setMimeType(ContentService.MimeType.JSON);
     }
 
     return ContentService.createTextOutput(JSON.stringify({

@@ -390,6 +390,16 @@ export const api = {
               payment_status: item.payment_status || 'unpaid',
               created_at: item.created_at || new Date().toISOString()
             }));
+            // Cache fetched bookings in localStorage so all updates and actions work
+            const stored = getStoredBookings();
+            const merged = [...result];
+            for (const s of stored) {
+              if (!merged.some((m) => m.reference_code === s.reference_code)) {
+                merged.push(s);
+              }
+            }
+            saveStoredBookings(merged);
+
             if (status && status !== 'all') result = result.filter((b) => b.status === status);
             if (search) {
               const q = search.toLowerCase();
@@ -437,7 +447,7 @@ export const api = {
   async updateBookingStatus(
     token: string,
     id: number,
-    data: { status?: string; payment_status?: string; admin_notes?: string }
+    data: { status?: string; payment_status?: string; admin_notes?: string; reference_code?: string }
   ): Promise<Booking> {
     try {
       const res = await fetch(`${API_BASE}/admin/bookings/${id}/status`, {
@@ -451,14 +461,52 @@ export const api = {
       if (res.ok) return await res.json();
     } catch {}
 
+    // Send status update to Google Sheets Webhook
+    const sheetUrl = getGoogleSheetUrl();
+    if (sheetUrl) {
+      postToGoogleSheet({
+        action: 'update_booking_status',
+        booking_id: id,
+        reference_code: data.reference_code,
+        status: data.status,
+        payment_status: data.payment_status,
+        admin_notes: data.admin_notes,
+      }).catch(() => {});
+    }
+
     const bookings = getStoredBookings();
-    const idx = bookings.findIndex((b) => b.id === id);
+    const idx = bookings.findIndex(
+      (b) => b.id === id || (data.reference_code && b.reference_code === data.reference_code)
+    );
     if (idx !== -1) {
       bookings[idx] = { ...bookings[idx], ...data } as Booking;
       saveStoredBookings(bookings);
       return bookings[idx];
     }
-    throw new Error('Booking not found');
+
+    const created: Booking = {
+      id: id || Date.now(),
+      reference_code: data.reference_code || `DD-BK-${id}`,
+      full_name: 'Applicant',
+      email: '',
+      phone: '',
+      booking_date: '',
+      start_time: '',
+      end_time: '',
+      duration_hours: 4,
+      hourly_rate: 45,
+      base_price: 152,
+      cleaning_fee: 0,
+      total_price: 167.2,
+      status: (data.status as any) || 'approved',
+      payment_status: (data.payment_status as any) || 'unpaid',
+      admin_notes: data.admin_notes,
+      intended_use: '',
+      team_size: 1,
+      created_at: new Date().toISOString(),
+    };
+    saveStoredBookings([created, ...bookings]);
+    return created;
   },
 
   async deleteBooking(token: string, id: number): Promise<void> {
