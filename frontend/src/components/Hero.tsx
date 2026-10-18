@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Calendar, Clock, DollarSign, ArrowRight, ShieldCheck, Sparkles, CheckCircle2 } from 'lucide-react';
 import { KitchenConfig } from '../types';
+import { Images } from '../assets/images';
 
 interface HeroProps {
   config: KitchenConfig | null;
@@ -122,7 +123,7 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
             {/* Kitchen Photo Preview Thumbnail */}
             <div className="pt-4 flex items-center space-x-4">
               <div className="relative rounded-xl overflow-hidden w-28 h-18 border-2 border-white shadow-soft">
-                <img src="/images/hero_kitchen.jpg" alt="Daily Drop Kitchen" className="w-full h-full object-cover" />
+                <img src={Images.hero} alt="Daily Drop Kitchen" className="w-full h-full object-cover" />
               </div>
               <div>
                 <p className="text-xs font-bold text-brand-dark">Daily Drop Kitchen Hub 1 — Perth WA</p>

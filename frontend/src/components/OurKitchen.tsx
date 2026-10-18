@@ -12,31 +12,33 @@ import {
   ThermometerSnowflake 
 } from 'lucide-react';
 
+import { Images } from '../assets/images';
+
 interface OurKitchenProps {
   onCheckAvailability: () => void;
 }
 
 export const OurKitchen: React.FC<OurKitchenProps> = ({ onCheckAvailability }) => {
-  const [activePhoto, setActivePhoto] = useState<string>('/images/hero_kitchen.jpg');
+  const [activePhoto, setActivePhoto] = useState<string>(Images.hero);
 
   const gallery = [
     {
-      src: '/images/hero_kitchen.jpg',
+      src: Images.hero,
       title: 'Main Commercial Kitchen & Island Range',
       description: 'Heavy duty stainless steel gas burners, industrial ventilation canopy, and central prep station.',
     },
     {
-      src: '/images/prep_station.jpg',
+      src: Images.prepStation,
       title: 'Stainless Food Preparation Counters',
       description: 'Grade 304 food-grade stainless prep tables, planetary mixers, and high-volume mise en place bowls.',
     },
     {
-      src: '/images/cooking_range.jpg',
+      src: Images.cookingRange,
       title: 'High-Output Cooking Line & Combi Station',
       description: 'Garland 6-burner ranges, double flat top griddles, high-efficiency fryers, and overhead extraction.',
     },
     {
-      src: '/images/cold_storage.jpg',
+      src: Images.coldStorage,
       title: 'Commercial Walk-in Chiller & Dry Pantry',
       description: 'HACCP-monitored 2°C walk-in cool room, wire shelving racks, and organized dry ingredient storage.',
     },

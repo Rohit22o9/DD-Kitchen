@@ -10,6 +10,7 @@ import {
   Package, 
   ShieldCheck 
 } from 'lucide-react';
+import { Images } from '../assets/images';
 
 export const Facilities: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -30,7 +31,7 @@ export const Facilities: React.FC = () => {
       specs: 'Cast iron trivets, 30,000 BTU/burner, dual gas oven base',
       status: 'Available',
       icon: Flame,
-      image: '/images/cooking_range.jpg',
+      image: Images.cookingRange,
     },
     {
       name: 'Rational iCombi Pro 10-Tray Combi Oven',
@@ -38,7 +39,7 @@ export const Facilities: React.FC = () => {
       specs: 'Steam, convection & combination modes with multi-point core probe',
       status: 'Available',
       icon: Sparkles,
-      image: '/images/hero_kitchen.jpg',
+      image: Images.hero,
     },
     {
       name: '304 Food-Grade Prep Workstations',
@@ -46,7 +47,7 @@ export const Facilities: React.FC = () => {
       specs: '4x stainless 2.4m prep tables, undershelves, cutting boards',
       status: 'Available',
       icon: Utensils,
-      image: '/images/prep_station.jpg',
+      image: Images.prepStation,
     },
     {
       name: 'Commercial Walk-in Chiller (40 m³)',
@@ -54,7 +55,7 @@ export const Facilities: React.FC = () => {
       specs: 'Digitally monitored at 2°C, multi-tier wire shelving, pallet ramp',
       status: 'Available',
       icon: ThermometerSnowflake,
-      image: '/images/cold_storage.jpg',
+      image: Images.coldStorage,
     },
     {
       name: 'Hobart 30L Planetary Commercial Mixer',
@@ -62,7 +63,7 @@ export const Facilities: React.FC = () => {
       specs: '3-speed gear transmission, bowl guard, dough hook, whisk, beater',
       status: 'Available',
       icon: Layers,
-      image: '/images/prep_station.jpg',
+      image: Images.prepStation,
     },
     {
       name: '2x 20L Twin Pit Commercial Deep Fryers',
@@ -70,7 +71,7 @@ export const Facilities: React.FC = () => {
       specs: 'Fast recovery gas burners, dual wire baskets, oil filtration kit',
       status: 'Available',
       icon: Flame,
-      image: '/images/cooking_range.jpg',
+      image: Images.cookingRange,
     },
     {
       name: 'High-Temp Pass-Through Hood Dishwasher',
@@ -78,7 +79,7 @@ export const Facilities: React.FC = () => {
       specs: '82°C sanitizing rinse cycle, chemical dosing, triple sink pre-rinse',
       status: 'Available',
       icon: Sparkles,
-      image: '/images/hero_kitchen.jpg',
+      image: Images.hero,
     },
     {
       name: 'Dedicated Packaging & Dispatch Counter',
@@ -86,7 +87,7 @@ export const Facilities: React.FC = () => {
       specs: 'Direct external courier access door, labeling bench, heat sealers',
       status: 'Available',
       icon: Package,
-      image: '/images/prep_station.jpg',
+      image: Images.prepStation,
     },
   ];
 

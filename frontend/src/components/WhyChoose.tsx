@@ -9,6 +9,7 @@ import {
   ShieldCheck, 
   Check 
 } from 'lucide-react';
+import { Images } from '../assets/images';
 
 export const WhyChoose: React.FC = () => {
   const benefits = [
@@ -69,7 +70,7 @@ export const WhyChoose: React.FC = () => {
           <div className="lg:col-span-5 relative">
             <div className="relative rounded-3xl overflow-hidden shadow-soft-lg border-4 border-white aspect-[4/5] bg-gray-100">
               <img
-                src="/images/prep_station.jpg"
+                src={Images.prepStation}
                 alt="Chef prepping in Daily Drop Commercial Kitchen"
                 className="w-full h-full object-cover"
               />

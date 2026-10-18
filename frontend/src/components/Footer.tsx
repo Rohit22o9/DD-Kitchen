@@ -1,6 +1,7 @@
 import React from 'react';
 import { ShieldCheck, MapPin, Phone, Mail, Clock, Shield } from 'lucide-react';
 import { KitchenConfig } from '../types';
+import { Images } from '../assets/images';
 
 interface FooterProps {
   config: KitchenConfig | null;
@@ -25,7 +26,7 @@ export const Footer: React.FC<FooterProps> = ({ config, onAdminClick }) => {
           <div className="lg:col-span-5 space-y-4">
             <div className="flex items-center space-x-3 bg-white/95 p-2 rounded-2xl w-fit">
               <img
-                src="/images/daily_drop_logo.png"
+                src={Images.logo}
                 alt="Daily Drop Commercial Kitchen"
                 className="h-10 w-auto object-contain"
               />

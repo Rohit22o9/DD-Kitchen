@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Calendar, Phone, Menu, X, ShieldCheck, Clock, Shield } from 'lucide-react';
+import { Images } from '../assets/images';
 
 interface NavbarProps {
   onBookClick: () => void;
@@ -25,7 +26,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick, onAdminClick, isAdm
           {/* Logo */}
           <div className="flex items-center space-x-3 cursor-pointer" onClick={() => scrollToSection('hero')}>
             <img
-              src="/images/daily_drop_logo.png"
+              src={Images.logo}
               alt="Daily Drop Commercial Kitchen Rental"
               className="h-10 sm:h-12 w-auto object-contain hover:opacity-95 transition-opacity"
             />
