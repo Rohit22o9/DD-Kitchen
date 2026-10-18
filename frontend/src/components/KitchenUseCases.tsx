@@ -27,9 +27,9 @@ export const KitchenUseCases: React.FC<KitchenUseCasesProps> = ({ onStartBooking
       desc: 'We’re seeing an increasing demand for “cloud kitchens” with the food delivery business exploding across Uber Eats and DoorDash.',
     },
     {
-      title: 'TEST YOUR MENU',
-      icon: ChefHat,
-      desc: 'Use our state-of-the-art kitchens to test and improve your menu, without investing in expensive equipment right now.',
+      title: 'COOKING & CONTENT CREATION',
+      icon: Video,
+      desc: 'Book our commercial kitchen for cooking demonstrations, recipe videos, food photography, product showcases, and live streaming. An ideal space for chefs, food influencers, and content creators to bring their culinary ideas to life.',
     },
     {
       title: 'TEAM BUILDING',
@@ -42,14 +42,9 @@ export const KitchenUseCases: React.FC<KitchenUseCasesProps> = ({ onStartBooking
       desc: 'Use one of our kitchens long-term and take a business test drive without investing in your own commercial kitchen. Test, refine, grow.',
     },
     {
-      title: 'IMPROVE YOUR MENU',
-      icon: Sparkles,
-      desc: 'Use commercial-grade equipment and precision culinary tools to refine your recipes and elevate your menu quality.',
-    },
-    {
-      title: 'COOKING DEMONSTRATIONS',
-      icon: Video,
-      desc: 'Our kitchens are available for product launches and cooking demonstrations. We have the space and high-end setup to accommodate demonstrations, filming, or tastings.',
+      title: 'TEST & IMPROVE YOUR MENU',
+      icon: ChefHat,
+      desc: 'Experiment with new recipes, refine existing dishes, and perfect your menu using our commercial kitchen facilities and professional equipment, without investing in your own kitchen.',
     },
   ];
 
