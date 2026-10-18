@@ -90,9 +90,9 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
             </div>
           ))}
           
-          {/* Light translucent wash: keeps text crystal clear on left, full kitchen photo visible across right */}
-          <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/70 to-transparent lg:from-white/94 lg:via-white/55 lg:to-black/5" />
-          <div className="absolute inset-0 bg-white/10" />
+          {/* Subtle balanced overlay: NO white wash on left, natural uniform kitchen photo visibility across the whole width */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/35 to-black/10" />
+          <div className="absolute inset-0 bg-black/10" />
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -102,19 +102,19 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
             <div className="lg:col-span-7 space-y-6">
               
               {/* Pill Badge */}
-              <div className="inline-flex items-center space-x-2 bg-brand-mint text-brand-forest px-3.5 py-1.5 rounded-full border border-brand-mint-border text-xs font-bold shadow-soft-sm">
+              <div className="inline-flex items-center space-x-2 bg-black/35 backdrop-blur-md text-white px-3.5 py-1.5 rounded-full border border-white/20 text-xs font-semibold shadow-xs">
                 <span className="w-2 h-2 rounded-full bg-brand-orange animate-pulse" />
                 <span>Perth's Flexible Commercial Kitchen Rental</span>
               </div>
 
               {/* Main Headline */}
-              <h1 className="text-4xl sm:text-5xl lg:text-[56px] font-black text-brand-dark tracking-tight leading-[1.12]">
+              <h1 className="text-4xl sm:text-5xl lg:text-[56px] font-black text-white tracking-tight leading-[1.12] drop-shadow-sm">
                 A Professional Kitchen, <br />
-                <span className="text-brand-orange">Whenever You Need It.</span>
+                <span className="text-brand-orange drop-shadow-sm">Whenever You Need It.</span>
               </h1>
 
               {/* Subtitle */}
-              <p className="text-base sm:text-lg text-brand-muted max-w-xl font-normal leading-relaxed">
+              <p className="text-base sm:text-lg text-gray-100 max-w-xl font-normal leading-relaxed drop-shadow-xs">
                 Rent a fully equipped, council-compliant commercial kitchen by the hour. 
                 Perfect for caterers, food businesses, meal prep and more.
               </p>
@@ -123,35 +123,35 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 max-w-2xl">
                 
                 {/* 1. Flexible Rentals */}
-                <div className="flex items-center space-x-3 p-3 rounded-2xl bg-white/95 backdrop-blur-md shadow-soft border border-brand-mint-border">
+                <div className="flex items-center space-x-3 p-3 rounded-2xl bg-white/95 backdrop-blur-md shadow-md border border-white/40">
                   <div className="w-10 h-10 rounded-xl bg-brand-mint text-brand-forest flex items-center justify-center shrink-0">
                     <Calendar className="w-5 h-5 text-brand-forest" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-extrabold text-brand-dark leading-tight">Flexible Rentals</h4>
-                    <p className="text-[11px] text-brand-muted mt-0.5 font-medium">From 4 hours upwards</p>
+                    <h4 className="text-xs font-extrabold text-gray-900 leading-tight">Flexible Rentals</h4>
+                    <p className="text-[11px] text-gray-500 mt-0.5 font-medium">From 4 hours upwards</p>
                   </div>
                 </div>
 
                 {/* 2. Certified Facility */}
-                <div className="flex items-center space-x-3 p-3 rounded-2xl bg-white/95 backdrop-blur-md shadow-soft border border-brand-mint-border">
+                <div className="flex items-center space-x-3 p-3 rounded-2xl bg-white/95 backdrop-blur-md shadow-md border border-white/40">
                   <div className="w-10 h-10 rounded-xl bg-brand-mint text-brand-forest flex items-center justify-center shrink-0">
                     <ShieldCheck className="w-5 h-5 text-brand-forest" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-extrabold text-brand-dark leading-tight">Certified Facility</h4>
-                    <p className="text-[11px] text-brand-muted mt-0.5 font-medium">HACCP & Council approved</p>
+                    <h4 className="text-xs font-extrabold text-gray-900 leading-tight">Certified Facility</h4>
+                    <p className="text-[11px] text-gray-500 mt-0.5 font-medium">HACCP & Council approved</p>
                   </div>
                 </div>
 
                 {/* 3. 24/7 Access */}
-                <div className="flex items-center space-x-3 p-3 rounded-2xl bg-white/95 backdrop-blur-md shadow-soft border border-brand-mint-border">
+                <div className="flex items-center space-x-3 p-3 rounded-2xl bg-white/95 backdrop-blur-md shadow-md border border-white/40">
                   <div className="w-10 h-10 rounded-xl bg-brand-mint text-brand-forest flex items-center justify-center shrink-0">
                     <Clock className="w-5 h-5 text-brand-forest" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-extrabold text-brand-dark leading-tight">24/7 Access</h4>
-                    <p className="text-[11px] text-brand-muted mt-0.5 font-medium">Around your schedule</p>
+                    <h4 className="text-xs font-extrabold text-gray-900 leading-tight">24/7 Access</h4>
+                    <p className="text-[11px] text-gray-500 mt-0.5 font-medium">Around your schedule</p>
                   </div>
                 </div>
 
