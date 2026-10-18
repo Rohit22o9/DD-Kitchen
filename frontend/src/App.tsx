@@ -108,29 +108,20 @@ export function App() {
           onExploreFacilities={() => scrollToSection('facilities')}
         />
 
-        {/* 2. Core Feature: Kitchen Rental Booking Engine */}
-        <BookingEngine
-          config={config}
-          initialDate={bookingDate}
-          initialTime={bookingTime}
-          initialDuration={bookingDuration}
-          onBookingSuccess={handleBookingSuccess}
-        />
-
-        {/* 3. Our Kitchen Section */}
+        {/* 2. Our Kitchen Section */}
         <OurKitchen
           onCheckAvailability={() => scrollToBooking()}
         />
 
-        {/* 4. Facilities & Equipment */}
+        {/* 3. Facilities & Equipment */}
         <Facilities />
 
-        {/* 5. How Can You Use Our Fully Equipped Commercial Kitchens? */}
+        {/* 4. How Can You Use Our Fully Equipped Commercial Kitchens? */}
         <KitchenUseCases
           onStartBooking={() => scrollToBooking()}
         />
 
-        {/* 6. Who Can Rent */}
+        {/* 5. Who Can Rent */}
         <WhoCanRent
           onSelectSegment={() => scrollToBooking()}
         />
@@ -152,7 +143,16 @@ export function App() {
         {/* 9. FAQ Section */}
         <FAQ />
 
-        {/* 10. Contact & Enquiry */}
+        {/* 10. Core Feature: Kitchen Rental Booking Engine */}
+        <BookingEngine
+          config={config}
+          initialDate={bookingDate}
+          initialTime={bookingTime}
+          initialDuration={bookingDuration}
+          onBookingSuccess={handleBookingSuccess}
+        />
+
+        {/* 11. Contact & Enquiry */}
         <Contact config={config} />
       </main>
 
