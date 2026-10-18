@@ -28,11 +28,14 @@ export interface Booking {
   team_size: number;
   equipment_requirements?: string;
   additional_notes?: string;
-  hourly_rate: number;
-  base_price: number;
-  cleaning_fee: number;
+  hourly_rate?: number;
+  base_price?: number;
+  base_cost?: number;
+  cleaning_fee?: number;
+  security_deposit?: number;
   total_price: number;
-  status: 'pending' | 'approved' | 'confirmed' | 'rejected' | 'cancelled' | 'completed';
+  total_cost?: number;
+  status: 'pending' | 'approved' | 'confirmed' | 'rejected' | 'cancelled' | 'completed' | 'pending_approval';
   payment_status: 'unpaid' | 'deposit_paid' | 'paid' | 'refunded';
   admin_notes?: string;
   created_at: string;
@@ -66,10 +69,11 @@ export interface AvailabilityData {
     start: string;
     end: string;
   };
-  hourly_rate: number;
-  min_hours: number;
+  hourly_rate?: number;
+  min_hours?: number;
   slots: SlotInterval[];
-  existing_bookings_count: number;
+  existing_bookings_count?: number;
+  total_booked_hours?: number;
 }
 
 export interface BlockedSlot {
@@ -82,42 +86,52 @@ export interface BlockedSlot {
 }
 
 export interface EnquiryInput {
-  name: string;
+  name?: string;
+  full_name?: string;
   phone: string;
   email: string;
   business_name?: string;
   preferred_date?: string;
   estimated_hours?: string;
   business_type?: string;
-  registered_in_victoria_park?: string;
+  registered_in_victoria_park?: string | boolean;
   message: string;
+  preferred_contact?: string;
+  rental_type?: string;
 }
 
 export interface Enquiry {
   id: number;
-  name: string;
+  reference_code?: string;
+  name?: string;
+  full_name?: string;
   phone: string;
   email: string;
   business_name?: string;
   preferred_date?: string;
   estimated_hours?: string;
   business_type?: string;
-  registered_in_victoria_park?: string;
+  registered_in_victoria_park?: string | boolean;
   message: string;
+  preferred_contact?: string;
+  rental_type?: string;
   status: string;
   created_at: string;
 }
 
 export interface DashboardStats {
   total_bookings: number;
-  pending_requests: number;
-  approved_count: number;
-  confirmed_count: number;
-  completed_count: number;
-  cancelled_count: number;
-  total_confirmed_revenue: number;
-  pipeline_revenue: number;
-  total_hours_booked: number;
+  pending_requests?: number;
+  approved_count?: number;
+  confirmed_count?: number;
+  completed_count?: number;
+  cancelled_count?: number;
+  total_confirmed_revenue?: number;
+  pipeline_revenue?: number;
+  total_hours_booked?: number;
   total_enquiries: number;
   new_enquiries: number;
+  confirmed_bookings?: number;
+  pending_bookings?: number;
+  total_revenue_aud?: number;
 }

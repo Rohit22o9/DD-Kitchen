@@ -20,7 +20,10 @@ import {
   ChevronRight, 
   ArrowLeft,
   Mail,
-  Phone
+  Phone,
+  FileSpreadsheet,
+  ExternalLink,
+  RefreshCw
 } from 'lucide-react';
 import { 
   Booking, 
@@ -29,7 +32,7 @@ import {
   BlockedSlot, 
   Enquiry 
 } from '../types';
-import { api } from '../services/api';
+import { api, getGoogleSheetUrl, setGoogleSheetUrl } from '../services/api';
 
 interface AdminDashboardProps {
   onBackToSite: () => void;
@@ -43,6 +46,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loggingIn, setLoggingIn] = useState(false);
+
+  // Google Sheets state
+  const [sheetUrlInput, setSheetUrlInput] = useState(getGoogleSheetUrl());
+  const [testingSheet, setTestingSheet] = useState(false);
+  const [sheetStatusMessage, setSheetStatusMessage] = useState<string | null>(null);
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<'bookings' | 'settings' | 'blocked' | 'enquiries'>('bookings');
@@ -205,6 +213,54 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
       alert(err.message || 'Error updating settings');
     } finally {
       setSavingSettings(false);
+    }
+  };
+
+  // Google Sheet Webhook Handlers
+  const handleSaveGoogleSheetUrl = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanUrl = sheetUrlInput.trim();
+    setGoogleSheetUrl(cleanUrl);
+    setSheetStatusMessage('Google Sheet Webhook URL saved successfully!');
+    setTimeout(() => setSheetStatusMessage(null), 4000);
+  };
+
+  const handleTestGoogleSheetUrl = async () => {
+    const cleanUrl = sheetUrlInput.trim();
+    if (!cleanUrl) {
+      setSheetStatusMessage('Please enter a Google Apps Script Web App URL first.');
+      return;
+    }
+    setTestingSheet(true);
+    setSheetStatusMessage(null);
+    try {
+      setGoogleSheetUrl(cleanUrl);
+      const testRef = 'TEST-' + Math.floor(1000 + Math.random() * 9000);
+      await fetch(cleanUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'new_enquiry',
+          reference_code: testRef,
+          full_name: 'Daily Drop Admin Test Ping',
+          business_name: 'Daily Drop Kitchen Verification',
+          email: 'admin@dailydropkitchen.com.au',
+          phone: '+61 400 000 000',
+          preferred_contact: 'email',
+          rental_type: 'Hourly Kitchen Rental',
+          registered_in_vic_park: 'Yes',
+          message: 'Real-time webhook sync test from Admin Dashboard. Your Google Sheet is now active and receiving live website submissions!'
+        })
+      });
+      setSheetStatusMessage('Connection successful! A test row (' + testRef + ') was sent to your Google Sheet Enquiries tab.');
+      if (token) {
+        loadAllData(token);
+      }
+    } catch (err: any) {
+      setSheetStatusMessage('Error connecting to Google Sheet: ' + (err.message || 'Check URL permissions.'));
+    } finally {
+      setTestingSheet(false);
     }
   };
 
@@ -624,122 +680,223 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
 
         {/* TAB 2: SETTINGS & PRICING */}
         {activeTab === 'settings' && (
-          <div className="max-w-2xl bg-white rounded-2xl border border-brand-mint-border p-7 shadow-soft-sm">
-            <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-6">
-              <div>
-                <h3 className="text-lg font-extrabold text-brand-dark">Kitchen & Hourly Rate Configuration</h3>
-                <p className="text-xs text-brand-muted mt-0.5">
-                  Update live rental rates, minimum session duration, and operating hours.
-                </p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+            {/* Card 1: Kitchen Rates & Operational Hours */}
+            <div className="bg-white rounded-2xl border border-brand-mint-border p-7 shadow-soft-sm">
+              <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-6">
+                <div>
+                  <h3 className="text-lg font-extrabold text-brand-dark">Kitchen & Hourly Rate Configuration</h3>
+                  <p className="text-xs text-brand-muted mt-0.5">
+                    Update live rental rates, minimum session duration, and operating hours.
+                  </p>
+                </div>
+                <Settings className="w-5 h-5 text-brand-forest" />
               </div>
-              <Settings className="w-5 h-5 text-brand-forest" />
+
+              {settingsSuccess && (
+                <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center space-x-2 mb-4">
+                  <Check className="w-4 h-4 text-emerald-600" />
+                  <span>Settings updated successfully! Changes are live across the public site.</span>
+                </div>
+              )}
+
+              <form onSubmit={handleSaveSettings} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1">
+                      Base Hourly Rate (AUD)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      required
+                      value={hourlyRateInput}
+                      onChange={(e) => setHourlyRateInput(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs sm:text-sm text-brand-dark font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1">
+                      Minimum Rental Hours
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={8}
+                      required
+                      value={minHoursInput}
+                      onChange={(e) => setMinHoursInput(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs sm:text-sm text-brand-dark font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1">
+                      Operating Hours Start
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={opStartInput}
+                      onChange={(e) => setOpStartInput(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs sm:text-sm text-brand-dark font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1">
+                      Operating Hours End
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={opEndInput}
+                      onChange={(e) => setOpEndInput(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs sm:text-sm text-brand-dark font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1">
+                      Sanitization Cleaning Fee (AUD)
+                    </label>
+                    <input
+                      type="number"
+                      step="1"
+                      required
+                      value={cleaningFeeInput}
+                      onChange={(e) => setCleaningFeeInput(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs sm:text-sm text-brand-dark font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1">
+                      Security Deposit Bond (AUD)
+                    </label>
+                    <input
+                      type="number"
+                      step="10"
+                      required
+                      value={depositInput}
+                      onChange={(e) => setDepositInput(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs sm:text-sm text-brand-dark font-medium"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={savingSettings}
+                  className="w-full bg-brand-forest hover:bg-brand-forest-light text-white py-3 rounded-xl font-bold text-xs sm:text-sm shadow-soft transition-all"
+                >
+                  {savingSettings ? 'Saving Settings...' : 'Save Configuration'}
+                </button>
+              </form>
             </div>
 
-            {settingsSuccess && (
-              <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center space-x-2 mb-4">
-                <Check className="w-4 h-4 text-emerald-600" />
-                <span>Settings updated successfully! Changes are live across the public site.</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSaveSettings} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            {/* Card 2: Google Sheets Live Sync & Webhook Configuration */}
+            <div className="bg-white rounded-2xl border border-brand-mint-border p-7 shadow-soft-sm">
+              <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-6">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1">
-                    Base Hourly Rate (AUD)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    required
-                    value={hourlyRateInput}
-                    onChange={(e) => setHourlyRateInput(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs sm:text-sm text-brand-dark font-medium"
-                  />
+                  <h3 className="text-lg font-extrabold text-brand-dark">Google Sheets Real-Time Sync</h3>
+                  <p className="text-xs text-brand-muted mt-0.5">
+                    Connect your Google Sheet to receive live bookings and enquiries in real-time.
+                  </p>
                 </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1">
-                    Minimum Rental Hours
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={8}
-                    required
-                    value={minHoursInput}
-                    onChange={(e) => setMinHoursInput(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs sm:text-sm text-brand-dark font-medium"
-                  />
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-700">
+                  <FileSpreadsheet className="w-5 h-5" />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1">
-                    Operating Hours Start
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={opStartInput}
-                    onChange={(e) => setOpStartInput(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs sm:text-sm text-brand-dark font-medium"
-                  />
+              {/* Status Badge */}
+              <div className="flex items-center justify-between p-3.5 rounded-xl bg-gray-50 border border-gray-200 mb-5">
+                <div className="flex items-center space-x-2.5">
+                  <span className={`w-2.5 h-2.5 rounded-full ${sheetUrlInput.trim() ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`} />
+                  <span className="text-xs font-bold text-brand-dark">
+                    {sheetUrlInput.trim() ? 'Live Google Sheet Connected' : 'Google Sheet Not Configured'}
+                  </span>
                 </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1">
-                    Operating Hours End
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={opEndInput}
-                    onChange={(e) => setOpEndInput(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs sm:text-sm text-brand-dark font-medium"
-                  />
-                </div>
+                {sheetUrlInput.trim() && (
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                    Active
+                  </span>
+                )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              {sheetStatusMessage && (
+                <div className="p-3.5 rounded-xl bg-brand-mint/40 border border-brand-mint-border text-brand-dark text-xs flex items-center space-x-2 mb-4">
+                  <Check className="w-4 h-4 text-brand-forest shrink-0" />
+                  <span>{sheetStatusMessage}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleSaveGoogleSheetUrl} className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1">
-                    Sanitization Cleaning Fee (AUD)
+                    Google Apps Script Web App URL
                   </label>
                   <input
-                    type="number"
-                    step="1"
-                    required
-                    value={cleaningFeeInput}
-                    onChange={(e) => setCleaningFeeInput(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs sm:text-sm text-brand-dark font-medium"
+                    type="url"
+                    placeholder="https://script.google.com/macros/s/AKfycbx.../exec"
+                    value={sheetUrlInput}
+                    onChange={(e) => setSheetUrlInput(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs sm:text-sm text-brand-dark font-mono placeholder:font-sans placeholder:text-gray-400"
                   />
+                  <p className="text-[11px] text-brand-muted mt-1.5 leading-relaxed">
+                    Deploy your sheet script as a <strong>Web app</strong> set to <em>"Anyone"</em> access. Submissions on the website instantly append rows to your Google Sheet!
+                  </p>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1">
-                    Security Deposit Bond (AUD)
-                  </label>
-                  <input
-                    type="number"
-                    step="10"
-                    required
-                    value={depositInput}
-                    onChange={(e) => setDepositInput(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs sm:text-sm text-brand-dark font-medium"
-                  />
+                <div className="flex space-x-3 pt-2">
+                  <button
+                    type="submit"
+                    className="flex-1 bg-brand-forest hover:bg-brand-forest-light text-white py-3 rounded-xl font-bold text-xs sm:text-sm shadow-soft transition-all"
+                  >
+                    Save Webhook URL
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleTestGoogleSheetUrl}
+                    disabled={testingSheet || !sheetUrlInput.trim()}
+                    className="px-5 py-3 rounded-xl border border-brand-forest text-brand-forest hover:bg-brand-mint/30 font-bold text-xs sm:text-sm transition-all disabled:opacity-40 flex items-center justify-center space-x-1.5"
+                  >
+                    {testingSheet ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Testing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-4 h-4" />
+                        <span>Send Test Row</span>
+                      </>
+                    )}
+                  </button>
                 </div>
+              </form>
+
+              {/* Quick Setup Instructions */}
+              <div className="mt-6 pt-5 border-t border-gray-100">
+                <h4 className="text-xs font-extrabold uppercase tracking-wider text-brand-dark mb-2.5 flex items-center space-x-1.5">
+                  <span>How to Set Up Your Google Sheet (3 Minutes)</span>
+                </h4>
+                <ol className="text-xs text-brand-muted space-y-2 list-decimal list-inside leading-relaxed">
+                  <li>
+                    Open a new Google Sheet at <a href="https://sheets.new" target="_blank" rel="noreferrer" className="text-brand-forest underline font-semibold inline-flex items-center">sheets.new <ExternalLink className="w-3 h-3 ml-0.5 inline" /></a>
+                  </li>
+                  <li>In the top menu, click <strong>Extensions &gt; Apps Script</strong>.</li>
+                  <li>Replace any code with the contents of <code className="bg-gray-100 px-1 py-0.5 rounded text-brand-dark font-mono text-[11px]">google-apps-script.js</code> (found in project root).</li>
+                  <li>Click <strong>Deploy &gt; New deployment</strong>, choose <strong>Web app</strong>, and set <em>"Who has access"</em> to <strong>Anyone</strong>.</li>
+                  <li>Copy the resulting Web App URL and paste it into the box above!</li>
+                </ol>
               </div>
-
-              <button
-                type="submit"
-                disabled={savingSettings}
-                className="w-full bg-brand-forest hover:bg-brand-forest-light text-white py-3 rounded-xl font-bold text-xs sm:text-sm shadow-soft transition-all"
-              >
-                {savingSettings ? 'Saving Settings...' : 'Save Configuration'}
-              </button>
-            </form>
+            </div>
           </div>
         )}
 
