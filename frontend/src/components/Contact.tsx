@@ -74,6 +74,64 @@ export const Contact: React.FC<ContactProps> = ({ config }) => {
     <section id="contact" className="py-20 lg:py-28 bg-white relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
+        {/* Full-Width Priority Banner: Schedule an In-Person Facility Walkthrough */}
+        <div className="mb-16 rounded-3xl bg-gradient-to-br from-brand-forest via-[#163825] to-brand-forest text-white p-8 sm:p-10 shadow-xl border border-emerald-700/50 relative overflow-hidden">
+          {/* Subtle ambient lighting */}
+          <div className="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-white/5 blur-2xl pointer-events-none" />
+          <div className="absolute -left-16 -bottom-16 w-64 h-64 rounded-full bg-brand-orange/15 blur-2xl pointer-events-none" />
+          
+          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+            <div className="max-w-2xl space-y-3">
+              <div className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-sm text-emerald-200 px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider border border-white/10">
+                <span className="w-2 h-2 rounded-full bg-brand-orange animate-pulse" />
+                <span>Facility Tour & Inspection</span>
+              </div>
+              <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight">
+                Schedule an In-Person Facility Walkthrough
+              </h3>
+              <p className="text-sm sm:text-base text-gray-200 leading-relaxed font-normal">
+                Want to inspect our Rational combi ovens, refrigeration space, prep workstations, and loading facilities in person before booking? Drop by for a 15-minute walkthrough with our kitchen management team.
+              </p>
+              
+              <div className="flex flex-wrap gap-3 pt-2 text-xs font-semibold text-emerald-100">
+                <span className="flex items-center space-x-1.5 bg-black/25 px-3 py-1.5 rounded-lg border border-white/10">
+                  <CheckCircle className="w-4 h-4 text-emerald-400" />
+                  <span>Free 15-Min Guided Tour</span>
+                </span>
+                <span className="flex items-center space-x-1.5 bg-black/25 px-3 py-1.5 rounded-lg border border-white/10">
+                  <CheckCircle className="w-4 h-4 text-emerald-400" />
+                  <span>Hands-On Equipment Inspection</span>
+                </span>
+                <span className="flex items-center space-x-1.5 bg-black/25 px-3 py-1.5 rounded-lg border border-white/10">
+                  <CheckCircle className="w-4 h-4 text-emerald-400" />
+                  <span>Unit 1, 1 Lichfield St, Victoria Park</span>
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0 lg:w-72">
+              <a
+                href={`tel:${phoneDisplay.replace(/\s+/g, '')}`}
+                className="w-full bg-brand-orange hover:bg-brand-orange-hover text-white py-3.5 px-6 rounded-xl font-bold text-sm flex items-center justify-center space-x-2 shadow-lg shadow-brand-orange/30 hover:shadow-glow-orange transition-all duration-200 text-center"
+              >
+                <Phone className="w-4 h-4" />
+                <span>Call {phoneDisplay}</span>
+              </a>
+              {whatsappNum && (
+                <a
+                  href={`https://wa.me/${whatsappNum.replace(/[^0-9]/g, '')}?text=Hello%20Daily%20Drop%20Kitchen,%20I'd%20like%20to%20schedule%20an%20in-person%20facility%20walkthrough.`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20 py-3 px-6 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center space-x-2 transition-all text-center"
+                >
+                  <MessageSquare className="w-4 h-4 text-emerald-400" />
+                  <span>Request Tour on WhatsApp</span>
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
           <span className="text-xs font-bold uppercase tracking-widest text-brand-orange bg-brand-orange-light px-3.5 py-1.5 rounded-full inline-block mb-3">
@@ -157,15 +215,6 @@ export const Contact: React.FC<ContactProps> = ({ config }) => {
                   </a>
                 </div>
               )}
-            </div>
-
-            {/* Quick Tour Invitation */}
-            <div className="p-6 rounded-2xl bg-brand-forest text-white shadow-soft">
-              <h4 className="text-base font-bold">Schedule an In-Person Facility Walkthrough</h4>
-              <p className="text-xs text-gray-200 mt-1 leading-relaxed">
-                Want to inspect our Rational combi ovens, refrigeration space, and prep lines in person before booking? 
-                Drop by or request a walkthrough time.
-              </p>
             </div>
 
           </div>

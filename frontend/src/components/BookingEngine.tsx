@@ -11,7 +11,10 @@ import {
   Sparkles,
   Info,
   Loader2,
-  Lock
+  Lock,
+  ArrowRight,
+  ArrowLeft,
+  Check
 } from 'lucide-react';
 import { KitchenConfig, AvailabilityData, Booking, BookingCreateInput } from '../types';
 import { api } from '../services/api';
@@ -35,6 +38,9 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const minDateStr = tomorrow.toISOString().split('T')[0];
+
+  // Multi-stage stepper state (1: Date & Time, 2: Equipment & Use, 3: Contact & Submit)
+  const [currentStage, setCurrentStage] = useState<1 | 2 | 3>(1);
 
   // Selection states
   const [date, setDate] = useState<string>(initialDate || minDateStr);
@@ -224,356 +230,482 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
         {/* Main Grid: Left Side Controls & Form, Right Side Pricing Breakdown & Live Schedule */}
         <form onSubmit={handleSubmitBooking} className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
           
-          {/* Left Column (8 cols): Step by Step Booking Form */}
-          <div className="lg:col-span-7 space-y-8">
+          {/* Left Column (7 cols): 3-Stage Booking Form */}
+          <div className="lg:col-span-7 space-y-6">
             
-            {/* STEP 1: Date & Time Slot */}
-            <div className="p-6 sm:p-7 rounded-2xl bg-brand-cream/60 border border-brand-mint-border shadow-soft-sm">
-              <div className="flex items-center space-x-3 mb-5 pb-3 border-b border-brand-mint-border">
-                <span className="w-7 h-7 rounded-full bg-brand-forest text-white font-bold text-xs flex items-center justify-center">
+            {/* Interactive 3-Stage Progress Indicator */}
+            <div className="bg-brand-cream/70 rounded-2xl p-2.5 sm:p-3 border border-brand-mint-border flex items-center justify-between gap-1 sm:gap-2 shadow-xs">
+              {/* Step 1 Pill */}
+              <button
+                type="button"
+                onClick={() => setCurrentStage(1)}
+                className={`flex-1 flex items-center justify-center sm:justify-start space-x-2 py-2 px-2.5 sm:px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  currentStage === 1
+                    ? 'bg-brand-forest text-white shadow-sm'
+                    : 'text-brand-dark hover:bg-brand-mint/60'
+                }`}
+              >
+                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-black shrink-0 ${
+                  currentStage === 1 ? 'bg-white text-brand-forest' : 'bg-brand-forest/20 text-brand-forest'
+                }`}>
                   1
                 </span>
-                <h3 className="text-lg font-extrabold text-brand-dark">Select Date & Time Slot</h3>
-              </div>
+                <span className="truncate">Date & Time</span>
+              </button>
 
-              <div className="space-y-4">
-                {/* Date Picker */}
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-2">
-                    Date of Rental (Past dates disabled)
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="date"
-                      min={minDateStr}
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      required
-                      className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
-                    />
-                  </div>
-                  {/* Quick date shortcuts */}
-                  <div className="flex flex-wrap gap-2 mt-2.5">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const d = new Date();
-                        d.setDate(d.getDate() + 1);
-                        setDate(d.toISOString().split('T')[0]);
-                      }}
-                      className="text-xs px-2.5 py-1 rounded-md bg-white border border-gray-200 text-brand-dark hover:bg-brand-mint"
-                    >
-                      Tomorrow
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const d = new Date();
-                        d.setDate(d.getDate() + 2);
-                        setDate(d.toISOString().split('T')[0]);
-                      }}
-                      className="text-xs px-2.5 py-1 rounded-md bg-white border border-gray-200 text-brand-dark hover:bg-brand-mint"
-                    >
-                      In 2 Days
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const d = new Date();
-                        // Next Saturday
-                        d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7 || 7));
-                        setDate(d.toISOString().split('T')[0]);
-                      }}
-                      className="text-xs px-2.5 py-1 rounded-md bg-white border border-gray-200 text-brand-dark hover:bg-brand-mint"
-                    >
-                      Upcoming Weekend
-                    </button>
-                  </div>
-                </div>
+              <div className="w-3 sm:w-4 h-0.5 bg-brand-mint-border shrink-0" />
 
-                {/* Start Time & Duration */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-2">
-                      Start Time
-                    </label>
-                    <select
-                      value={startTime}
-                      onChange={(e) => setStartTime(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
-                    >
-                      <option value="00:00">12:00 AM (Midnight Shift)</option>
-                      <option value="02:00">02:00 AM (Overnight Batch)</option>
-                      <option value="04:00">04:00 AM (Early Baker Start)</option>
-                      <option value="06:00">06:00 AM (Morning Bake Shift)</option>
-                      <option value="07:00">07:00 AM</option>
-                      <option value="08:00">08:00 AM (Breakfast Prep)</option>
-                      <option value="09:00">09:00 AM</option>
-                      <option value="10:00">10:00 AM</option>
-                      <option value="11:00">11:00 AM (Lunch Rush Prep)</option>
-                      <option value="12:00">12:00 PM (Midday)</option>
-                      <option value="13:00">01:00 PM (Afternoon Shift)</option>
-                      <option value="14:00">02:00 PM</option>
-                      <option value="15:00">03:00 PM</option>
-                      <option value="16:00">04:00 PM (Evening Batch)</option>
-                      <option value="17:00">05:00 PM</option>
-                      <option value="18:00">06:00 PM (Dinner Service Prep)</option>
-                      <option value="20:00">08:00 PM (Late Shift)</option>
-                      <option value="22:00">10:00 PM (Night Production)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-2">
-                      Rental Duration
-                    </label>
-                    <select
-                      value={duration}
-                      onChange={(e) => setDuration(Number(e.target.value))}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
-                    >
-                      <option value={2}>2 Hours (Test Prep Shift — $100 + GST)</option>
-                      <option value={4}>4 Hours (Standard Base — $152 + GST)</option>
-                      <option value={6}>6 Hours (Extended Prep — $204 + GST)</option>
-                      <option value={8}>8 Hours (Full Shift — $256 + GST)</option>
-                      <option value={10}>10 Hours ($310 + GST)</option>
-                      <option value={12}>12 Hours (Commercial Run — $360 + GST)</option>
-                      <option value={24}>24 Hours (Full-Day Access — $696 + GST)</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Slot Summary Pill */}
-                <div className="flex items-center justify-between p-3 rounded-xl bg-white border border-brand-mint-border text-xs">
-                  <span className="text-brand-muted">Selected Window:</span>
-                  <span className="font-bold text-brand-forest">
-                    {startTime} to {endTimeFormatted} ({duration} hours)
-                  </span>
-                </div>
-
-                {/* Real-time Conflict Alert */}
-                {loadingAvailability ? (
-                  <div className="flex items-center space-x-2 text-xs text-brand-muted">
-                    <Loader2 className="w-4 h-4 animate-spin text-brand-forest" />
-                    <span>Checking real-time calendar availability...</span>
-                  </div>
-                ) : slotConflict.hasConflict ? (
-                  <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-start space-x-2.5">
-                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-bold">Slot Unavailable</p>
-                      <p className="mt-0.5">{slotConflict.reason}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center space-x-2">
-                    <CheckCircle className="w-4 h-4 shrink-0 text-emerald-600" />
-                    <span className="font-medium">
-                      Time slot is currently available! You can proceed with your request.
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* STEP 2: Kitchen Use & Equipment Checklist */}
-            <div className="p-6 sm:p-7 rounded-2xl bg-brand-cream/60 border border-brand-mint-border shadow-soft-sm">
-              <div className="flex items-center space-x-3 mb-5 pb-3 border-b border-brand-mint-border">
-                <span className="w-7 h-7 rounded-full bg-brand-forest text-white font-bold text-xs flex items-center justify-center">
+              {/* Step 2 Pill */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (!slotConflict.hasConflict) setCurrentStage(2);
+                }}
+                className={`flex-1 flex items-center justify-center sm:justify-start space-x-2 py-2 px-2.5 sm:px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  currentStage === 2
+                    ? 'bg-brand-forest text-white shadow-sm'
+                    : 'text-brand-dark hover:bg-brand-mint/60'
+                }`}
+              >
+                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-black shrink-0 ${
+                  currentStage === 2 ? 'bg-white text-brand-forest' : 'bg-brand-forest/20 text-brand-forest'
+                }`}>
                   2
                 </span>
-                <h3 className="text-lg font-extrabold text-brand-dark">Kitchen Use & Equipment Checklist</h3>
-              </div>
+                <span className="truncate">Equipment</span>
+              </button>
 
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-2">
-                      Intended Kitchen Use
-                    </label>
-                    <select
-                      value={intendedUse}
-                      onChange={(e) => setIntendedUse(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
-                    >
-                      <option value="Cloud Kitchen Delivery Prep">Cloud Kitchen Delivery Prep</option>
-                      <option value="Event Catering Batch Production">Event Catering Batch Production</option>
-                      <option value="Bakery & Pastry Production">Bakery & Pastry Production</option>
-                      <option value="Recipe Testing & R&D">Recipe Testing & R&D</option>
-                      <option value="Sauce Bottling & Packaging">Sauce Bottling & Packaging</option>
-                      <option value="Pop-up / Food Truck Prep">Pop-up / Food Truck Prep</option>
-                      <option value="Private Cooking Masterclass">Private Cooking Masterclass</option>
-                    </select>
-                  </div>
+              <div className="w-3 sm:w-4 h-0.5 bg-brand-mint-border shrink-0" />
 
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-2">
-                      Number of People in Team (Max 8)
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={8}
-                      value={teamSize}
-                      onChange={(e) => setTeamSize(Number(e.target.value))}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                {/* Equipment Checkboxes */}
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-2">
-                    Key Equipment Required
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {equipmentOptions.map((eq) => {
-                      const checked = selectedEquipment.includes(eq);
-                      return (
-                        <label
-                          key={eq}
-                          className={`flex items-center space-x-2.5 p-3 rounded-xl border text-xs cursor-pointer transition-all ${
-                            checked
-                              ? 'bg-brand-mint/60 border-brand-forest/40 text-brand-forest font-semibold'
-                              : 'bg-white border-gray-200 text-brand-dark hover:border-gray-300'
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => toggleEquipment(eq)}
-                            className="rounded text-brand-forest focus:ring-brand-forest h-4 w-4"
-                          />
-                          <span>{eq}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* STEP 3: Contact & Business Information */}
-            <div className="p-6 sm:p-7 rounded-2xl bg-brand-cream/60 border border-brand-mint-border shadow-soft-sm">
-              <div className="flex items-center space-x-3 mb-5 pb-3 border-b border-brand-mint-border">
-                <span className="w-7 h-7 rounded-full bg-brand-forest text-white font-bold text-xs flex items-center justify-center">
+              {/* Step 3 Pill */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (!slotConflict.hasConflict) setCurrentStage(3);
+                }}
+                className={`flex-1 flex items-center justify-center sm:justify-start space-x-2 py-2 px-2.5 sm:px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  currentStage === 3
+                    ? 'bg-brand-forest text-white shadow-sm'
+                    : 'text-brand-dark hover:bg-brand-mint/60'
+                }`}
+              >
+                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-black shrink-0 ${
+                  currentStage === 3 ? 'bg-white text-brand-forest' : 'bg-brand-forest/20 text-brand-forest'
+                }`}>
                   3
                 </span>
-                <h3 className="text-lg font-extrabold text-brand-dark">Applicant & Business Information</h3>
-              </div>
-
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1.5">
-                      Full Name *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Chef / Manager Name"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1.5">
-                      Business or Brand Name (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Sedap Place / Gulati Kitchen"
-                      value={businessName}
-                      onChange={(e) => setBusinessName(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1.5">
-                      Email Address *
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      placeholder="you@business.com.au"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1.5">
-                      Phone Number *
-                    </label>
-                    <input
-                      type="tel"
-                      required
-                      placeholder="+61 400 000 000"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1.5">
-                    Additional Notes or Special Requirements
-                  </label>
-                  <textarea
-                    rows={3}
-                    placeholder="Describe specific storage requirements, allergen considerations, deliveries, or schedule notes..."
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
-                  />
-                </div>
-              </div>
+                <span className="truncate">Details & Submit</span>
+              </button>
             </div>
 
-            {/* Error Message */}
-            {submitError && (
-              <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm flex items-start space-x-3">
-                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-                <span>{submitError}</span>
+            {/* STAGE 1: Date & Time Slot */}
+            {currentStage === 1 && (
+              <div className="p-6 sm:p-7 rounded-2xl bg-brand-cream/60 border border-brand-mint-border shadow-soft-sm space-y-5 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between pb-3 border-b border-brand-mint-border">
+                  <div className="flex items-center space-x-3">
+                    <span className="w-7 h-7 rounded-full bg-brand-forest text-white font-bold text-xs flex items-center justify-center">
+                      1
+                    </span>
+                    <h3 className="text-lg font-extrabold text-brand-dark">Select Date & Time Slot</h3>
+                  </div>
+                  <span className="text-xs text-brand-muted font-semibold hidden sm:inline">Stage 1 of 3</span>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Date Picker */}
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-2">
+                      Date of Rental (Past dates disabled)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="date"
+                        min={minDateStr}
+                        value={date}
+                        onChange={(e) => setDate(e.target.value)}
+                        required
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
+                      />
+                    </div>
+                    {/* Quick date shortcuts */}
+                    <div className="flex flex-wrap gap-2 mt-2.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const d = new Date();
+                          d.setDate(d.getDate() + 1);
+                          setDate(d.toISOString().split('T')[0]);
+                        }}
+                        className="text-xs px-2.5 py-1 rounded-md bg-white border border-gray-200 text-brand-dark hover:bg-brand-mint cursor-pointer"
+                      >
+                        Tomorrow
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const d = new Date();
+                          d.setDate(d.getDate() + 2);
+                          setDate(d.toISOString().split('T')[0]);
+                        }}
+                        className="text-xs px-2.5 py-1 rounded-md bg-white border border-gray-200 text-brand-dark hover:bg-brand-mint cursor-pointer"
+                      >
+                        In 2 Days
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const d = new Date();
+                          d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7 || 7));
+                          setDate(d.toISOString().split('T')[0]);
+                        }}
+                        className="text-xs px-2.5 py-1 rounded-md bg-white border border-gray-200 text-brand-dark hover:bg-brand-mint cursor-pointer"
+                      >
+                        Upcoming Weekend
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Start Time & Duration */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-2">
+                        Start Time
+                      </label>
+                      <select
+                        value={startTime}
+                        onChange={(e) => setStartTime(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
+                      >
+                        <option value="00:00">12:00 AM (Midnight Shift)</option>
+                        <option value="02:00">02:00 AM (Overnight Batch)</option>
+                        <option value="04:00">04:00 AM (Early Baker Start)</option>
+                        <option value="06:00">06:00 AM (Morning Bake Shift)</option>
+                        <option value="07:00">07:00 AM</option>
+                        <option value="08:00">08:00 AM (Breakfast Prep)</option>
+                        <option value="09:00">09:00 AM</option>
+                        <option value="10:00">10:00 AM</option>
+                        <option value="11:00">11:00 AM (Lunch Rush Prep)</option>
+                        <option value="12:00">12:00 PM (Midday)</option>
+                        <option value="13:00">01:00 PM (Afternoon Shift)</option>
+                        <option value="14:00">02:00 PM</option>
+                        <option value="15:00">03:00 PM</option>
+                        <option value="16:00">04:00 PM (Evening Batch)</option>
+                        <option value="17:00">05:00 PM</option>
+                        <option value="18:00">06:00 PM (Dinner Service Prep)</option>
+                        <option value="20:00">08:00 PM (Late Shift)</option>
+                        <option value="22:00">10:00 PM (Night Production)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-2">
+                        Rental Duration
+                      </label>
+                      <select
+                        value={duration}
+                        onChange={(e) => setDuration(Number(e.target.value))}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
+                      >
+                        <option value={2}>2 Hours (Test Prep Shift — $100 + GST)</option>
+                        <option value={4}>4 Hours (Standard Base — $152 + GST)</option>
+                        <option value={6}>6 Hours (Extended Prep — $204 + GST)</option>
+                        <option value={8}>8 Hours (Full Shift — $256 + GST)</option>
+                        <option value={10}>10 Hours ($310 + GST)</option>
+                        <option value={12}>12 Hours (Commercial Run — $360 + GST)</option>
+                        <option value={24}>24 Hours (Full-Day Access — $696 + GST)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Slot Summary Pill */}
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-white border border-brand-mint-border text-xs">
+                    <span className="text-brand-muted">Selected Window:</span>
+                    <span className="font-bold text-brand-forest">
+                      {startTime} to {endTimeFormatted} ({duration} hours)
+                    </span>
+                  </div>
+
+                  {/* Real-time Conflict Alert */}
+                  {loadingAvailability ? (
+                    <div className="flex items-center space-x-2 text-xs text-brand-muted">
+                      <Loader2 className="w-4 h-4 animate-spin text-brand-forest" />
+                      <span>Checking real-time calendar availability...</span>
+                    </div>
+                  ) : slotConflict.hasConflict ? (
+                    <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-start space-x-2.5">
+                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold">Slot Unavailable</p>
+                        <p className="mt-0.5">{slotConflict.reason}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center space-x-2">
+                      <CheckCircle className="w-4 h-4 shrink-0 text-emerald-600" />
+                      <span className="font-medium">
+                        Time slot is currently available! Click below to choose equipment.
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Stage 1 Action: Next Button */}
+                <div className="pt-4 border-t border-brand-mint-border flex justify-end">
+                  <button
+                    type="button"
+                    disabled={slotConflict.hasConflict || loadingAvailability}
+                    onClick={() => setCurrentStage(2)}
+                    className={`w-full sm:w-auto px-6 py-3.5 rounded-xl font-bold text-sm flex items-center justify-center space-x-2 transition-all shadow-md ${
+                      slotConflict.hasConflict || loadingAvailability
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-brand-orange hover:bg-brand-orange-hover text-white hover:shadow-glow-orange transform hover:-translate-y-0.5 cursor-pointer'
+                    }`}
+                  >
+                    <span>Next: Kitchen & Equipment</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             )}
 
-            {/* Submit Action Button */}
-            <div>
-              <button
-                type="submit"
-                disabled={isSubmitting || slotConflict.hasConflict}
-                className={`w-full py-4 px-6 rounded-xl font-extrabold text-base transition-all duration-200 flex items-center justify-center space-x-2.5 shadow-soft ${
-                  slotConflict.hasConflict
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-brand-orange hover:bg-brand-orange-hover text-white hover:shadow-glow-orange transform hover:-translate-y-0.5'
-                }`}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Validating & Submitting Request...</span>
-                  </>
-                ) : (
-                  <>
-                    <CalendarIcon className="w-5 h-5" />
-                    <span>Submit Kitchen Booking Request</span>
-                  </>
-                )}
-              </button>
+            {/* STAGE 2: Kitchen Use & Equipment Checklist */}
+            {currentStage === 2 && (
+              <div className="p-6 sm:p-7 rounded-2xl bg-brand-cream/60 border border-brand-mint-border shadow-soft-sm space-y-5 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between pb-3 border-b border-brand-mint-border">
+                  <div className="flex items-center space-x-3">
+                    <span className="w-7 h-7 rounded-full bg-brand-forest text-white font-bold text-xs flex items-center justify-center">
+                      2
+                    </span>
+                    <h3 className="text-lg font-extrabold text-brand-dark">Kitchen Use & Equipment Checklist</h3>
+                  </div>
+                  <span className="text-xs text-brand-muted font-semibold hidden sm:inline">Stage 2 of 3</span>
+                </div>
 
-              <p className="text-xs text-center text-brand-muted mt-3 leading-relaxed">
-                By submitting this request, you agree to Daily Drop's Commercial Kitchen Rental Terms 
-                and food safety hygiene regulations. Our kitchen manager will contact you promptly.
-              </p>
-            </div>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-2">
+                        Intended Kitchen Use
+                      </label>
+                      <select
+                        value={intendedUse}
+                        onChange={(e) => setIntendedUse(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
+                      >
+                        <option value="Cloud Kitchen Delivery Prep">Cloud Kitchen Delivery Prep</option>
+                        <option value="Event Catering Batch Production">Event Catering Batch Production</option>
+                        <option value="Bakery & Pastry Production">Bakery & Pastry Production</option>
+                        <option value="Recipe Testing & R&D">Recipe Testing & R&D</option>
+                        <option value="Sauce Bottling & Packaging">Sauce Bottling & Packaging</option>
+                        <option value="Pop-up / Food Truck Prep">Pop-up / Food Truck Prep</option>
+                        <option value="Private Cooking Masterclass">Private Cooking Masterclass</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-2">
+                        Number of People in Team (Max 8)
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={8}
+                        value={teamSize}
+                        onChange={(e) => setTeamSize(Number(e.target.value))}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Equipment Checkboxes */}
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-2">
+                      Key Equipment Required
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {equipmentOptions.map((eq) => {
+                        const checked = selectedEquipment.includes(eq);
+                        return (
+                          <label
+                            key={eq}
+                            className={`flex items-center space-x-2.5 p-3 rounded-xl border text-xs cursor-pointer transition-all ${
+                              checked
+                                ? 'bg-brand-mint/60 border-brand-forest/40 text-brand-forest font-semibold'
+                                : 'bg-white border-gray-200 text-brand-dark hover:border-gray-300'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleEquipment(eq)}
+                              className="rounded text-brand-forest focus:ring-brand-forest h-4 w-4"
+                            />
+                            <span>{eq}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stage 2 Actions: Back & Next */}
+                <div className="pt-4 border-t border-brand-mint-border flex items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStage(1)}
+                    className="px-5 py-3 rounded-xl font-bold text-xs sm:text-sm bg-white border border-gray-300 text-brand-dark hover:bg-gray-50 flex items-center space-x-1.5 transition-all cursor-pointer"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span>Back to Date</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStage(3)}
+                    className="px-6 py-3.5 rounded-xl font-bold text-xs sm:text-sm bg-brand-orange hover:bg-brand-orange-hover text-white shadow-md hover:shadow-glow-orange flex items-center space-x-2 transition-all transform hover:-translate-y-0.5 cursor-pointer"
+                  >
+                    <span>Next: Contact Details</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* STAGE 3: Contact & Business Information + Submit */}
+            {currentStage === 3 && (
+              <div className="p-6 sm:p-7 rounded-2xl bg-brand-cream/60 border border-brand-mint-border shadow-soft-sm space-y-5 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between pb-3 border-b border-brand-mint-border">
+                  <div className="flex items-center space-x-3">
+                    <span className="w-7 h-7 rounded-full bg-brand-forest text-white font-bold text-xs flex items-center justify-center">
+                      3
+                    </span>
+                    <h3 className="text-lg font-extrabold text-brand-dark">Applicant & Business Information</h3>
+                  </div>
+                  <span className="text-xs text-brand-muted font-semibold hidden sm:inline">Stage 3 of 3</span>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1.5">
+                        Full Name *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Chef / Manager Name"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1.5">
+                        Business or Brand Name (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Sedap Place / Gulati Kitchen"
+                        value={businessName}
+                        onChange={(e) => setBusinessName(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1.5">
+                        Email Address *
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        placeholder="you@business.com.au"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1.5">
+                        Phone Number *
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        placeholder="+61 400 000 000"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1.5">
+                      Additional Notes or Special Requirements
+                    </label>
+                    <textarea
+                      rows={3}
+                      placeholder="Describe specific storage requirements, allergen considerations, deliveries, or schedule notes..."
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Error Message */}
+                {submitError && (
+                  <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm flex items-start space-x-3">
+                    <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                    <span>{submitError}</span>
+                  </div>
+                )}
+
+                {/* Stage 3 Actions: Back & Submit */}
+                <div className="pt-4 border-t border-brand-mint-border space-y-4">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentStage(2)}
+                      className="w-full sm:w-auto px-5 py-3.5 rounded-xl font-bold text-xs sm:text-sm bg-white border border-gray-300 text-brand-dark hover:bg-gray-50 flex items-center justify-center space-x-1.5 transition-all cursor-pointer"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      <span>Back to Equipment</span>
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting || slotConflict.hasConflict}
+                      className={`w-full sm:flex-1 py-4 px-6 rounded-xl font-black text-sm sm:text-base transition-all duration-200 flex items-center justify-center space-x-2.5 shadow-md ${
+                        slotConflict.hasConflict
+                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          : 'bg-brand-orange hover:bg-brand-orange-hover text-white hover:shadow-glow-orange transform hover:-translate-y-0.5 cursor-pointer'
+                      }`}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <span>Submitting Request...</span>
+                        </>
+                      ) : (
+                        <>
+                          <CalendarIcon className="w-5 h-5" />
+                          <span>Submit Kitchen Booking Request</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <p className="text-xs text-center text-brand-muted leading-relaxed">
+                    By submitting this request, you agree to Daily Drop's Commercial Kitchen Rental Terms 
+                    and food safety hygiene regulations. Our kitchen manager will contact you promptly.
+                  </p>
+                </div>
+              </div>
+            )}
 
           </div>
 
