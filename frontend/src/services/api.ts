@@ -16,7 +16,7 @@ export const getGoogleSheetUrl = (): string => {
   return (
     localStorage.getItem('dd_sheet_webhook_url') ||
     import.meta.env.VITE_GOOGLE_SHEET_WEBHOOK_URL ||
-    'https://script.google.com/macros/s/AKfycbx1z2b7v1irpim8yqpyBnjn6lxgs1dyZgKdfsBxS5ajQHkYczCNN7e3mezohfBirpCXMg/exec'
+    'https://script.google.com/macros/s/AKfycbwuBpSsyTDnR4ff6Cil6MC0TnIZE4uvUmrBukPtAk8VJnFjTxbCB-ndaz9KEs9Pa13I/exec'
   );
 };
 
