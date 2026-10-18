@@ -241,13 +241,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
         mode: 'no-cors',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
-          action: 'new_enquiry',
+          action: 'submit_enquiry',
           reference_code: testRef,
           full_name: 'Daily Drop Admin Test Ping',
           business_name: 'Daily Drop Kitchen Verification',
           email: 'admin@dailydropkitchen.com.au',
-          phone: '+61 400 000 000',
-          preferred_contact: 'email',
+          phone: "'0400 000 000",
+          preferred_contact: 'Email',
           rental_type: 'Hourly Kitchen Rental',
           registered_in_vic_park: 'Yes',
           message: 'Real-time webhook sync test from Admin Dashboard. Your Google Sheet is now active and receiving live website submissions!'

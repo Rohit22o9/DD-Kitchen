@@ -14,9 +14,9 @@ const API_BASE = '/api';
 // Get configured Google Sheet Webhook URL (from .env or saved in Admin Settings)
 export const getGoogleSheetUrl = (): string => {
   return (
-    import.meta.env.VITE_GOOGLE_SHEET_WEBHOOK_URL ||
     localStorage.getItem('dd_sheet_webhook_url') ||
-    ''
+    import.meta.env.VITE_GOOGLE_SHEET_WEBHOOK_URL ||
+    'https://script.google.com/macros/s/AKfycbzm1qfED3iFeduwFbO7PHakAfEIYic4eL5KP5hw4ZuArse5vVXn1JP65V9h224uiGmTQw/exec'
   );
 };
 
@@ -200,7 +200,7 @@ export const api = {
       full_name: data.full_name,
       business_name: data.business_name || '',
       email: data.email,
-      phone: data.phone,
+      phone: data.phone ? (data.phone.startsWith('+') ? "'" + data.phone : data.phone) : '',
       booking_date: data.booking_date,
       start_time: data.start_time,
       duration_hours: data.duration_hours,
@@ -273,7 +273,7 @@ export const api = {
       full_name: personName,
       business_name: data.business_name || '',
       email: data.email,
-      phone: data.phone,
+      phone: data.phone ? (data.phone.startsWith('+') ? "'" + data.phone : data.phone) : '',
       preferred_contact: data.preferred_contact || 'Email',
       rental_type: data.rental_type || 'General Enquiry',
       registered_in_victoria_park: Boolean(data.registered_in_victoria_park),
