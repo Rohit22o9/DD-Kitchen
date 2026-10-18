@@ -90,6 +90,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
   const [updatingBooking, setUpdatingBooking] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
 
+  // Approval payment link modal states
+  const [showPaymentLinkPrompt, setShowPaymentLinkPrompt] = useState(false);
+  const [sendPaymentLinkChoice, setSendPaymentLinkChoice] = useState<'yes' | 'no'>('yes');
+  const [paymentOptionChoice, setPaymentOptionChoice] = useState<'full' | 'split'>('full');
+
   // Initial load when token is present
   useEffect(() => {
     if (token) {
@@ -162,11 +167,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
     if (token) refreshBookings();
   }, [statusFilter, searchQuery]);
 
+  // Calculate days between today and booking date
+  const getDaysUntilBooking = (bookingDateStr?: string) => {
+    if (!bookingDateStr) return 0;
+    const bookingD = new Date(bookingDateStr);
+    const now = new Date();
+    bookingD.setHours(0, 0, 0, 0);
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const diffTime = bookingD.getTime() - today.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
   // Update Booking Status
   const handleUpdateStatus = async (
     bookingId: number,
     newStatus: string,
-    newPayment?: string
+    newPayment?: string,
+    overrideNotes?: string
   ) => {
     if (!token) return;
     setUpdatingBooking(true);
@@ -175,7 +192,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
       const updated = await api.updateBookingStatus(token, bookingId, {
         status: newStatus,
         payment_status: newPayment || selectedBooking?.payment_status || 'unpaid',
-        admin_notes: actionNotes.trim() || undefined,
+        admin_notes: (overrideNotes !== undefined ? overrideNotes : actionNotes.trim()) || undefined,
         reference_code: selectedBooking?.reference_code,
       });
       setBookings((prev) =>
@@ -192,6 +209,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
       );
       setSelectedBooking(null);
       setActionNotes('');
+      setShowPaymentLinkPrompt(false);
       // Refresh stats
       try {
         const s = await api.getDashboardStats(token);
@@ -202,6 +220,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
     } finally {
       setUpdatingBooking(false);
     }
+  };
+
+  // Handle Approve Request with Payment Link flow
+  const handleConfirmApproval = async () => {
+    if (!selectedBooking) return;
+    const totalAmount = Number(selectedBooking.total_price || selectedBooking.total_cost || 0);
+    const daysUntilHire = getDaysUntilBooking(selectedBooking.booking_date);
+    
+    let paymentNote = '';
+    if (sendPaymentLinkChoice === 'yes') {
+      if (daysUntilHire < 7) {
+        paymentNote = `Payment Link Sent: 100% full payment upfront required ($${totalAmount.toFixed(2)} AUD - booking within 7 days).`;
+      } else if (paymentOptionChoice === 'split') {
+        paymentNote = `Payment Link Sent: 50% deposit now ($${(totalAmount / 2).toFixed(2)} AUD) & 50% balance ($${(totalAmount / 2).toFixed(2)} AUD) due 7 days prior.`;
+      } else {
+        paymentNote = `Payment Link Sent: 100% full payment upfront ($${totalAmount.toFixed(2)} AUD).`;
+      }
+    } else {
+      paymentNote = 'Approved without payment link dispatch.';
+    }
+
+    const combinedNotes = actionNotes.trim() ? `${actionNotes.trim()} | ${paymentNote}` : paymentNote;
+    await handleUpdateStatus(selectedBooking.id, 'approved', undefined, combinedNotes);
   };
 
   // Save Settings
@@ -675,6 +716,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
                               onClick={() => {
                                 setSelectedBooking(b);
                                 setActionNotes(b.admin_notes || '');
+                                setShowPaymentLinkPrompt(false);
                               }}
                               className="px-3 py-1.5 rounded-lg bg-brand-forest hover:bg-brand-forest-light text-white font-bold text-[11px] transition-colors"
                             >
@@ -1091,8 +1133,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
               </div>
             )}
 
-            <div className="text-xs space-y-1.5 bg-gray-50 p-3.5 rounded-xl">
-              <div><strong className="text-brand-dark">Applicant:</strong> {selectedBooking.full_name} ({selectedBooking.email}, {selectedBooking.phone})</div>
+            <div className="text-xs space-y-2 bg-gray-50 p-4 rounded-xl border border-gray-100">
+              <div><strong className="text-brand-dark">Name:</strong> {selectedBooking.full_name}</div>
+              <div><strong className="text-brand-dark">Email:</strong> {selectedBooking.email}</div>
+              <div><strong className="text-brand-dark">Phone:</strong> {selectedBooking.phone}</div>
               <div><strong className="text-brand-dark">Date & Slot:</strong> {selectedBooking.booking_date} ({selectedBooking.start_time} - {selectedBooking.end_time})</div>
               <div><strong className="text-brand-dark">Intended Use:</strong> {selectedBooking.intended_use}</div>
               <div><strong className="text-brand-dark">Equipment:</strong> {selectedBooking.equipment_requirements || 'Standard'}</div>
@@ -1112,58 +1156,164 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
               />
             </div>
 
-            <div className="space-y-2 pt-2">
-              <span className="block text-xs font-bold text-brand-dark uppercase tracking-wider">
-                Change Status:
-              </span>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleUpdateStatus(selectedBooking.id, 'approved')}
-                  className="py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs"
-                >
-                  Approve Request
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleUpdateStatus(selectedBooking.id, 'confirmed')}
-                  className="py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs"
-                >
-                  Confirm Slot
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleUpdateStatus(selectedBooking.id, 'completed')}
-                  className="py-2 px-3 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs"
-                >
-                  Mark Completed
-                </button>
-              </div>
+            {/* Approval Payment Link Configuration Prompt */}
+            {showPaymentLinkPrompt ? (
+              <div className="p-4 rounded-xl bg-emerald-50/70 border border-emerald-200 space-y-3.5 animate-fadeIn">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-brand-forest uppercase tracking-wider">
+                    Payment Link Options
+                  </span>
+                  <span className="text-[11px] font-semibold text-emerald-800">
+                    {getDaysUntilBooking(selectedBooking.booking_date) < 7 
+                      ? `⚡ Hire is within 7 days (${getDaysUntilBooking(selectedBooking.booking_date)} days away)`
+                      : `📅 Hire is in ${getDaysUntilBooking(selectedBooking.booking_date)} days`}
+                  </span>
+                </div>
 
-              <div className="grid grid-cols-3 gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => handleUpdateStatus(selectedBooking.id, selectedBooking.status, 'paid')}
-                  className="py-2 px-3 rounded-lg bg-gray-100 hover:bg-gray-200 text-brand-dark font-bold text-xs"
-                >
-                  Mark Paid
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleUpdateStatus(selectedBooking.id, selectedBooking.status, 'deposit_paid')}
-                  className="py-2 px-3 rounded-lg bg-gray-100 hover:bg-gray-200 text-brand-dark font-bold text-xs"
-                >
-                  Deposit Paid
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleUpdateStatus(selectedBooking.id, 'rejected')}
-                  className="py-2 px-3 rounded-lg bg-red-100 hover:bg-red-200 text-red-800 font-bold text-xs"
-                >
-                  Reject Request
-                </button>
+                <div>
+                  <label className="block text-xs font-bold text-brand-dark mb-1.5">
+                    Do you want to send out a payment link?
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSendPaymentLinkChoice('yes')}
+                      className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
+                        sendPaymentLinkChoice === 'yes'
+                          ? 'bg-emerald-600 text-white shadow-sm'
+                          : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      Yes, Send Payment Link
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSendPaymentLinkChoice('no')}
+                      className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
+                        sendPaymentLinkChoice === 'no'
+                          ? 'bg-gray-700 text-white shadow-sm'
+                          : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      No, Skip Payment Link
+                    </button>
+                  </div>
+                </div>
+
+                {sendPaymentLinkChoice === 'yes' && (
+                  <div className="pt-2 border-t border-emerald-200/60">
+                    {getDaysUntilBooking(selectedBooking.booking_date) < 7 ? (
+                      <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs">
+                        <p className="font-bold">⚠️ Upfront Full Payment Required</p>
+                        <p className="text-[11px] mt-0.5">
+                          Since this booking is less than 7 days away, <strong>100% full payment</strong> (${Number(selectedBooking.total_price || selectedBooking.total_cost || 0).toFixed(2)} AUD) must be provided upfront.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <label className="block text-xs font-bold text-brand-dark">
+                          Select Payment Terms for Buyer:
+                        </label>
+                        <div className="space-y-1.5">
+                          <label className="flex items-start gap-2.5 p-2 rounded-lg bg-white border border-gray-200 cursor-pointer hover:border-brand-forest">
+                            <input
+                              type="radio"
+                              name="paymentOption"
+                              checked={paymentOptionChoice === 'full'}
+                              onChange={() => setPaymentOptionChoice('full')}
+                              className="mt-0.5 text-brand-forest focus:ring-brand-forest"
+                            />
+                            <div className="text-xs">
+                              <span className="font-bold text-brand-dark">Pay in full (100%)</span>
+                              <span className="text-brand-muted block text-[11px]">
+                                Single full payment of ${Number(selectedBooking.total_price || selectedBooking.total_cost || 0).toFixed(2)} AUD.
+                              </span>
+                            </div>
+                          </label>
+
+                          <label className="flex items-start gap-2.5 p-2 rounded-lg bg-white border border-gray-200 cursor-pointer hover:border-brand-forest">
+                            <input
+                              type="radio"
+                              name="paymentOption"
+                              checked={paymentOptionChoice === 'split'}
+                              onChange={() => setPaymentOptionChoice('split')}
+                              className="mt-0.5 text-brand-forest focus:ring-brand-forest"
+                            />
+                            <div className="text-xs">
+                              <span className="font-bold text-brand-dark">Pay 50% now & 50% one week before</span>
+                              <span className="text-brand-muted block text-[11px]">
+                                ${(Number(selectedBooking.total_price || selectedBooking.total_cost || 0) / 2).toFixed(2)} AUD deposit now, remaining ${(Number(selectedBooking.total_price || selectedBooking.total_cost || 0) / 2).toFixed(2)} AUD due 7 days prior to hire.
+                              </span>
+                            </div>
+                          </label>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    disabled={updatingBooking}
+                    onClick={handleConfirmApproval}
+                    className="flex-1 py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all"
+                  >
+                    {updatingBooking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                    <span>Confirm & Approve</span>
+                  </button>
+                  <button
+                    type="button"
+                    disabled={updatingBooking}
+                    onClick={() => setShowPaymentLinkPrompt(false)}
+                    className="py-2 px-3 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition-all"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-2 pt-2">
+                <span className="block text-xs font-bold text-brand-dark uppercase tracking-wider">
+                  Change Status:
+                </span>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    disabled={selectedBooking.status === 'approved' || updatingBooking}
+                    onClick={() => {
+                      const days = getDaysUntilBooking(selectedBooking.booking_date);
+                      if (days < 7) {
+                        setPaymentOptionChoice('full');
+                      }
+                      setShowPaymentLinkPrompt(true);
+                    }}
+                    className={`py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
+                      selectedBooking.status === 'approved'
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                        : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-soft-sm'
+                    }`}
+                  >
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    <span>{selectedBooking.status === 'approved' ? 'Already Approved' : 'Approve Request'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={selectedBooking.status === 'rejected' || updatingBooking}
+                    onClick={() => handleUpdateStatus(selectedBooking.id, 'rejected')}
+                    className={`py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
+                      selectedBooking.status === 'rejected'
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                        : 'bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 shadow-soft-sm'
+                    }`}
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                    <span>{selectedBooking.status === 'rejected' ? 'Already Rejected' : 'Reject Request'}</span>
+                  </button>
+                </div>
+              </div>
+            )}
 
           </div>
         </div>

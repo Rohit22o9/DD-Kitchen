@@ -417,14 +417,6 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                     </div>
                   </div>
 
-                  {/* Slot Summary Pill */}
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-white border border-brand-mint-border text-xs">
-                    <span className="text-brand-muted">Selected Window:</span>
-                    <span className="font-bold text-brand-forest">
-                      {startTime} to {endTimeFormatted} ({duration} hours)
-                    </span>
-                  </div>
-
                   {/* Real-time Conflict Alert */}
                   {loadingAvailability ? (
                     <div className="flex items-center space-x-2 text-xs text-brand-muted">
