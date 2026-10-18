@@ -6,7 +6,8 @@ import {
   Lightbulb, 
   Cake, 
   ArrowRight, 
-  CheckCircle2 
+  CheckCircle2,
+  Sparkles 
 } from 'lucide-react';
 
 interface WhoCanRentProps {
@@ -55,6 +56,18 @@ export const WhoCanRent: React.FC<WhoCanRentProps> = ({ onSelectSegment }) => {
       hours: 'Recommended: 4h early morning bake-offs',
       bullets: ['Planetary mixer suite', 'Proofer racks', 'Marble pastry table'],
     },
+    {
+      title: 'Test Your Menu & Business Ideas',
+      tagline: 'TESTING & PRODUCT DEVELOPMENT',
+      icon: Sparkles,
+      desc: 'Experiment with new recipes, refine your menu, and test food business concepts in a commercial kitchen without investing in your own facility.',
+      hours: 'Recommended: Flexible 2h to 8h sessions',
+      bullets: [
+        'Recipe testing and development',
+        'New menu and product trials',
+        'Small-batch production',
+      ],
+    },
   ];
 
   return (
@@ -70,7 +83,7 @@ export const WhoCanRent: React.FC<WhoCanRentProps> = ({ onSelectSegment }) => {
             Who Can Rent Our Commercial Kitchen?
           </h2>
           <p className="text-base sm:text-lg text-brand-muted mt-3">
-            Whether you need 4 hours to batch a recipe or 8 hours regular production shifts, 
+            Whether you need 2 hours to test a recipe or 8 hours every Friday to prep for weekend catering, 
             our infrastructure adapts to your business model.
           </p>
         </div>

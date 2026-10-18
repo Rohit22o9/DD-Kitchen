@@ -96,11 +96,23 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
   }, [date]);
 
   // Pricing calculations
-  const hourlyRate = config?.hourly_rental_rate || 45.0;
-  const cleaningFee = config?.cleaning_fee ?? 0.0;
   const securityDeposit = config?.security_deposit || 750.0;
-  const baseRentalCost = hourlyRate * duration;
-  const totalRentalCost = baseRentalCost + cleaningFee;
+  
+  // Tiered pricing: 2h=$100, 4h=$152 ($38/h base), 8h=$256 ($32/h), 12h=$360 ($30/h)
+  const getTierPrice = (hrs: number): number => {
+    if (hrs === 2) return 100.0;
+    if (hrs === 4) return 152.0;
+    if (hrs === 6) return 204.0;
+    if (hrs === 8) return 256.0;
+    if (hrs === 10) return 310.0;
+    if (hrs === 12) return 360.0;
+    if (hrs === 24) return 696.0;
+    return hrs * 38.0;
+  };
+
+  const baseRentalCost = getTierPrice(duration);
+  const gstAmount = baseRentalCost * 0.10;
+  const totalRentalCost = baseRentalCost + gstAmount;
 
   // Calculate end time
   const [startH, startM] = startTime.split(':').map(Number);
@@ -319,12 +331,13 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                       onChange={(e) => setDuration(Number(e.target.value))}
                       className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
                     >
-                      <option value={4}>4 Hours (Minimum Rental)</option>
-                      <option value={6}>6 Hours (Extended Prep)</option>
-                      <option value={8}>8 Hours (Full Production Shift)</option>
-                      <option value={10}>10 Hours</option>
-                      <option value={12}>12 Hours (Commercial Run)</option>
-                      <option value={24}>24 Hours (Full-Day Access)</option>
+                      <option value={2}>2 Hours (Test Prep Shift — $100 + GST)</option>
+                      <option value={4}>4 Hours (Standard Base — $152 + GST)</option>
+                      <option value={6}>6 Hours (Extended Prep — $204 + GST)</option>
+                      <option value={8}>8 Hours (Full Shift — $256 + GST)</option>
+                      <option value={10}>10 Hours ($310 + GST)</option>
+                      <option value={12}>12 Hours (Commercial Run — $360 + GST)</option>
+                      <option value={24}>24 Hours (Full-Day Access — $696 + GST)</option>
                     </select>
                   </div>
                 </div>
@@ -594,8 +607,13 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                 </div>
 
                 <div className="flex justify-between items-center text-brand-muted">
-                  <span>Base Rate (${hourlyRate.toFixed(2)} / hr):</span>
-                  <span className="font-semibold text-brand-dark">${baseRentalCost.toFixed(2)}</span>
+                  <span>Shift Rate (excl. GST):</span>
+                  <span className="font-semibold text-brand-dark">${baseRentalCost.toFixed(2)} AUD</span>
+                </div>
+
+                <div className="flex justify-between items-center text-brand-muted">
+                  <span>GST (10%):</span>
+                  <span className="font-semibold text-brand-dark">${gstAmount.toFixed(2)} AUD</span>
                 </div>
 
                 <div className="flex justify-between items-center text-brand-muted">
@@ -606,7 +624,7 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                 <div className="pt-4 border-t border-gray-100 flex justify-between items-baseline">
                   <div>
                     <span className="text-base font-bold text-brand-dark">Total Estimated Cost:</span>
-                    <p className="text-[11px] text-brand-muted">Includes power, gas & utilities</p>
+                    <p className="text-[11px] text-brand-muted">Includes power, gas, utilities & GST</p>
                   </div>
                   <span className="text-2xl font-black text-brand-forest">${totalRentalCost.toFixed(2)} AUD</span>
                 </div>

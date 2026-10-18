@@ -121,7 +121,7 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ onStartBooking }) => {
                 </div>
                 <div className="flex items-start space-x-2 text-xs">
                   <CheckCircle2 className="w-4 h-4 text-brand-orange shrink-0 mt-0.5" />
-                  <span>Public Liability Insurance ($20M min)</span>
+                  <span>Public Liability Insurance ($20 million min)</span>
                 </div>
                 <div className="flex items-start space-x-2 text-xs">
                   <CheckCircle2 className="w-4 h-4 text-brand-orange shrink-0 mt-0.5" />

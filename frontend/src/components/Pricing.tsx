@@ -8,22 +8,37 @@ interface PricingProps {
 }
 
 export const Pricing: React.FC<PricingProps> = ({ config, onSelectDuration }) => {
-  const hourlyRate = config?.hourly_rental_rate || 45.0;
-
   const tiers = [
+    {
+      name: '2-Hour Quick Prep',
+      duration: 2,
+      tagline: 'Ideal for recipe testing, product trials, plating R&D, or small packaging runs.',
+      price: 100,
+      hourlyRateNote: '$50 / hour',
+      popular: false,
+      badge: 'Test & Prep',
+      features: [
+        '2 full hours of kitchen access',
+        'One dedicated cooking bench for food prep',
+        'Standard gas ranges & commercial ovens',
+        'Dishwashing sanitisation area',
+        'Tenants wash down station after shift',
+      ],
+    },
     {
       name: '4-Hour Half-Shift',
       duration: 4,
-      tagline: 'Our minimum booking duration. Perfect for bakery batches and cloud kitchen prep.',
-      basePrice: hourlyRate * 4,
-      popular: false,
-      badge: 'Minimum Duration',
+      tagline: 'Our standard base rental. Perfect for cloud kitchen batching & bakery morning bakes.',
+      price: 152,
+      hourlyRateNote: '$38 / hour (Base Rate)',
+      popular: true,
+      badge: 'Most Popular Choice',
       features: [
-        '4 hours dedicated commercial kitchen access',
-        'One dedicated cooking bench for food prep',
-        'Rational combi oven & deep fryers access',
-        'Temporary walk-in cool room staging space',
-        'Commercial pass-through dishwasher',
+        '4 hours of dedicated kitchen time',
+        'Combi oven & deep fryers included',
+        'Dedicated walk-in chiller rack space during shift. Long term rental available.',
+        'Courier delivery dispatch bench',
+        'High-power 30L planetary mixer',
         'Tenants wash down station after shift',
       ],
     },
@@ -31,48 +46,32 @@ export const Pricing: React.FC<PricingProps> = ({ config, onSelectDuration }) =>
       name: '8-Hour Full Production',
       duration: 8,
       tagline: 'Engineered for high-volume caterers and multi-day meal-prep brands.',
-      basePrice: hourlyRate * 8,
-      popular: true,
-      badge: 'Most Popular Choice',
+      price: 256,
+      hourlyRateNote: '$32 / hour',
+      popular: false,
+      badge: 'Volume Value',
       features: [
-        '8 hours full production shift access',
-        'One dedicated cooking bench + priority line',
-        'Full access to burners, ovens & fryers',
-        'Walk-in cool room & freezer rack allocation',
-        'Pallet delivery staging & courier dispatch',
+        '8 hours full facility access',
+        'All cooking lines & combi ovens',
+        'Walk-in chiller & freezer shelf allocation',
         'Complimentary equipment orientation',
+        'Tenants wash down station after shift',
       ],
     },
     {
       name: '12-Hour Commercial Run',
       duration: 12,
-      tagline: 'Full-day industrial batching for wholesale & food manufacturers.',
-      basePrice: hourlyRate * 12,
+      tagline: 'Full-day industrial batching for wholesale & large food manufacturers.',
+      price: 360,
+      hourlyRateNote: '$30 / hour',
       popular: false,
-      badge: null,
+      badge: 'Best Hourly Rate',
       features: [
-        '12 hours uninterrupted kitchen access',
-        'Complete equipment suite coordinated',
-        'Full walk-in cool room staging allocation',
-        'Multiple team member access (up to 8)',
+        '12 hours uninterrupted production',
+        'Full walk-in cold room allocation',
+        'Multiple team member access (up to 4)',
         'Storage cage during shift',
-        'Dedicated kitchen facility support',
-      ],
-    },
-    {
-      name: '24-Hour Continuous Shift',
-      duration: 24,
-      tagline: 'Round-the-clock commercial access for major events & high-scale prep.',
-      basePrice: hourlyRate * 24,
-      popular: false,
-      badge: '24 Hours Open',
-      features: [
-        '24 hours open access (24/7 kitchen facility)',
-        'Dedicated cooking station & line access',
-        'Uninterrupted overnight baking or batching',
-        'Full cool room & staging shelf space',
-        'Digital keypad entry PIN for shift changes',
-        'All utilities, gas & power included',
+        'Dedicated facility support',
       ],
     },
   ];
@@ -90,13 +89,13 @@ export const Pricing: React.FC<PricingProps> = ({ config, onSelectDuration }) =>
             Pay for the Hours You Need.
           </h2>
           <p className="text-base sm:text-lg text-brand-muted mt-3">
-            Flexible commercial kitchen access designed around your production schedule. Minimum 4 hours, available 24 hours a day.
+            Flexible commercial kitchen access designed around your production schedule. No hidden lease fees or long-term lock-ins.
           </p>
 
-          <div className="mt-4 inline-flex items-center space-x-2 bg-white px-4 py-2 rounded-xl border border-brand-mint-border text-xs text-brand-forest shadow-soft-sm">
-            <span className="font-bold">Base Hourly Rate:</span>
-            <span className="font-black text-brand-orange">${hourlyRate.toFixed(2)} AUD / Hour</span>
-            <span className="text-brand-muted">• Clean-down included (additional fee only if left uncleaned)</span>
+          <div className="mt-4 inline-flex flex-wrap items-center justify-center gap-2 bg-white px-4 py-2 rounded-xl border border-brand-mint-border text-xs text-brand-forest shadow-soft-sm">
+            <span className="font-bold">Base Rate:</span>
+            <span className="font-black text-brand-orange">$38.00 AUD + GST / Hour</span>
+            <span className="text-brand-muted">• Min 4 hours ($152 + GST) • 2h shift available ($100 + GST)</span>
           </div>
         </div>
 
@@ -126,16 +125,16 @@ export const Pricing: React.FC<PricingProps> = ({ config, onSelectDuration }) =>
 
                   {/* Price */}
                   <div className="my-6 pb-6 border-b border-gray-100">
-                    <div className="flex items-baseline space-x-1">
+                    <div className="flex items-baseline space-x-1.5">
                       <span className="text-3xl sm:text-4xl font-black text-brand-forest">
-                        ${t.basePrice.toFixed(2)}
+                        ${t.price}
                       </span>
-                      <span className="text-xs font-semibold text-brand-muted">
-                        AUD
+                      <span className="text-xs font-bold text-brand-orange">
+                        + GST
                       </span>
                     </div>
                     <p className="text-[11px] text-brand-muted mt-1">
-                      {t.duration}h @ ${hourlyRate}/h • <span className="text-emerald-700 font-semibold">$0 upfront cleaning fee</span>
+                      {t.hourlyRateNote} • <span className="text-emerald-700 font-semibold">$0 cleaning fee</span>
                     </p>
                   </div>
 

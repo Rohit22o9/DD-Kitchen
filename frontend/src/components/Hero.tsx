@@ -19,10 +19,21 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
   const [selectedTime, setSelectedTime] = useState('09:00');
   const [selectedDuration, setSelectedDuration] = useState(4);
 
-  const hourlyRate = config?.hourly_rental_rate || 45.0;
-  const estimatedBase = hourlyRate * selectedDuration;
-  const cleaningFee = config?.cleaning_fee || 25.0;
-  const estimatedTotal = estimatedBase + cleaningFee;
+  // Tiered pricing: 2h=$100, 4h=$152 ($38/h base), 8h=$256 ($32/h), 12h=$360 ($30/h)
+  const getHeroTierPrice = (hrs: number): number => {
+    if (hrs === 2) return 100.0;
+    if (hrs === 4) return 152.0;
+    if (hrs === 6) return 204.0;
+    if (hrs === 8) return 256.0;
+    if (hrs === 10) return 310.0;
+    if (hrs === 12) return 360.0;
+    if (hrs === 24) return 696.0;
+    return hrs * 38.0;
+  };
+
+  const estimatedSubtotal = getHeroTierPrice(selectedDuration);
+  const estimatedGst = estimatedSubtotal * 0.10;
+  const estimatedTotal = estimatedSubtotal + estimatedGst;
 
   const handleQuickSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,8 +157,11 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
                     <h3 className="text-xl font-extrabold text-brand-dark mt-0.5">Check Hourly Availability</h3>
                   </div>
                   <div className="text-right">
-                    <span className="text-2xl font-black text-brand-forest">${hourlyRate}</span>
-                    <span className="text-xs font-semibold text-brand-muted">/hour</span>
+                    <div className="flex items-baseline space-x-1 justify-end">
+                      <span className="text-2xl font-black text-brand-forest">$38</span>
+                      <span className="text-xs font-semibold text-brand-muted">/hr + GST</span>
+                    </div>
+                    <span className="text-[10px] text-brand-orange font-bold">Min 4h ($152 + GST)</span>
                   </div>
                 </div>
 
@@ -206,12 +220,13 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
                         onChange={(e) => setSelectedDuration(Number(e.target.value))}
                         className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-brand-cream/40 text-brand-dark font-medium text-sm focus:outline-none focus:ring-2 focus:ring-brand-forest"
                       >
-                        <option value={4}>4 Hours (Minimum Rental)</option>
-                        <option value={6}>6 Hours (Half Shift)</option>
-                        <option value={8}>8 Hours (Full Shift)</option>
-                        <option value={10}>10 Hours</option>
-                        <option value={12}>12 Hours (Commercial Run)</option>
-                        <option value={24}>24 Hours (Full Day Access)</option>
+                        <option value={2}>2 Hours (Test Prep Shift — $100 + GST)</option>
+                        <option value={4}>4 Hours (Standard Base — $152 + GST)</option>
+                        <option value={6}>6 Hours (Extended Prep — $204 + GST)</option>
+                        <option value={8}>8 Hours (Full Shift — $256 + GST)</option>
+                        <option value={10}>10 Hours ($310 + GST)</option>
+                        <option value={12}>12 Hours (Commercial Run — $360 + GST)</option>
+                        <option value={24}>24 Hours (Full-Day Access — $696 + GST)</option>
                       </select>
                     </div>
                   </div>
@@ -219,16 +234,20 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
                   {/* Estimated Pricing Breakdown Card */}
                   <div className="p-3.5 rounded-xl bg-brand-mint/50 border border-brand-mint-border space-y-1.5 text-xs">
                     <div className="flex justify-between text-brand-muted">
-                      <span>Hourly Rental ({selectedDuration} hrs × ${hourlyRate}):</span>
-                      <span className="font-semibold text-brand-dark">${estimatedBase.toFixed(2)}</span>
+                      <span>Shift Rental ({selectedDuration} hrs excl. GST):</span>
+                      <span className="font-semibold text-brand-dark">${estimatedSubtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-brand-muted">
+                      <span>GST (10%):</span>
+                      <span className="font-semibold text-brand-dark">${estimatedGst.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-brand-muted">
                       <span>End-of-Shift Clean:</span>
                       <span className="font-semibold text-emerald-800">Cleaned by Tenant ($0)</span>
                     </div>
                     <div className="pt-1.5 border-t border-brand-mint-border/80 flex justify-between items-center text-sm font-bold text-brand-forest">
-                      <span>Total Estimated Rental:</span>
-                      <span className="text-base text-brand-orange font-black">${estimatedBase.toFixed(2)}</span>
+                      <span>Total Estimated (inc. GST):</span>
+                      <span className="text-base text-brand-orange font-black">${estimatedTotal.toFixed(2)}</span>
                     </div>
                   </div>
 

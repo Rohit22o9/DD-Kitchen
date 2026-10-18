@@ -39,7 +39,7 @@ export function App() {
         console.warn('Using local fallback config:', err);
         // Fallback defaults
         setConfig({
-          hourly_rental_rate: 45.0,
+          hourly_rental_rate: 38.0,
           min_rental_hours: 4,
           operating_hours_start: '00:00',
           operating_hours_end: '24:00',
