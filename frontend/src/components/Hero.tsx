@@ -159,27 +159,28 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
 
             </div>
 
-            {/* Right Column: Exact Card matching User's Screenshot */}
+            {/* Right Column: High-Contrast, Attractive Rate Calculator Card */}
             <div className="lg:col-span-5">
-              <div className="bg-white rounded-3xl shadow-2xl p-7 sm:p-8 border border-brand-mint-border/80">
+              <div className="bg-white rounded-3xl shadow-2xl p-7 sm:p-8 border border-gray-100/80 ring-1 ring-black/5 relative backdrop-blur-xl">
                 
-                {/* Header matching Screenshot 1 */}
-                <div className="flex items-start justify-between pb-4 border-b border-gray-100">
+                {/* Header: Instant Rate Calculator + Price Badge */}
+                <div className="flex items-start justify-between pb-4 border-b border-gray-100 gap-3">
                   <div>
-                    <span className="text-[11px] font-black text-brand-orange uppercase tracking-wider block mb-1">
-                      INSTANT RATE CALCULATOR
-                    </span>
-                    <h3 className="text-2xl font-black text-brand-dark">
+                    <div className="inline-flex items-center space-x-1.5 bg-brand-orange-light text-brand-orange px-2.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider mb-1.5 border border-brand-orange/20">
+                      <Sparkles className="w-3 h-3 text-brand-orange" />
+                      <span>Instant Rate Calculator</span>
+                    </div>
+                    <h3 className="text-2xl sm:text-[26px] font-black text-gray-900 tracking-tight leading-tight">
                       Check Hourly Availability
                     </h3>
                   </div>
                   
-                  <div className="text-right">
+                  <div className="text-right bg-brand-cream/80 border border-brand-mint-border px-3.5 py-2 rounded-2xl shadow-xs shrink-0">
                     <div className="flex items-baseline space-x-1 justify-end">
                       <span className="text-3xl font-black text-brand-forest">$38</span>
-                      <span className="text-xs font-bold text-brand-muted">/hr + GST</span>
+                      <span className="text-xs font-bold text-gray-600">/hr + GST</span>
                     </div>
-                    <span className="text-[11px] text-brand-orange font-bold block mt-0.5">
+                    <span className="text-xs text-brand-orange font-extrabold block mt-0.5">
                       Min 4h ($152 + GST)
                     </span>
                   </div>
@@ -189,7 +190,7 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
                   
                   {/* 1. SELECT RENTAL DATE */}
                   <div>
-                    <label className="block text-xs font-bold text-brand-dark uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-black text-gray-800 uppercase tracking-wider mb-1.5">
                       1. SELECT RENTAL DATE
                     </label>
                     <div className="relative">
@@ -199,7 +200,7 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
                         value={selectedDate}
                         onChange={(e) => setSelectedDate(e.target.value)}
                         required
-                        className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium text-sm focus:outline-none focus:ring-2 focus:ring-brand-forest focus:border-brand-forest transition-all"
+                        className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-200 bg-white text-gray-900 font-bold text-sm focus:outline-none focus:border-brand-forest focus:ring-2 focus:ring-brand-forest/20 shadow-xs transition-all"
                       />
                     </div>
                   </div>
@@ -207,13 +208,13 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
                   {/* 2. START TIME & 3. DURATION */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-brand-dark uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs font-black text-gray-800 uppercase tracking-wider mb-1.5">
                         2. START TIME
                       </label>
                       <select
                         value={selectedTime}
                         onChange={(e) => setSelectedTime(e.target.value)}
-                        className="w-full px-3.5 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-brand-forest focus:border-brand-forest transition-all cursor-pointer"
+                        className="w-full px-3.5 py-3.5 rounded-xl border-2 border-gray-200 bg-white text-gray-900 font-bold text-xs sm:text-sm focus:outline-none focus:border-brand-forest focus:ring-2 focus:ring-brand-forest/20 shadow-xs transition-all cursor-pointer"
                       >
                         <option value="00:00">12:00 AM (Midnight)</option>
                         <option value="02:00">02:00 AM (Overnight)</option>
@@ -233,13 +234,13 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-brand-dark uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs font-black text-gray-800 uppercase tracking-wider mb-1.5">
                         3. DURATION
                       </label>
                       <select
                         value={selectedDuration}
                         onChange={(e) => setSelectedDuration(Number(e.target.value))}
-                        className="w-full px-3.5 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-brand-forest focus:border-brand-forest transition-all cursor-pointer"
+                        className="w-full px-3.5 py-3.5 rounded-xl border-2 border-gray-200 bg-white text-gray-900 font-bold text-xs sm:text-sm focus:outline-none focus:border-brand-forest focus:ring-2 focus:ring-brand-forest/20 shadow-xs transition-all cursor-pointer"
                       >
                         <option value={2}>2 Hours (Test Shift — $100)</option>
                         <option value={4}>4 Hours (Standard Base — $152)</option>
@@ -252,41 +253,41 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
                     </div>
                   </div>
 
-                  {/* Pricing Breakdown Box (Soft Mint Tint matching Screenshot 1) */}
-                  <div className="p-4 rounded-2xl bg-brand-mint/40 border border-brand-mint-border space-y-2 text-xs">
-                    <div className="flex justify-between text-brand-muted">
-                      <span>Shift Rental ({selectedDuration} hrs excl. GST):</span>
-                      <span className="font-bold text-brand-dark">${estimatedSubtotal.toFixed(2)}</span>
+                  {/* High-Contrast Pricing Breakdown Card */}
+                  <div className="p-4 rounded-2xl bg-emerald-50/70 border-2 border-emerald-100/90 space-y-2 text-xs shadow-xs">
+                    <div className="flex justify-between items-center text-gray-700">
+                      <span className="font-semibold text-xs sm:text-[13px]">Shift Rental ({selectedDuration} hrs excl. GST):</span>
+                      <span className="font-extrabold text-gray-900 text-sm">${estimatedSubtotal.toFixed(2)}</span>
                     </div>
                     
-                    <div className="flex justify-between text-brand-muted">
-                      <span>GST (10%):</span>
-                      <span className="font-bold text-brand-dark">${estimatedGst.toFixed(2)}</span>
+                    <div className="flex justify-between items-center text-gray-700">
+                      <span className="font-semibold text-xs sm:text-[13px]">GST (10%):</span>
+                      <span className="font-extrabold text-gray-900 text-sm">${estimatedGst.toFixed(2)}</span>
                     </div>
 
-                    <div className="flex justify-between text-brand-muted">
-                      <span>End-of-Shift Clean:</span>
-                      <span className="font-semibold text-emerald-800">Cleaned by Tenant ($0)</span>
+                    <div className="flex justify-between items-center text-gray-700">
+                      <span className="font-semibold text-xs sm:text-[13px]">End-of-Shift Clean:</span>
+                      <span className="font-extrabold text-emerald-800">Cleaned by Tenant ($0)</span>
                     </div>
 
-                    <div className="pt-2 border-t border-brand-mint-border flex justify-between items-center text-sm font-bold text-brand-dark">
-                      <span className="font-bold text-brand-dark">Total Estimated (inc. GST):</span>
-                      <span className="text-xl font-black text-brand-orange">
+                    <div className="pt-2.5 border-t border-emerald-200/80 flex justify-between items-center">
+                      <span className="text-sm font-black text-gray-900">Total Estimated (inc. GST):</span>
+                      <span className="text-2xl font-black text-brand-orange">
                         ${estimatedTotal.toFixed(2)}
                       </span>
                     </div>
                   </div>
 
-                  {/* Dark Forest Green Submit Button matching Screenshot 1 */}
+                  {/* Dark Forest Green Submit Button */}
                   <button
                     type="submit"
-                    className="w-full bg-brand-forest hover:bg-brand-forest-light text-white py-4 px-6 rounded-2xl font-bold text-base shadow-md transition-all duration-200 flex items-center justify-center space-x-2 transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+                    className="w-full bg-[#1A3A25] hover:bg-[#245033] text-white py-4 px-6 rounded-2xl font-black text-base shadow-lg shadow-emerald-950/20 hover:shadow-emerald-950/30 transition-all duration-200 flex items-center justify-center space-x-2.5 transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
                   >
                     <span>Check Availability & Proceed</span>
                     <ArrowRight className="w-5 h-5" />
                   </button>
 
-                  <p className="text-[11px] text-center text-brand-muted leading-tight pt-1">
+                  <p className="text-xs text-center text-gray-600 font-semibold leading-tight pt-1">
                     No immediate payment required. Availability verified in real time before booking request submission.
                   </p>
                 </form>
