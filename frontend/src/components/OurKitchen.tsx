@@ -40,7 +40,7 @@ export const OurKitchen: React.FC<OurKitchenProps> = ({ onCheckAvailability }) =
     {
       src: Images.coldStorage,
       title: 'Commercial Walk-in Chiller & Dry Pantry',
-      description: 'HACCP-monitored 2°C walk-in cool room, wire shelving racks, and organized dry ingredient storage.',
+      description: 'HACCP-monitored 2°C walk-in cool room, wire shelving racks, and organised dry ingredient storage.',
     },
   ];
 

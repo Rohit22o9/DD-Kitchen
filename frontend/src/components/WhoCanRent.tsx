@@ -44,12 +44,12 @@ export const WhoCanRent: React.FC<WhoCanRentProps> = ({ onSelectSegment }) => {
       tagline: 'Recipe R&D & Consumer Brands',
       icon: Lightbulb,
       desc: 'Formulate, test, and bottle small-batch artisanal sauces, beverages, granolas, or health snacks in a certified commercial facility.',
-      hours: 'Recommended: 3h to 6h flexible weekday slots',
-      bullets: ['HACCP certified for retail', 'Pot sinks', 'Sanitized fill area'],
+      hours: 'Recommended: 4h to 6h flexible weekday slots',
+      bullets: ['HACCP certified for retail', 'Pot sinks', 'Sanitised fill area'],
     },
     {
       title: 'Bakers & Independent Chefs',
-      tagline: 'Artisan Pastry & Specialized Production',
+      tagline: 'Artisan Pastry & Specialised Production',
       icon: Cake,
       desc: 'Bake sourdough bread, croissants, wedding cakes, and pastries using commercial planetary mixers and precision steam combi ovens.',
       hours: 'Recommended: 4h early morning bake-offs',
@@ -70,7 +70,7 @@ export const WhoCanRent: React.FC<WhoCanRentProps> = ({ onSelectSegment }) => {
             Who Can Rent Our Commercial Kitchen?
           </h2>
           <p className="text-base sm:text-lg text-brand-muted mt-3">
-            Whether you need 2 hours to test a recipe or 8 hours every Friday to prep for weekend catering, 
+            Whether you need 4 hours to batch a recipe or 8 hours regular production shifts, 
             our infrastructure adapts to your business model.
           </p>
         </div>

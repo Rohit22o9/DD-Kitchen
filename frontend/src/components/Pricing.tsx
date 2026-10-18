@@ -9,36 +9,22 @@ interface PricingProps {
 
 export const Pricing: React.FC<PricingProps> = ({ config, onSelectDuration }) => {
   const hourlyRate = config?.hourly_rental_rate || 45.0;
-  const cleaningFee = config?.cleaning_fee || 25.0;
 
   const tiers = [
     {
-      name: '2-Hour Quick Prep',
-      duration: 2,
-      tagline: 'Ideal for recipe R&D, plating tests, or light packaging runs.',
-      basePrice: hourlyRate * 2,
-      popular: false,
-      features: [
-        '2 full hours of kitchen access',
-        'Stainless prep table & sinks',
-        'Standard gas ranges & ovens',
-        'Dishwashing sanitation area',
-        'Standard waste disposal',
-      ],
-    },
-    {
       name: '4-Hour Half-Shift',
       duration: 4,
-      tagline: 'Most popular for cloud kitchen batching & bakery morning bakes.',
+      tagline: 'Our minimum booking duration. Perfect for bakery batches and cloud kitchen prep.',
       basePrice: hourlyRate * 4,
-      popular: true,
+      popular: false,
+      badge: 'Minimum Duration',
       features: [
-        '4 hours of dedicated kitchen time',
-        'Combi oven & deep fryers included',
-        'Dedicated walk-in chiller rack space',
-        'Courier delivery dispatch bench',
-        'High-power 30L planetary mixer',
-        'Includes kitchen waste removal',
+        '4 hours dedicated commercial kitchen access',
+        'One dedicated cooking bench for food prep',
+        'Rational combi oven & deep fryers access',
+        'Temporary walk-in cool room staging space',
+        'Commercial pass-through dishwasher',
+        'Tenants wash down station after shift',
       ],
     },
     {
@@ -46,29 +32,47 @@ export const Pricing: React.FC<PricingProps> = ({ config, onSelectDuration }) =>
       duration: 8,
       tagline: 'Engineered for high-volume caterers and multi-day meal-prep brands.',
       basePrice: hourlyRate * 8,
-      popular: false,
+      popular: true,
+      badge: 'Most Popular Choice',
       features: [
-        '8 hours full facility access',
-        'All cooking lines & combi ovens',
-        'Walk-in chiller & freezer shelf allocation',
-        'Pallet delivery staging area',
-        'Priority technical assistance on-site',
+        '8 hours full production shift access',
+        'One dedicated cooking bench + priority line',
+        'Full access to burners, ovens & fryers',
+        'Walk-in cool room & freezer rack allocation',
+        'Pallet delivery staging & courier dispatch',
         'Complimentary equipment orientation',
       ],
     },
     {
       name: '12-Hour Commercial Run',
       duration: 12,
-      tagline: 'Full day industrial-scale batching for wholesale & food manufacturers.',
+      tagline: 'Full-day industrial batching for wholesale & food manufacturers.',
       basePrice: hourlyRate * 12,
       popular: false,
+      badge: null,
       features: [
-        '12 hours uninterrupted production',
-        'Complete equipment suite reserved',
-        'Full walk-in cold room allocation',
+        '12 hours uninterrupted kitchen access',
+        'Complete equipment suite coordinated',
+        'Full walk-in cool room staging allocation',
         'Multiple team member access (up to 8)',
         'Storage cage during shift',
-        'Dedicated facility support',
+        'Dedicated kitchen facility support',
+      ],
+    },
+    {
+      name: '24-Hour Continuous Shift',
+      duration: 24,
+      tagline: 'Round-the-clock commercial access for major events & high-scale prep.',
+      basePrice: hourlyRate * 24,
+      popular: false,
+      badge: '24 Hours Open',
+      features: [
+        '24 hours open access (24/7 kitchen facility)',
+        'Dedicated cooking station & line access',
+        'Uninterrupted overnight baking or batching',
+        'Full cool room & staging shelf space',
+        'Digital keypad entry PIN for shift changes',
+        'All utilities, gas & power included',
       ],
     },
   ];
@@ -86,20 +90,19 @@ export const Pricing: React.FC<PricingProps> = ({ config, onSelectDuration }) =>
             Pay for the Hours You Need.
           </h2>
           <p className="text-base sm:text-lg text-brand-muted mt-3">
-            Flexible kitchen access designed around your production schedule. No hidden lease fees or long-term lock-ins.
+            Flexible commercial kitchen access designed around your production schedule. Minimum 4 hours, available 24 hours a day.
           </p>
 
           <div className="mt-4 inline-flex items-center space-x-2 bg-white px-4 py-2 rounded-xl border border-brand-mint-border text-xs text-brand-forest shadow-soft-sm">
             <span className="font-bold">Base Hourly Rate:</span>
             <span className="font-black text-brand-orange">${hourlyRate.toFixed(2)} AUD / Hour</span>
-            <span className="text-brand-muted">• Post-session cleaning fee: ${cleaningFee.toFixed(2)}</span>
+            <span className="text-brand-muted">• Clean-down included (additional fee only if left uncleaned)</span>
           </div>
         </div>
 
         {/* Pricing Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {tiers.map((t, idx) => {
-            const totalPrice = t.basePrice + cleaningFee;
             return (
               <div
                 key={idx}
@@ -109,9 +112,11 @@ export const Pricing: React.FC<PricingProps> = ({ config, onSelectDuration }) =>
                     : 'bg-white border border-brand-mint-border shadow-soft-sm hover:shadow-soft-md'
                 }`}
               >
-                {t.popular && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-brand-orange text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-sm">
-                    Most Popular Choice
+                {t.badge && (
+                  <div className={`absolute -top-3.5 left-1/2 -translate-x-1/2 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-sm ${
+                    t.popular ? 'bg-brand-orange' : 'bg-brand-forest'
+                  }`}>
+                    {t.badge}
                   </div>
                 )}
 
@@ -126,11 +131,11 @@ export const Pricing: React.FC<PricingProps> = ({ config, onSelectDuration }) =>
                         ${t.basePrice.toFixed(2)}
                       </span>
                       <span className="text-xs font-semibold text-brand-muted">
-                        ({t.duration}h @ ${hourlyRate}/h)
+                        AUD
                       </span>
                     </div>
                     <p className="text-[11px] text-brand-muted mt-1">
-                      + ${cleaningFee.toFixed(2)} sanitization = <span className="font-bold text-brand-dark">${totalPrice.toFixed(2)} total</span>
+                      {t.duration}h @ ${hourlyRate}/h • <span className="text-emerald-700 font-semibold">$0 upfront cleaning fee</span>
                     </p>
                   </div>
 

@@ -39,11 +39,11 @@ export function App() {
         // Fallback defaults
         setConfig({
           hourly_rental_rate: 45.0,
-          min_rental_hours: 2,
-          operating_hours_start: '06:00',
-          operating_hours_end: '23:00',
-          cleaning_fee: 25.0,
-          security_deposit: 150.0,
+          min_rental_hours: 4,
+          operating_hours_start: '00:00',
+          operating_hours_end: '24:00',
+          cleaning_fee: 0.0,
+          security_deposit: 750.0,
           kitchen_name: 'Daily Drop Commercial Kitchen Hub 1',
           kitchen_address: 'Unit 1, 1 Lichfield Street, Victoria Park, Perth, WA, 6101',
           kitchen_phone: '0479 175 705',

@@ -82,7 +82,7 @@ export const WhyChoose: React.FC = () => {
                   </div>
                   <h4 className="text-xl font-bold">Spotless Hygiene & Full Compliance</h4>
                   <p className="text-xs text-gray-200 mt-1">
-                    Daily sanitization logs and certified waste management.
+                    Daily sanitisation logs and certified waste management.
                   </p>
                 </div>
               </div>

@@ -77,7 +77,7 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-brand-dark">Flexible Hourly Rentals</h4>
-                  <p className="text-[11px] text-brand-muted">From 2 hrs upwards</p>
+                  <p className="text-[11px] text-brand-muted">From 4 hrs upwards</p>
                 </div>
               </div>
 
@@ -180,7 +180,10 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
                         onChange={(e) => setSelectedTime(e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-brand-cream/40 text-brand-dark font-medium text-sm focus:outline-none focus:ring-2 focus:ring-brand-forest"
                       >
-                        <option value="06:00">06:00 AM (Early Bake)</option>
+                        <option value="00:00">12:00 AM (Midnight)</option>
+                        <option value="02:00">02:00 AM (Overnight)</option>
+                        <option value="04:00">04:00 AM (Early Baker)</option>
+                        <option value="06:00">06:00 AM (Morning Bake)</option>
                         <option value="07:00">07:00 AM</option>
                         <option value="08:00">08:00 AM (Morning Shift)</option>
                         <option value="09:00">09:00 AM</option>
@@ -188,7 +191,9 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
                         <option value="12:00">12:00 PM (Noon Prep)</option>
                         <option value="14:00">02:00 PM (Afternoon)</option>
                         <option value="16:00">04:00 PM (Evening Prep)</option>
-                        <option value="18:00">06:00 PM (Night Shift)</option>
+                        <option value="18:00">06:00 PM (Dinner Service)</option>
+                        <option value="20:00">08:00 PM (Night Shift)</option>
+                        <option value="22:00">10:00 PM (Late Shift)</option>
                       </select>
                     </div>
 
@@ -201,12 +206,12 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
                         onChange={(e) => setSelectedDuration(Number(e.target.value))}
                         className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-brand-cream/40 text-brand-dark font-medium text-sm focus:outline-none focus:ring-2 focus:ring-brand-forest"
                       >
-                        <option value={2}>2 Hours (Minimum)</option>
-                        <option value={3}>3 Hours</option>
-                        <option value={4}>4 Hours (Half Day)</option>
-                        <option value={6}>6 Hours</option>
+                        <option value={4}>4 Hours (Minimum Rental)</option>
+                        <option value={6}>6 Hours (Half Shift)</option>
                         <option value={8}>8 Hours (Full Shift)</option>
+                        <option value={10}>10 Hours</option>
                         <option value={12}>12 Hours (Commercial Run)</option>
+                        <option value={24}>24 Hours (Full Day Access)</option>
                       </select>
                     </div>
                   </div>
@@ -214,16 +219,16 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
                   {/* Estimated Pricing Breakdown Card */}
                   <div className="p-3.5 rounded-xl bg-brand-mint/50 border border-brand-mint-border space-y-1.5 text-xs">
                     <div className="flex justify-between text-brand-muted">
-                      <span>Hourly Rate ({selectedDuration} hrs × ${hourlyRate}):</span>
+                      <span>Hourly Rental ({selectedDuration} hrs × ${hourlyRate}):</span>
                       <span className="font-semibold text-brand-dark">${estimatedBase.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-brand-muted">
-                      <span>Standard Kitchen Cleaning Fee:</span>
-                      <span className="font-semibold text-brand-dark">${cleaningFee.toFixed(2)}</span>
+                      <span>End-of-Shift Clean:</span>
+                      <span className="font-semibold text-emerald-800">Cleaned by Tenant ($0)</span>
                     </div>
                     <div className="pt-1.5 border-t border-brand-mint-border/80 flex justify-between items-center text-sm font-bold text-brand-forest">
                       <span>Total Estimated Rental:</span>
-                      <span className="text-base text-brand-orange font-black">${estimatedTotal.toFixed(2)}</span>
+                      <span className="text-base text-brand-orange font-black">${estimatedBase.toFixed(2)}</span>
                     </div>
                   </div>
 

@@ -6,11 +6,11 @@ from .models import Booking, BlockedSlot, KitchenSetting
 
 DEFAULT_SETTINGS = {
     "hourly_rental_rate": "45.0",
-    "min_rental_hours": "2",
+    "min_rental_hours": "4",
     "operating_hours_start": "00:00",
     "operating_hours_end": "24:00",
-    "cleaning_fee": "25.0",
-    "security_deposit": "150.0",
+    "cleaning_fee": "0.0",
+    "security_deposit": "750.0",
     "kitchen_name": "Daily Drop Commercial Kitchen Hub 1",
     "kitchen_address": "Unit 1, 1 Lichfield Street, Victoria Park, Perth, WA, 6101",
     "kitchen_phone": "0479 175 705",
@@ -50,6 +50,8 @@ def generate_reference_code() -> str:
     return f"DD-K-{random_digits}"
 
 def parse_time_to_minutes(time_str: str) -> int:
+    if time_str == "24:00":
+        return 24 * 60
     h, m = map(int, time_str.split(":"))
     return h * 60 + m
 

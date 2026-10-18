@@ -83,7 +83,7 @@ export const Contact: React.FC<ContactProps> = ({ config }) => {
             Connect With Our Kitchen Facility Team
           </h2>
           <p className="text-base sm:text-lg text-brand-muted mt-3">
-            Need specialized equipment, monthly long-term shifts, or have bespoke production requirements? 
+            Need specialised equipment, monthly long-term shifts, or have bespoke production requirements? 
             Speak directly with our kitchen management.
           </p>
         </div>

@@ -7,36 +7,40 @@ export const FAQ: React.FC = () => {
 
   const faqs = [
     {
+      q: 'Will there be other people using the kitchen at the same time?',
+      a: 'Yes, the kitchen is a shared commercial space, so other cooks may be working at the same time. Your booking includes one dedicated cooking bench for food preparation. Other kitchen equipment and appliances, such as burners, ovens, and dishwashers, are shared. To ensure a smooth cooking experience, we ask that you provide a list of the equipment and appliances you will need in advance. This will help us coordinate their use, minimise scheduling conflicts, and ensure everyone can work efficiently.',
+    },
+    {
       q: 'How does hourly commercial kitchen rental work?',
-      a: 'Daily Drop operates fully licensed, certified commercial kitchen facilities. You select your date, start time, and required duration (from 2 hours up to a full day). After submitting your request, our team confirms availability, sends payment details, and issues you a digital door access PIN. You bring your ingredients and culinary team, produce your food, and check out.',
+      a: 'Daily Drop operates fully licensed, certified commercial kitchen facilities. You select your date, start time, and required duration (from 4 hours up to a full day). After submitting your request, our team confirms availability, sends payment details, and issues you a digital door access PIN. You bring your ingredients and culinary team, produce your food, and check out.',
     },
     {
       q: 'What is the minimum rental duration?',
-      a: 'The minimum rental duration is 2 hours. This ensures you have adequate time for station setup, cooking production, and the mandatory post-shift cleanup.',
+      a: 'The minimum rental duration is 4 hours. This ensures you have adequate time for station setup, cooking production, and post-shift clean down.',
     },
     {
       q: 'Can I book multiple hours or a full shift?',
-      a: 'Yes! You can book 2, 3, 4, 6, 8, 10, or 12 continuous hours in a single booking session, subject to operating hours (06:00 to 23:00) and calendar availability.',
+      a: 'Yes! We are open 24 hours. You can book 4, 6, 8, 10, or 12 continuous hours in a single booking session, 24/7 subject to calendar availability.',
     },
     {
       q: 'Can I rent the kitchen every week on a recurring schedule?',
-      a: 'Absolutely. Many of our restaurant and bakery partners maintain standing weekly slots (e.g., every Tuesday & Thursday from 6 AM to 11 AM). Please contact our kitchen manager directly via the enquiry form to arrange recurring billing and priority slot reservation.',
+      a: 'Absolutely. Many of our restaurant, catering, and bakery partners maintain standing weekly slots. Please contact our kitchen manager directly via the enquiry form to arrange recurring billing, dedicated storage, and priority slot reservations.',
     },
     {
       q: 'What equipment is included in the base hourly rental?',
-      a: 'Base rental includes access to 6-burner commercial gas ranges, Rational combi ovens, twin deep fryers, 304 food-grade stainless worktables, double pot wash sinks, high-temp sanitizing hood dishwasher, and temporary walk-in chiller staging space during your booked shift.',
+      a: 'Base rental includes access to commercial appliances: Garland 6-burner gas range, Rational iCombi Pro 10-tray combi steamer, twin 20L commercial deep fryers, double flat top griddles, 304 food-grade stainless workbenches, commercial double pot wash sinks, high-temperature sanitising pass-through hood dishwasher, and Hobart 30L planetary mixer. Staging space in our commercial cool room during your booked shift is also included.',
     },
     {
       q: 'Can I bring my own ingredients and small tools?',
-      a: 'Yes. You bring your raw ingredients, specialized chef knives, specialized bakeware, and packaging materials. All food brought on-site must be stored in food-grade containers in accordance with Australian food hygiene standards.',
+      a: 'Yes. You bring your raw ingredients, specialised chef knives, specialised bakeware, and packaging materials. All food brought on-site must be stored in food-grade containers in accordance with Australian food hygiene standards. We also offer cool room storage and dry storage at an additional fee.',
     },
     {
       q: 'Is cleaning included in the rental?',
-      a: 'Tenants are responsible for basic kitchen wash-down (sweeping station floors, wiping down workbenches, and washing cookware used). The $25 cleaning fee covers Daily Drop’s commercial sanitization protocol, floor scrub, and grease trap maintenance between tenant shifts.',
+      a: 'Tenants are responsible for basic kitchen wash-down (sweeping station floors, wiping down workbenches, and washing cookware used). Additional fees may apply if the kitchen is not cleaned after the shift.',
     },
     {
       q: 'Is a security deposit required?',
-      a: 'Yes, a standard refundable security bond of $150 AUD is authorized prior to key handover. This is released within 24 hours of your shift completion following facility inspection for cleanliness and equipment integrity.',
+      a: 'Yes, a refundable security deposit of $750 AUD is required prior to key handover. This is released following facility inspection for cleanliness and equipment integrity after your shift.',
     },
     {
       q: 'How do I cancel or reschedule a booking?',
@@ -52,7 +56,7 @@ export const FAQ: React.FC = () => {
     },
     {
       q: 'What food safety requirements must I follow?',
-      a: 'In compliance with Australian health regulations, at least one person working on shift must hold a recognized Food Safety Supervisor certificate. All businesses must provide proof of Public Liability Insurance ($10M minimum).',
+      a: 'In compliance with Australian health regulations, at least one person working on shift must hold a recognised Food Safety Supervisor certificate. All businesses must provide proof of Public Liability Insurance ($20 million minimum).',
     },
   ];
 

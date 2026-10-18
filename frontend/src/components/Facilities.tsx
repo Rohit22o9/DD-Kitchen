@@ -76,7 +76,7 @@ export const Facilities: React.FC = () => {
     {
       name: 'High-Temp Pass-Through Hood Dishwasher',
       category: 'sanitation',
-      specs: '82°C sanitizing rinse cycle, chemical dosing, triple sink pre-rinse',
+      specs: '82°C sanitising rinse cycle, chemical dosing, triple sink pre-rinse',
       status: 'Available',
       icon: Sparkles,
       image: Images.hero,
@@ -108,7 +108,7 @@ export const Facilities: React.FC = () => {
             Certified Facilities & Commercial Appliances
           </h2>
           <p className="text-base sm:text-lg text-brand-muted mt-3">
-            Every piece of equipment is maintained, calibrated, and sanitized to Australian commercial kitchen standards.
+            Every piece of equipment is maintained, calibrated, and sanitised to Australian commercial kitchen standards.
           </p>
         </div>
 
@@ -191,7 +191,7 @@ export const Facilities: React.FC = () => {
         <div className="mt-12 p-4 rounded-xl bg-brand-mint/40 border border-brand-mint-border text-center max-w-2xl mx-auto">
           <p className="text-xs text-brand-dark">
             <span className="font-bold">Equipment Verification:</span> All equipment listings are maintained and 
-            inspected by Daily Drop facility managers. Specialized tooling or custom attachments can be arranged prior to rental.
+            inspected by Daily Drop facility managers. Specialised tooling or custom attachments can be arranged prior to rental.
           </p>
         </div>
 

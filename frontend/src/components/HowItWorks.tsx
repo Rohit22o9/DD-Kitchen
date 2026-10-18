@@ -18,19 +18,19 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ onStartBooking }) => {
     {
       num: '01',
       title: 'Choose Your Slot',
-      desc: 'Pick your preferred date, morning or evening start time, and desired duration from 2 hours up to a full 12-hour production shift.',
+      desc: 'Pick your preferred date, any 24-hour start time, and desired duration from 4 hours up to a full 24-hour production shift.',
       icon: Calendar,
     },
     {
       num: '02',
       title: 'Check Availability',
-      desc: 'Our real-time engine validates operating hours and conflicts. Review the itemized hourly rental rate and transparent cleaning fee.',
+      desc: 'Our real-time engine validates calendar availability. Review the itemised hourly rental rate with zero upfront cleaning fees.',
       icon: Search,
     },
     {
       num: '03',
       title: 'Submit Your Request',
-      desc: 'Enter your business details, kitchen crew size, and select the specific appliances or cold storage racks you will need.',
+      desc: 'Enter your business details, kitchen crew size, and select the specific appliances or cool room racks you will need.',
       icon: FileCheck2,
     },
     {
@@ -121,7 +121,7 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ onStartBooking }) => {
                 </div>
                 <div className="flex items-start space-x-2 text-xs">
                   <CheckCircle2 className="w-4 h-4 text-brand-orange shrink-0 mt-0.5" />
-                  <span>Public Liability Insurance ($10M min)</span>
+                  <span>Public Liability Insurance ($20M min)</span>
                 </div>
                 <div className="flex items-start space-x-2 text-xs">
                   <CheckCircle2 className="w-4 h-4 text-brand-orange shrink-0 mt-0.5" />

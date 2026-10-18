@@ -97,35 +97,26 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
 
   // Pricing calculations
   const hourlyRate = config?.hourly_rental_rate || 45.0;
-  const cleaningFee = config?.cleaning_fee || 25.0;
-  const securityDeposit = config?.security_deposit || 150.0;
+  const cleaningFee = config?.cleaning_fee ?? 0.0;
+  const securityDeposit = config?.security_deposit || 750.0;
   const baseRentalCost = hourlyRate * duration;
   const totalRentalCost = baseRentalCost + cleaningFee;
 
   // Calculate end time
   const [startH, startM] = startTime.split(':').map(Number);
   const endMinutesTotal = startH * 60 + startM + Math.round(duration * 60);
-  const endH = Math.floor(endMinutesTotal / 60);
+  const endH = Math.floor(endMinutesTotal / 60) % 24;
   const endM = endMinutesTotal % 60;
-  const endTimeFormatted = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+  const isNextDay = Math.floor(endMinutesTotal / 60) >= 24;
+  const endTimeFormatted = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}${isNextDay ? ' (+1 day)' : ''}`;
 
-  // Check if current slot conflicts with availability
+  // Check if current slot conflicts with availability (Kitchen is 24/7)
   const checkConflict = (): { hasConflict: boolean; reason?: string } => {
     if (!availability) return { hasConflict: false };
     const reqStart = startH * 60 + startM;
     const reqEnd = endMinutesTotal;
 
-    // Check operating hours
-    const opStartM = 6 * 60; // 06:00
-    const opEndM = 23 * 60; // 23:00
-    if (reqStart < opStartM || reqEnd > opEndM) {
-      return {
-        hasConflict: true,
-        reason: 'Operating hours are 06:00 to 23:00. This slot exceeds working hours.',
-      };
-    }
-
-    // Check slots
+    // Check booked / blocked slots on this date
     for (const slot of availability.slots) {
       const [sh, sm] = slot.start_time.split(':').map(Number);
       const [eh, em] = slot.end_time.split(':').map(Number);
@@ -298,20 +289,24 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                       onChange={(e) => setStartTime(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
                     >
-                      <option value="06:00">06:00 AM (Early Baking Shift)</option>
+                      <option value="00:00">12:00 AM (Midnight Shift)</option>
+                      <option value="02:00">02:00 AM (Overnight Batch)</option>
+                      <option value="04:00">04:00 AM (Early Baker Start)</option>
+                      <option value="06:00">06:00 AM (Morning Bake Shift)</option>
                       <option value="07:00">07:00 AM</option>
-                      <option value="08:00">08:00 AM (Morning Prep)</option>
+                      <option value="08:00">08:00 AM (Breakfast Prep)</option>
                       <option value="09:00">09:00 AM</option>
                       <option value="10:00">10:00 AM</option>
                       <option value="11:00">11:00 AM (Lunch Rush Prep)</option>
-                      <option value="12:00">12:00 PM</option>
+                      <option value="12:00">12:00 PM (Midday)</option>
                       <option value="13:00">01:00 PM (Afternoon Shift)</option>
                       <option value="14:00">02:00 PM</option>
                       <option value="15:00">03:00 PM</option>
                       <option value="16:00">04:00 PM (Evening Batch)</option>
                       <option value="17:00">05:00 PM</option>
-                      <option value="18:00">06:00 PM (Dinner Service / Late Prep)</option>
-                      <option value="19:00">07:00 PM</option>
+                      <option value="18:00">06:00 PM (Dinner Service Prep)</option>
+                      <option value="20:00">08:00 PM (Late Shift)</option>
+                      <option value="22:00">10:00 PM (Night Production)</option>
                     </select>
                   </div>
 
@@ -324,13 +319,12 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                       onChange={(e) => setDuration(Number(e.target.value))}
                       className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
                     >
-                      <option value={2}>2 Hours (Minimum Rental)</option>
-                      <option value={3}>3 Hours</option>
-                      <option value={4}>4 Hours (Standard Half-Shift)</option>
-                      <option value={6}>6 Hours</option>
+                      <option value={4}>4 Hours (Minimum Rental)</option>
+                      <option value={6}>6 Hours (Extended Prep)</option>
                       <option value={8}>8 Hours (Full Production Shift)</option>
                       <option value={10}>10 Hours</option>
                       <option value={12}>12 Hours (Commercial Run)</option>
+                      <option value={24}>24 Hours (Full-Day Access)</option>
                     </select>
                   </div>
                 </div>
@@ -605,27 +599,30 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                 </div>
 
                 <div className="flex justify-between items-center text-brand-muted">
-                  <span>Post-session Sanitization & Wash:</span>
-                  <span className="font-semibold text-brand-dark">${cleaningFee.toFixed(2)}</span>
+                  <span>Post-shift Clean-down:</span>
+                  <span className="font-semibold text-emerald-700">Included ($0.00)*</span>
                 </div>
 
                 <div className="pt-4 border-t border-gray-100 flex justify-between items-baseline">
                   <div>
                     <span className="text-base font-bold text-brand-dark">Total Estimated Cost:</span>
-                    <p className="text-[11px] text-brand-muted">Includes utilities, power & waste</p>
+                    <p className="text-[11px] text-brand-muted">Includes power, gas & utilities</p>
                   </div>
-                  <span className="text-2xl font-black text-brand-forest">${totalRentalCost.toFixed(2)}</span>
+                  <span className="text-2xl font-black text-brand-forest">${totalRentalCost.toFixed(2)} AUD</span>
                 </div>
+                <p className="text-[10px] text-brand-muted italic">
+                  *Tenants are responsible for basic station wash-down. Additional fees apply if the kitchen is left uncleaned.
+                </p>
               </div>
 
               {/* Security Deposit Note */}
               <div className="p-3.5 rounded-xl bg-brand-mint/40 border border-brand-mint-border text-xs text-brand-forest space-y-1">
                 <div className="flex items-center space-x-1.5 font-bold">
                   <ShieldCheck className="w-4 h-4 text-brand-forest" />
-                  <span>Refundable Security Bond: ${securityDeposit.toFixed(2)}</span>
+                  <span>Refundable Security Bond: ${securityDeposit.toFixed(2)} AUD</span>
                 </div>
-                <p className="text-[11px] text-brand-muted">
-                  A refundable bond is authorized on key handover and released upon inspection after your booking.
+                <p className="text-[11px] text-brand-muted leading-relaxed">
+                  A standard refundable security bond of $750 AUD is authorised prior to key handover. Released within 24 hours of shift completion following facility inspection for cleanliness and equipment integrity.
                 </p>
               </div>
 
@@ -663,7 +660,7 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                   </div>
                 ) : (
                   <div className="p-3 rounded-lg bg-emerald-50/70 border border-emerald-100 text-xs text-emerald-800 text-center">
-                    All hours from 06:00 to 23:00 are currently open on this date.
+                    The kitchen is open 24 hours. All hours are currently open on this date.
                   </div>
                 )}
               </div>
