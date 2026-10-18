@@ -20,58 +20,79 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick, onAdminClick, isAdm
   };
 
   return (
-    <header className="sticky top-0 z-50 glass-nav border-b border-brand-mint-border/60 transition-all">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-50 glass-nav border-b border-brand-mint-border/60 transition-all shadow-xs">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
-          {/* Logo */}
-          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => scrollToSection('hero')}>
+          
+          {/* Logo & Kitchen Tagline */}
+          <div 
+            className="flex items-center space-x-3 cursor-pointer group shrink-0" 
+            onClick={() => scrollToSection('hero')}
+            title="Daily Drop Commercial Kitchen Home"
+          >
             <img
               src={Images.logo}
               alt="Daily Drop Commercial Kitchen Rental"
-              className="h-10 sm:h-12 w-auto object-contain hover:opacity-95 transition-opacity"
+              className="h-10 sm:h-11 w-auto object-contain transition-transform group-hover:scale-[1.02]"
             />
-            <div className="hidden sm:flex flex-col pl-2 border-l border-brand-mint-border">
-              <span className="text-xs font-bold tracking-wider uppercase text-brand-forest">Commercial Kitchen</span>
-              <span className="text-[11px] text-brand-muted">Hourly Space Rental</span>
+            <div className="hidden xl:flex flex-col pl-3 border-l border-brand-mint-border/80">
+              <span className="text-[11px] font-black tracking-wider uppercase text-brand-forest leading-tight">
+                Commercial Kitchen
+              </span>
+              <span className="text-[10px] text-brand-muted font-medium">
+                Hourly Space Rental
+              </span>
             </div>
           </div>
 
-          {/* Desktop Navigation Links */}
-          <nav className="hidden lg:flex items-center space-x-8 text-sm font-medium text-brand-dark">
-            <button onClick={() => scrollToSection('hero')} className="hover:text-brand-forest transition-colors">
-              Home
-            </button>
-            <button onClick={() => scrollToSection('our-kitchen')} className="hover:text-brand-forest transition-colors">
+          {/* Desktop Navigation Links — Spacious & Elegant */}
+          <nav className="hidden lg:flex items-center space-x-1 xl:space-x-3 text-xs xl:text-sm font-semibold text-brand-dark">
+            <button 
+              onClick={() => scrollToSection('our-kitchen')} 
+              className="px-3 py-1.5 rounded-lg text-brand-dark/90 hover:text-brand-forest hover:bg-brand-mint/50 transition-all cursor-pointer"
+            >
               Our Kitchen
             </button>
-            <button onClick={() => scrollToSection('facilities')} className="hover:text-brand-forest transition-colors">
+            <button 
+              onClick={() => scrollToSection('facilities')} 
+              className="px-3 py-1.5 rounded-lg text-brand-dark/90 hover:text-brand-forest hover:bg-brand-mint/50 transition-all cursor-pointer"
+            >
               Facilities
             </button>
-            <button onClick={() => scrollToSection('use-cases')} className="hover:text-brand-forest transition-colors">
-              Use Cases
-            </button>
-            <button onClick={() => scrollToSection('how-it-works')} className="hover:text-brand-forest transition-colors">
+            <button 
+              onClick={() => scrollToSection('how-it-works')} 
+              className="px-3 py-1.5 rounded-lg text-brand-dark/90 hover:text-brand-forest hover:bg-brand-mint/50 transition-all cursor-pointer"
+            >
               How It Works
             </button>
-            <button onClick={() => scrollToSection('pricing')} className="hover:text-brand-forest transition-colors">
+            <button 
+              onClick={() => scrollToSection('pricing')} 
+              className="px-3 py-1.5 rounded-lg text-brand-dark/90 hover:text-brand-forest hover:bg-brand-mint/50 transition-all cursor-pointer"
+            >
               Pricing
             </button>
-            <button onClick={() => scrollToSection('faq')} className="hover:text-brand-forest transition-colors">
+            <button 
+              onClick={() => scrollToSection('faq')} 
+              className="px-3 py-1.5 rounded-lg text-brand-dark/90 hover:text-brand-forest hover:bg-brand-mint/50 transition-all cursor-pointer"
+            >
               FAQ
             </button>
-            <button onClick={() => scrollToSection('contact')} className="hover:text-brand-forest transition-colors">
+            <button 
+              onClick={() => scrollToSection('contact')} 
+              className="px-3 py-1.5 rounded-lg text-brand-dark/90 hover:text-brand-forest hover:bg-brand-mint/50 transition-all cursor-pointer"
+            >
               Contact
             </button>
           </nav>
 
           {/* Right Action Buttons */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-3 shrink-0">
             <button
               onClick={onAdminClick}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
                 isAdminLoggedIn
-                  ? 'bg-brand-forest text-white shadow-sm'
-                  : 'text-brand-muted hover:text-brand-forest hover:bg-brand-mint/50'
+                  ? 'bg-brand-forest/10 text-brand-forest border-brand-forest/30 hover:bg-brand-forest hover:text-white'
+                  : 'text-brand-muted hover:text-brand-forest hover:bg-brand-mint/60 border-transparent hover:border-brand-mint-border'
               }`}
               title="Admin Management Portal"
             >
@@ -82,7 +103,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick, onAdminClick, isAdm
             <button
               onClick={onBookClick}
               id="nav-book-cta"
-              className="flex items-center space-x-2 bg-brand-orange hover:bg-brand-orange-hover text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-soft transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0"
+              className="flex items-center space-x-2 bg-brand-orange hover:bg-brand-orange-hover text-white px-5 py-2.5 rounded-xl font-bold text-xs xl:text-sm shadow-md shadow-brand-orange/20 hover:shadow-glow-orange transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
             >
               <Calendar className="w-4 h-4" />
               <span>Book a Kitchen</span>
@@ -90,16 +111,16 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick, onAdminClick, isAdm
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="flex md:hidden items-center space-x-2">
+          <div className="flex lg:hidden items-center space-x-2">
             <button
               onClick={onBookClick}
-              className="bg-brand-orange text-white text-xs font-semibold px-3 py-1.5 rounded-lg"
+              className="bg-brand-orange text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm"
             >
               Book Now
             </button>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 text-brand-dark hover:text-brand-forest"
+              className="p-2 text-brand-dark hover:text-brand-forest rounded-lg hover:bg-brand-mint/40"
               aria-label="Toggle menu"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
