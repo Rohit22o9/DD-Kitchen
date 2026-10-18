@@ -89,15 +89,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick, onAdminClick, isAdm
           <div className="hidden md:flex items-center space-x-3 shrink-0">
             <button
               onClick={onAdminClick}
-              className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
-                isAdminLoggedIn
-                  ? 'bg-brand-forest/10 text-brand-forest border-brand-forest/30 hover:bg-brand-forest hover:text-white'
-                  : 'text-brand-muted hover:text-brand-forest hover:bg-brand-mint/60 border-transparent hover:border-brand-mint-border'
-              }`}
+              className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-brand-forest border border-brand-forest/30 hover:bg-brand-mint/50 hover:border-brand-forest/50 transition-all cursor-pointer shadow-2xs"
               title="Admin Management Portal"
             >
-              <Shield className="w-3.5 h-3.5" />
-              <span>{isAdminLoggedIn ? 'Admin Panel' : 'Staff Login'}</span>
+              <Shield className="w-3.5 h-3.5 text-brand-forest" />
+              <span>Admin Panel</span>
             </button>
 
             <button
