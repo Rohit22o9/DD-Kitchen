@@ -39,7 +39,7 @@ export const WhyChoose: React.FC = () => {
       icon: TrendingUp,
     },
     {
-      title: 'Dedicated Focus on Growth',
+      title: 'Focus on Growing Your Business',
       desc: 'Spend your energy mastering recipes, winning customers, and growing revenue while Daily Drop maintains the facility.',
       icon: HeartHandshake,
     },
@@ -55,7 +55,7 @@ export const WhyChoose: React.FC = () => {
             The Daily Drop Advantage
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-brand-dark tracking-tight">
-            Why Food Creators Choose Daily Drop
+            Why Food Creators Choose Daily Drop Commercial Kitchens
           </h2>
           <p className="text-base sm:text-lg text-brand-muted mt-3">
             Building a commercial food business shouldn't require risking your life savings on real estate. 
@@ -74,7 +74,7 @@ export const WhyChoose: React.FC = () => {
                 alt="Chef prepping in Daily Drop Commercial Kitchen"
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-brand-forest/80 via-transparent to-transparent flex items-end p-6 sm:p-8">
+              <div className="absolute inset-0 bg-gradient-to-t from-brand-forest/90 via-transparent to-transparent flex items-end p-6 sm:p-8">
                 <div className="text-white">
                   <div className="flex items-center space-x-2 text-brand-orange text-xs font-bold uppercase tracking-wider mb-1">
                     <ShieldCheck className="w-4 h-4" />
@@ -88,8 +88,8 @@ export const WhyChoose: React.FC = () => {
               </div>
             </div>
 
-            {/* Floating Trust Badge */}
-            <div className="absolute -bottom-6 -right-6 bg-white rounded-2xl p-4 shadow-soft-lg border border-brand-mint-border max-w-[200px] hidden sm:block">
+            {/* Floating Trust Badge repositioned to top-right to prevent covering text */}
+            <div className="absolute -top-4 -right-4 bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-soft-lg border border-brand-mint-border max-w-[190px] z-10 hidden sm:block">
               <span className="text-2xl font-black text-brand-forest">100%</span>
               <p className="text-xs font-bold text-brand-dark mt-0.5">Commercial Grade</p>
               <p className="text-[10px] text-brand-muted">HACCP & Council registered kitchen facility</p>

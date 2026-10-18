@@ -5,6 +5,7 @@ import { BookingEngine } from './components/BookingEngine';
 import { BookingConfirmationModal } from './components/BookingConfirmationModal';
 import { OurKitchen } from './components/OurKitchen';
 import { Facilities } from './components/Facilities';
+import { KitchenUseCases } from './components/KitchenUseCases';
 import { WhoCanRent } from './components/WhoCanRent';
 import { HowItWorks } from './components/HowItWorks';
 import { Pricing } from './components/Pricing';
@@ -124,7 +125,12 @@ export function App() {
         {/* 4. Facilities & Equipment */}
         <Facilities />
 
-        {/* 5. Who Can Rent */}
+        {/* 5. How Can You Use Our Fully Equipped Commercial Kitchens? */}
+        <KitchenUseCases
+          onStartBooking={() => scrollToBooking()}
+        />
+
+        {/* 6. Who Can Rent */}
         <WhoCanRent
           onSelectSegment={() => scrollToBooking()}
         />

@@ -47,6 +47,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick, onAdminClick, isAdm
             <button onClick={() => scrollToSection('facilities')} className="hover:text-brand-forest transition-colors">
               Facilities
             </button>
+            <button onClick={() => scrollToSection('use-cases')} className="hover:text-brand-forest transition-colors">
+              Use Cases
+            </button>
             <button onClick={() => scrollToSection('how-it-works')} className="hover:text-brand-forest transition-colors">
               How It Works
             </button>
@@ -126,6 +129,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick, onAdminClick, isAdm
               className="text-left py-2 hover:text-brand-forest border-b border-gray-100"
             >
               Facilities & Equipment
+            </button>
+            <button
+              onClick={() => scrollToSection('use-cases')}
+              className="text-left py-2 hover:text-brand-forest border-b border-gray-100"
+            >
+              Kitchen Use Cases
             </button>
             <button
               onClick={() => scrollToSection('how-it-works')}
