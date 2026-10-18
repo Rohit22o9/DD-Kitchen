@@ -65,6 +65,7 @@ class Enquiry(Base):
     preferred_date = Column(String(50), nullable=True)
     estimated_hours = Column(String(50), nullable=True)
     business_type = Column(String(100), nullable=True)
+    registered_in_victoria_park = Column(String(10), default="No")
     message = Column(Text, nullable=False)
     status = Column(String(30), default="new")
     created_at = Column(DateTime, default=datetime.datetime.utcnow)

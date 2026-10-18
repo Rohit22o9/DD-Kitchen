@@ -97,7 +97,7 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-brand-dark">Around Your Schedule</h4>
-                  <p className="text-[11px] text-brand-muted">6:00 AM – 11:00 PM</p>
+                  <p className="text-[11px] text-brand-muted">Kitchen Timings 24 hours available</p>
                 </div>
               </div>
             </div>
@@ -127,7 +127,7 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
               </div>
               <div>
                 <p className="text-xs font-bold text-brand-dark">Daily Drop Kitchen Hub 1 — Perth WA</p>
-                <p className="text-[11px] text-brand-muted">876 Albany Hwy, East Victoria Park • 450m² Commercial Footprint</p>
+                <p className="text-[11px] text-brand-muted">Unit 1, 1 Lichfield Street, Victoria Park • 450m² Commercial Footprint</p>
               </div>
             </div>
 

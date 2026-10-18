@@ -101,22 +101,22 @@ export const Footer: React.FC<FooterProps> = ({ config, onAdminClick }) => {
             
             <p className="flex items-start space-x-2">
               <MapPin className="w-4 h-4 text-brand-orange shrink-0 mt-0.5" />
-              <span>{config?.kitchen_address || '876 Albany Hwy, East Victoria Park, Perth WA 6101'}</span>
+              <span>{config?.kitchen_address || 'Unit 1, 1 Lichfield Street, Victoria Park, Perth, WA, 6101'}</span>
             </p>
 
             <p className="flex items-center space-x-2">
               <Phone className="w-4 h-4 text-brand-orange shrink-0" />
-              <span>{config?.kitchen_phone || '+61 472 701 922'}</span>
+              <span>{config?.kitchen_phone || '0479 175 705'}</span>
             </p>
 
             <p className="flex items-center space-x-2">
               <Mail className="w-4 h-4 text-brand-orange shrink-0" />
-              <span>{config?.kitchen_email || 'kitchens@dailydrop.com.au'}</span>
+              <span>{config?.kitchen_email || 'hello@dailydrop.today'}</span>
             </p>
 
             <p className="flex items-center space-x-2">
               <Clock className="w-4 h-4 text-brand-orange shrink-0" />
-              <span>Daily Operating Hours: 06:00 AM – 11:00 PM AWST</span>
+              <span>Kitchen Timings 24 hours available (24/7 for booked shifts)</span>
             </p>
 
             <div className="pt-3">

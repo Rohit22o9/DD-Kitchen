@@ -45,10 +45,10 @@ export function App() {
           cleaning_fee: 25.0,
           security_deposit: 150.0,
           kitchen_name: 'Daily Drop Commercial Kitchen Hub 1',
-          kitchen_address: '876 Albany Hwy, East Victoria Park, Perth WA 6101',
-          kitchen_phone: '+61 472 701 922',
-          kitchen_email: 'kitchens@dailydrop.com.au',
-          kitchen_whatsapp: '+61472701922',
+          kitchen_address: 'Unit 1, 1 Lichfield Street, Victoria Park, Perth, WA, 6101',
+          kitchen_phone: '0479 175 705',
+          kitchen_email: 'hello@dailydrop.today',
+          kitchen_whatsapp: '+61479175705',
           currency_symbol: '$',
         });
       }

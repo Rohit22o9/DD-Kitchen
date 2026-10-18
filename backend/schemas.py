@@ -87,6 +87,7 @@ class EnquiryCreate(BaseModel):
     preferred_date: Optional[str] = None
     estimated_hours: Optional[str] = None
     business_type: Optional[str] = None
+    registered_in_victoria_park: Optional[str] = "No"
     message: str = Field(..., min_length=5)
 
 class EnquiryResponse(BaseModel):
@@ -98,6 +99,7 @@ class EnquiryResponse(BaseModel):
     preferred_date: Optional[str]
     estimated_hours: Optional[str]
     business_type: Optional[str]
+    registered_in_victoria_park: Optional[str] = "No"
     message: str
     status: str
     created_at: datetime

@@ -89,7 +89,8 @@ An integrated operations portal is built into the application:
 ---
 
 ## 🏢 Facility Information (Perth Hub 1)
-- **Address**: 876 Albany Hwy, East Victoria Park, Perth WA 6101
-- **Phone**: +61 472 701 922
-- **Email**: kitchens@dailydrop.com.au
-- **Operating Hours**: 06:00 AM – 11:00 PM AWST Daily
+- **Address**: Unit 1, 1 Lichfield Street, Victoria Park, Perth, WA, 6101
+- **Phone**: 0479 175 705
+- **Email**: hello@dailydrop.today
+- **Kitchen Operating Hours**: Kitchen Timings 24 hours available (24/7 for booked shifts)
+- **WhatsApp**: +61479175705

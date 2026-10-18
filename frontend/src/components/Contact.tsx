@@ -25,6 +25,7 @@ export const Contact: React.FC<ContactProps> = ({ config }) => {
   const [preferredDate, setPreferredDate] = useState('');
   const [estimatedHours, setEstimatedHours] = useState('');
   const [businessType, setBusinessType] = useState('Cloud Kitchen');
+  const [registeredInVicPark, setRegisteredInVicPark] = useState('No');
   const [message, setMessage] = useState('');
 
   const [loading, setLoading] = useState(false);
@@ -44,6 +45,7 @@ export const Contact: React.FC<ContactProps> = ({ config }) => {
         preferred_date: preferredDate.trim() || undefined,
         estimated_hours: estimatedHours.trim() || undefined,
         business_type: businessType,
+        registered_in_victoria_park: registeredInVicPark,
         message: message.trim(),
       };
       await api.submitEnquiry(payload);
@@ -54,6 +56,7 @@ export const Contact: React.FC<ContactProps> = ({ config }) => {
       setBusinessName('');
       setPreferredDate('');
       setEstimatedHours('');
+      setRegisteredInVicPark('No');
       setMessage('');
     } catch (err: any) {
       setError(err.message || 'Failed to submit enquiry. Please try again or reach out by phone.');
@@ -62,10 +65,10 @@ export const Contact: React.FC<ContactProps> = ({ config }) => {
     }
   };
 
-  const phoneDisplay = config?.kitchen_phone || '+61 472 701 922';
-  const emailDisplay = config?.kitchen_email || 'kitchens@dailydrop.com.au';
-  const addressDisplay = config?.kitchen_address || '876 Albany Hwy, East Victoria Park, Perth WA 6101';
-  const whatsappNum = config?.kitchen_whatsapp || '+61472701922';
+  const phoneDisplay = config?.kitchen_phone || '0479 175 705';
+  const emailDisplay = config?.kitchen_email || 'hello@dailydrop.today';
+  const addressDisplay = config?.kitchen_address || 'Unit 1, 1 Lichfield Street, Victoria Park, Perth, WA, 6101';
+  const whatsappNum = config?.kitchen_whatsapp || '+61479175705';
 
   return (
     <section id="contact" className="py-20 lg:py-28 bg-white relative">
@@ -103,7 +106,7 @@ export const Contact: React.FC<ContactProps> = ({ config }) => {
                     <h4 className="font-bold text-brand-dark">Daily Drop Kitchen Hub 1</h4>
                     <p className="text-brand-muted mt-0.5">{addressDisplay}</p>
                     <span className="text-[11px] text-brand-forest font-semibold mt-1 inline-block">
-                      East Victoria Park Commercial Precinct
+                      Victoria Park Commercial Precinct
                     </span>
                   </div>
                 </div>
@@ -135,7 +138,7 @@ export const Contact: React.FC<ContactProps> = ({ config }) => {
                   </div>
                   <div>
                     <h4 className="font-bold text-brand-dark">Kitchen Operating Schedule</h4>
-                    <p className="text-brand-muted mt-0.5">06:00 AM – 11:00 PM (Daily for booked shifts)</p>
+                    <p className="text-brand-muted mt-0.5">Kitchen Timings 24 hours available (24/7 for booked shifts)</p>
                   </div>
                 </div>
               </div>
@@ -305,6 +308,37 @@ export const Contact: React.FC<ContactProps> = ({ config }) => {
                     </div>
                   </div>
 
+                  {/* Town of Victoria Park Registration Question */}
+                  <div className="p-4 rounded-xl bg-brand-cream/60 border border-brand-mint-border">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-2">
+                      Is your food business registered in the Town of Victoria Park? *
+                    </label>
+                    <div className="flex items-center space-x-6">
+                      <label className="flex items-center space-x-2 text-xs font-semibold text-brand-dark cursor-pointer">
+                        <input
+                          type="radio"
+                          name="registeredVicPark"
+                          value="Yes"
+                          checked={registeredInVicPark === 'Yes'}
+                          onChange={() => setRegisteredInVicPark('Yes')}
+                          className="text-brand-forest focus:ring-brand-forest h-4 w-4"
+                        />
+                        <span>Yes</span>
+                      </label>
+                      <label className="flex items-center space-x-2 text-xs font-semibold text-brand-dark cursor-pointer">
+                        <input
+                          type="radio"
+                          name="registeredVicPark"
+                          value="No"
+                          checked={registeredInVicPark === 'No'}
+                          onChange={() => setRegisteredInVicPark('No')}
+                          className="text-brand-forest focus:ring-brand-forest h-4 w-4"
+                        />
+                        <span>No</span>
+                      </label>
+                    </div>
+                  </div>
+
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1.5">
                       Message & Requirements *
@@ -336,6 +370,13 @@ export const Contact: React.FC<ContactProps> = ({ config }) => {
                       </>
                     )}
                   </button>
+
+                  <p className="text-[11px] text-center text-brand-muted mt-2">
+                    Rental enquiries are sent directly to{' '}
+                    <a href="mailto:hello@dailydrop.today" className="font-bold text-brand-forest underline">
+                      hello@dailydrop.today
+                    </a>
+                  </p>
                 </form>
               )}
             </div>

@@ -153,6 +153,7 @@ def submit_enquiry(enquiry_in: EnquiryCreate, db: Session = Depends(get_db)):
         preferred_date=enquiry_in.preferred_date,
         estimated_hours=enquiry_in.estimated_hours,
         business_type=enquiry_in.business_type,
+        registered_in_victoria_park=enquiry_in.registered_in_victoria_park or "No",
         message=enquiry_in.message,
         status="new"
     )

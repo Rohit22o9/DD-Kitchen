@@ -89,6 +89,7 @@ export interface EnquiryInput {
   preferred_date?: string;
   estimated_hours?: string;
   business_type?: string;
+  registered_in_victoria_park?: string;
   message: string;
 }
 
@@ -101,6 +102,7 @@ export interface Enquiry {
   preferred_date?: string;
   estimated_hours?: string;
   business_type?: string;
+  registered_in_victoria_park?: string;
   message: string;
   status: string;
   created_at: string;

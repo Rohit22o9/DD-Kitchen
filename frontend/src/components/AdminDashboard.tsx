@@ -873,10 +873,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
                       </span>
                     </div>
 
-                    <div className="flex items-center space-x-4 text-brand-muted">
+                    <div className="flex flex-wrap items-center gap-3 text-brand-muted">
                       <span>Email: <strong>{enq.email}</strong></span>
                       <span>Phone: <strong>{enq.phone}</strong></span>
                       {enq.estimated_hours && <span>Needs: <strong>{enq.estimated_hours}</strong></span>}
+                      <span>Registered in Vic Park: <strong className={enq.registered_in_victoria_park === 'Yes' ? 'text-emerald-700 font-bold' : 'text-gray-700'}>{enq.registered_in_victoria_park || 'No'}</strong></span>
                     </div>
 
                     <p className="bg-brand-cream/60 p-3 rounded-xl border border-brand-mint-border text-brand-dark leading-relaxed">

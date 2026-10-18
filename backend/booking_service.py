@@ -7,15 +7,15 @@ from .models import Booking, BlockedSlot, KitchenSetting
 DEFAULT_SETTINGS = {
     "hourly_rental_rate": "45.0",
     "min_rental_hours": "2",
-    "operating_hours_start": "06:00",
-    "operating_hours_end": "23:00",
+    "operating_hours_start": "00:00",
+    "operating_hours_end": "24:00",
     "cleaning_fee": "25.0",
     "security_deposit": "150.0",
     "kitchen_name": "Daily Drop Commercial Kitchen Hub 1",
-    "kitchen_address": "876 Albany Hwy, East Victoria Park, Perth WA 6101",
-    "kitchen_phone": "+61 472 701 922",
-    "kitchen_email": "kitchens@dailydrop.com.au",
-    "kitchen_whatsapp": "+61472701922",
+    "kitchen_address": "Unit 1, 1 Lichfield Street, Victoria Park, Perth, WA, 6101",
+    "kitchen_phone": "0479 175 705",
+    "kitchen_email": "hello@dailydrop.today",
+    "kitchen_whatsapp": "+61479175705",
     "currency_symbol": "$",
 }
 

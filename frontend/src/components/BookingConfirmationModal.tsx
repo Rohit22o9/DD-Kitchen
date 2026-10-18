@@ -50,7 +50,7 @@ export const BookingConfirmationModal: React.FC<BookingConfirmationModalProps> =
       `DTEND:${endICS}`,
       `SUMMARY:Daily Drop Commercial Kitchen Rental (${booking.reference_code})`,
       `DESCRIPTION:Commercial kitchen reservation for ${booking.intended_use}. Team of ${booking.team_size}. Reference: ${booking.reference_code}`,
-      'LOCATION:876 Albany Hwy, East Victoria Park, Perth WA 6101',
+      'LOCATION:Unit 1, 1 Lichfield Street, Victoria Park, Perth, WA, 6101',
       'STATUS:CONFIRMED',
       'END:VEVENT',
       'END:VCALENDAR',
