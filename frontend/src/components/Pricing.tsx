@@ -36,7 +36,7 @@ export const Pricing: React.FC<PricingProps> = ({ config, onSelectDuration }) =>
       features: [
         '4 hours of dedicated kitchen time',
         'Combi oven & deep fryers included',
-        'Dedicated walk-in chiller rack space during shift. Long term rental available.',
+        'Dedicated walk-in cool room rack space during shift. Long term rental available.',
         'Courier delivery dispatch bench',
         'High-power 30L planetary mixer',
         'Tenants wash down station after shift',
@@ -53,7 +53,7 @@ export const Pricing: React.FC<PricingProps> = ({ config, onSelectDuration }) =>
       features: [
         '8 hours full facility access',
         'All cooking lines & combi ovens',
-        'Walk-in chiller & freezer shelf allocation',
+        'Walk-in cool room & freezer shelf allocation',
         'Complimentary equipment orientation',
         'Tenants wash down station after shift',
       ],
@@ -172,7 +172,7 @@ export const Pricing: React.FC<PricingProps> = ({ config, onSelectDuration }) =>
             Need Recurring Shifts (e.g. 20+ Hours Every Week)?
           </h4>
           <p className="text-xs text-brand-muted mt-1 max-w-xl mx-auto">
-            We offer discounted monthly retainer packages, dedicated dry storage cages, and walk-in chiller pallet slots for established partners.
+            We offer discounted monthly retainer packages, dedicated dry storage cages, and walk-in cool room shelf slots for established partners.
           </p>
           <a
             href="#contact"

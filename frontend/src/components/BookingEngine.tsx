@@ -196,8 +196,9 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
     '2x 20L Commercial Deep Fryers',
     'Stainless Food Prep Table',
     '30L Planetary Mixer',
-    'Walk-in Chiller Space',
-    'Walk-in Freezer Rack',
+    'Commercial Bread Slicer',
+    'Walk-in Cool Room Space',
+    'Upright & Bench Freezer Space',
     'Pass-Through Commercial Dishwasher',
   ];
 

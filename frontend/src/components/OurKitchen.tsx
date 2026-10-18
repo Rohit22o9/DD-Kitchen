@@ -39,7 +39,7 @@ export const OurKitchen: React.FC<OurKitchenProps> = ({ onCheckAvailability }) =
     },
     {
       src: Images.coldStorage,
-      title: 'Commercial Walk-in Chiller & Dry Pantry',
+      title: 'Commercial Walk-in Cool Room & Dry Pantry',
       description: 'HACCP-monitored 2°C walk-in cool room, wire shelving racks, and organised dry ingredient storage.',
     },
   ];
@@ -136,8 +136,8 @@ export const OurKitchen: React.FC<OurKitchenProps> = ({ onCheckAvailability }) =
             <div className="w-10 h-10 rounded-xl bg-brand-mint text-brand-forest flex items-center justify-center mb-3">
               <Layers className="w-5 h-5" />
             </div>
-            <h4 className="text-base font-extrabold text-brand-dark">450 m² Space</h4>
-            <p className="text-xs text-brand-muted mt-1">Multi-station layout with dedicated prep & hot zones.</p>
+            <h4 className="text-base font-extrabold text-brand-dark">88 sqm Space</h4>
+            <p className="text-xs text-brand-muted mt-1">Multi-station layout with dedicated prep & cooking benches.</p>
           </div>
 
           <div className="bg-white p-5 rounded-2xl border border-brand-mint-border shadow-soft-sm">
@@ -160,8 +160,8 @@ export const OurKitchen: React.FC<OurKitchenProps> = ({ onCheckAvailability }) =
             <div className="w-10 h-10 rounded-xl bg-brand-mint text-brand-forest flex items-center justify-center mb-3">
               <ThermometerSnowflake className="w-5 h-5" />
             </div>
-            <h4 className="text-base font-extrabold text-brand-dark">Dual Temp Storage</h4>
-            <p className="text-xs text-brand-muted mt-1">Walk-in chiller (2°C) + Walk-in blast freezer (-18°C).</p>
+            <h4 className="text-base font-extrabold text-brand-dark">Cool Room & Freezers</h4>
+            <p className="text-xs text-brand-muted mt-1">Walk-in cool room (2°C) + Upright and bench freezers.</p>
           </div>
         </div>
 

@@ -36,9 +36,13 @@ export const WhoCanRent: React.FC<WhoCanRentProps> = ({ onSelectSegment }) => {
       title: 'Caterers & Event Businesses',
       tagline: 'Large-Volume Event Execution',
       icon: UtensilsCrossed,
-      desc: 'Prepare high-volume wedding banquets, corporate luncheons, and festival menus with expansive prep benches and walk-in cold rooms.',
-      hours: 'Recommended: 8h to 12h full-day sessions',
-      bullets: ['Pallet loading dock', 'Multi-tray cooling', 'Hot holding gear'],
+      desc: 'Prepare food for weddings, corporate events, private functions, and large gatherings in our fully equipped commercial kitchen.',
+      hours: 'Recommended: 6h to 8h sessions',
+      bullets: [
+        'Dedicated food preparation bench',
+        'Access to shared commercial cooking equipment',
+        'Flexible booking for event preparation',
+      ],
     },
     {
       title: 'Food Entrepreneurs',
@@ -52,9 +56,13 @@ export const WhoCanRent: React.FC<WhoCanRentProps> = ({ onSelectSegment }) => {
       title: 'Bakers & Independent Chefs',
       tagline: 'Artisan Pastry & Specialised Production',
       icon: Cake,
-      desc: 'Bake sourdough bread, croissants, wedding cakes, and pastries using commercial planetary mixers and precision steam combi ovens.',
-      hours: 'Recommended: 4h early morning bake-offs',
-      bullets: ['Planetary mixer suite', 'Proofer racks', 'Marble pastry table'],
+      desc: 'Prepare fresh bread, cakes, pastries, and specialty baked goods in our commercial kitchen, with access to professional cooking and baking equipment.',
+      hours: 'Recommended: 4h to 8h baking sessions',
+      bullets: [
+        'Commercial bread slicer',
+        'Commercial ovens and baking equipment',
+        'Dedicated food preparation bench',
+      ],
     },
     {
       title: 'Test Your Menu & Business Ideas',

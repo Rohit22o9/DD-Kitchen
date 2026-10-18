@@ -30,7 +30,7 @@ export const WhyChoose: React.FC = () => {
     },
     {
       title: 'Professional Commercial Appliances',
-      desc: 'Work on Rational combi steamers, heavy Garland burners, commercial mixers, and blast chillers without repair or maintenance headaches.',
+      desc: 'Work on Rational combi steamers, heavy Garland burners, commercial mixers, and walk-in cool room storage without repair or maintenance headaches.',
       icon: ChefHat,
     },
     {

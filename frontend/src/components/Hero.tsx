@@ -138,7 +138,7 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
               </div>
               <div>
                 <p className="text-xs font-bold text-brand-dark">Daily Drop Kitchen Hub 1 — Perth WA</p>
-                <p className="text-[11px] text-brand-muted">Unit 1, 1 Lichfield Street, Victoria Park • 450m² Commercial Footprint</p>
+                <p className="text-[11px] text-brand-muted">Unit 1, 1 Lichfield Street, Victoria Park • 88 sqm Commercial Footprint</p>
               </div>
             </div>
 

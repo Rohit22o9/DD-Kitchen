@@ -50,9 +50,9 @@ export const Facilities: React.FC = () => {
       image: Images.prepStation,
     },
     {
-      name: 'Commercial Walk-in Chiller (40 m³)',
+      name: 'Commercial Walk-in Cool Room',
       category: 'refrigeration',
-      specs: 'Digitally monitored at 2°C, multi-tier wire shelving, pallet ramp',
+      specs: 'Digitally monitored at 2°C, multi-tier wire shelving, upright & bench freezers',
       status: 'Available',
       icon: ThermometerSnowflake,
       image: Images.coldStorage,
