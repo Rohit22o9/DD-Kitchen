@@ -1,0 +1,31 @@
+# Node & Frontend dependencies
+node_modules/
+frontend/node_modules/
+.npm
+*.tsbuildinfo
+
+# Build output
+dist/
+build/
+
+# Python & Backend
+__pycache__/
+*.py[cod]
+*$py.class
+*.db
+*.sqlite
+*.sqlite3
+.pytest_cache/
+
+# Environment files
+.env
+.env.local
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Temp extraction directory
+extracted_assets/
