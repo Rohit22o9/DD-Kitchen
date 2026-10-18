@@ -1,5 +1,15 @@
-import React, { useState } from 'react';
-import { Calendar, Clock, DollarSign, ArrowRight, ShieldCheck, Sparkles, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { 
+  Calendar, 
+  Clock, 
+  DollarSign, 
+  ArrowRight, 
+  ShieldCheck, 
+  Sparkles, 
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight
+} from 'lucide-react';
 import { KitchenConfig } from '../types';
 import { Images } from '../assets/images';
 
@@ -18,6 +28,52 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
   const [selectedDate, setSelectedDate] = useState(tomorrowStr);
   const [selectedTime, setSelectedTime] = useState('09:00');
   const [selectedDuration, setSelectedDuration] = useState(4);
+
+  // Slideshow data for top hero banner
+  const slides = [
+    {
+      src: Images.hero,
+      title: 'Main Commercial Kitchen & Island Range',
+      subtitle: 'Garland 6-burner gas range, 304 stainless prep line & extraction canopy',
+      badge: 'Hub 1 — Perth WA',
+    },
+    {
+      src: Images.prepStation,
+      title: 'Stainless Food Preparation Workstations',
+      subtitle: 'Grade 304 food-grade stainless tables & Hobart 30L planetary mixer',
+      badge: 'Dedicated Prep Workbenches',
+    },
+    {
+      src: Images.cookingRange,
+      title: 'High-Output Cooking Line & Combi Station',
+      subtitle: 'Rational iCombi Pro 10-tray steamer & twin 20L commercial deep fryers',
+      badge: 'Commercial Cooking Line',
+    },
+    {
+      src: Images.coldStorage,
+      title: 'Commercial Walk-in Cool Room & Freezers',
+      subtitle: 'HACCP-monitored 2°C walk-in cool room + upright and bench freezers',
+      badge: 'Cold Storage Allocation',
+    },
+  ];
+
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  // Auto-advance slides every 5 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [slides.length]);
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+  };
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % slides.length);
+  };
 
   // Tiered pricing: 2h=$100, 4h=$152 ($38/h base), 8h=$256 ($32/h), 12h=$360 ($30/h)
   const getHeroTierPrice = (hrs: number): number => {
@@ -41,10 +97,26 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
   };
 
   return (
-    <section id="hero" className="relative pt-6 pb-16 lg:py-20 overflow-hidden bg-gradient-to-b from-brand-mint/40 via-brand-cream to-white">
-      {/* Background soft ambient accents */}
-      <div className="absolute top-0 right-1/4 w-96 h-96 bg-brand-forest/5 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-10 left-10 w-80 h-80 bg-brand-orange/5 rounded-full blur-3xl pointer-events-none" />
+    <section id="hero" className="relative pt-6 pb-16 lg:py-20 overflow-hidden bg-brand-cream">
+      {/* Background Slideshow with smooth fade transitions */}
+      <div className="absolute inset-0 z-0">
+        {slides.map((s, idx) => (
+          <div
+            key={idx}
+            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+              idx === currentSlide ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            }`}
+          >
+            <img
+              src={s.src}
+              alt={s.title}
+              className="w-full h-full object-cover object-center filter saturate-105"
+            />
+          </div>
+        ))}
+        {/* Soft, readable gradient overlay that showcases the photos while keeping typography ultra crisp */}
+        <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/90 to-white/80 lg:to-white/70 backdrop-blur-[1px]" />
+      </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
@@ -71,7 +143,7 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
             </p>
 
             {/* Tagline Box */}
-            <div className="p-4 rounded-xl bg-white/80 border border-brand-mint-border/80 shadow-soft-sm max-w-xl">
+            <div className="p-4 rounded-xl bg-white/85 border border-brand-mint-border/80 shadow-soft-sm max-w-xl">
               <p className="text-sm font-bold text-brand-forest tracking-wide uppercase">
                 “Your Kitchen. Your Hours. Your Business.”
               </p>
@@ -82,7 +154,7 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
 
             {/* Benefit Indicators */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 max-w-xl">
-              <div className="flex items-center space-x-2.5 p-2.5 rounded-lg bg-white/70 border border-brand-mint-border/60">
+              <div className="flex items-center space-x-2.5 p-2.5 rounded-lg bg-white/80 border border-brand-mint-border/60">
                 <div className="p-1.5 rounded-md bg-brand-mint text-brand-forest">
                   <Clock className="w-4 h-4" />
                 </div>
@@ -92,7 +164,7 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2.5 p-2.5 rounded-lg bg-white/70 border border-brand-mint-border/60">
+              <div className="flex items-center space-x-2.5 p-2.5 rounded-lg bg-white/80 border border-brand-mint-border/60">
                 <div className="p-1.5 rounded-md bg-brand-mint text-brand-forest">
                   <ShieldCheck className="w-4 h-4" />
                 </div>
@@ -102,7 +174,7 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2.5 p-2.5 rounded-lg bg-white/70 border border-brand-mint-border/60">
+              <div className="flex items-center space-x-2.5 p-2.5 rounded-lg bg-white/80 border border-brand-mint-border/60">
                 <div className="p-1.5 rounded-md bg-brand-mint text-brand-forest">
                   <CheckCircle2 className="w-4 h-4" />
                 </div>
@@ -131,14 +203,66 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
               </button>
             </div>
 
-            {/* Kitchen Photo Preview Thumbnail */}
-            <div className="pt-4 flex items-center space-x-4">
-              <div className="relative rounded-xl overflow-hidden w-28 h-18 border-2 border-white shadow-soft">
-                <img src={Images.hero} alt="Daily Drop Kitchen" className="w-full h-full object-cover" />
+            {/* Interactive Kitchen Photo Slide Navigator Bar */}
+            <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border border-brand-mint-border shadow-soft-sm max-w-xl">
+              <div className="flex items-center space-x-3">
+                <div className="relative rounded-xl overflow-hidden w-20 h-14 border border-brand-forest/20 shadow-sm shrink-0">
+                  <img
+                    src={slides[currentSlide].src}
+                    alt={slides[currentSlide].title}
+                    className="w-full h-full object-cover transition-all duration-500"
+                  />
+                  <div className="absolute bottom-0 inset-x-0 bg-black/50 text-[9px] text-white font-bold text-center py-0.5">
+                    {currentSlide + 1} / {slides.length}
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center space-x-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-brand-orange animate-pulse" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-brand-orange">
+                      {slides[currentSlide].badge}
+                    </span>
+                  </div>
+                  <p className="text-xs font-bold text-brand-dark truncate max-w-[220px] sm:max-w-[260px]">
+                    {slides[currentSlide].title}
+                  </p>
+                  <p className="text-[10px] text-brand-muted">
+                    Unit 1, 1 Lichfield St, Victoria Park • 88 sqm Space
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs font-bold text-brand-dark">Daily Drop Kitchen Hub 1 — Perth WA</p>
-                <p className="text-[11px] text-brand-muted">Unit 1, 1 Lichfield Street, Victoria Park • 88 sqm Commercial Footprint</p>
+
+              {/* Prev / Next & Dots Controls */}
+              <div className="flex items-center space-x-1.5 self-end sm:self-center">
+                <button
+                  type="button"
+                  onClick={prevSlide}
+                  aria-label="Previous slide"
+                  className="w-7 h-7 rounded-lg bg-white border border-gray-200 hover:bg-brand-mint text-brand-forest flex items-center justify-center transition-colors shadow-xs"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <div className="flex items-center space-x-1 px-1">
+                  {slides.map((_, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setCurrentSlide(i)}
+                      className={`h-2 rounded-full transition-all ${
+                        i === currentSlide ? 'w-5 bg-brand-orange' : 'w-2 bg-gray-300 hover:bg-gray-400'
+                      }`}
+                      aria-label={`Go to slide ${i + 1}`}
+                    />
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={nextSlide}
+                  aria-label="Next slide"
+                  className="w-7 h-7 rounded-lg bg-white border border-gray-200 hover:bg-brand-mint text-brand-forest flex items-center justify-center transition-colors shadow-xs"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
               </div>
             </div>
 

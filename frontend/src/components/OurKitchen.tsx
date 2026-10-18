@@ -152,8 +152,8 @@ export const OurKitchen: React.FC<OurKitchenProps> = ({ onCheckAvailability }) =
             <div className="w-10 h-10 rounded-xl bg-brand-mint text-brand-forest flex items-center justify-center mb-3">
               <Wind className="w-5 h-5" />
             </div>
-            <h4 className="text-base font-extrabold text-brand-dark">10,000 CFM Hood</h4>
-            <p className="text-xs text-brand-muted mt-1">Industrial UV grease filtration & multi-duct makeup air.</p>
+            <h4 className="text-base font-extrabold text-brand-dark">Commercial Exhaust Hood</h4>
+            <p className="text-xs text-brand-muted mt-1">Heavy-duty kitchen exhaust system designed to remove smoke, heat, steam, and cooking odours for a comfortable cooking environment.</p>
           </div>
 
           <div className="bg-white p-5 rounded-2xl border border-brand-mint-border shadow-soft-sm">
