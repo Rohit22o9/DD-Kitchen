@@ -129,9 +129,6 @@ export function App() {
           onExploreFacilities={() => scrollToSection('facilities')}
         />
 
-        {/* 1.5. Come See Our Kitchen Walkthrough Banner */}
-        <ComeSeeOurKitchen config={config} />
-
         {/* 2. Our Kitchen Section */}
         <OurKitchen
           onCheckAvailability={() => scrollToBooking()}
@@ -140,7 +137,10 @@ export function App() {
         {/* 3. Facilities & Equipment */}
         <Facilities />
 
-        {/* 4. How Can You Use Our Fully Equipped Commercial Kitchens? */}
+        {/* 3.5. Come See Our Kitchen Walkthrough Banner */}
+        <ComeSeeOurKitchen config={config} />
+
+        {/* 4. How Can You Use Our Fully Equipped Commercial Kitchens? (One Kitchen. Endless Possibilities) */}
         <KitchenUseCases
           onStartBooking={() => scrollToBooking()}
         />
