@@ -5,10 +5,11 @@ import { Images } from '../assets/images';
 interface NavbarProps {
   onBookClick: () => void;
   onAdminClick: () => void;
+  onCustomerClick?: () => void;
   isAdminLoggedIn?: boolean;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onBookClick, onAdminClick, isAdminLoggedIn }) => {
+export const Navbar: React.FC<NavbarProps> = ({ onBookClick, onAdminClick, onCustomerClick, isAdminLoggedIn }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const scrollToSection = (id: string) => {
@@ -87,6 +88,16 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick, onAdminClick, isAdm
 
           {/* Right Action Buttons */}
           <div className="hidden md:flex items-center space-x-3 shrink-0">
+            {onCustomerClick && (
+              <button
+                onClick={onCustomerClick}
+                className="flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-gray-700 border border-gray-200 hover:bg-gray-50 transition-all cursor-pointer shadow-2xs"
+                title="Customer & Tenant Dashboard"
+              >
+                <span>Customer Portal</span>
+              </button>
+            )}
+
             <button
               onClick={onAdminClick}
               className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-brand-forest border border-brand-forest/30 hover:bg-brand-mint/50 hover:border-brand-forest/50 transition-all cursor-pointer shadow-2xs"

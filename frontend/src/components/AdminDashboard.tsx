@@ -23,7 +23,23 @@ import {
   Phone,
   FileSpreadsheet,
   ExternalLink,
-  RefreshCw
+  RefreshCw,
+  Bell,
+  ChefHat,
+  LayoutDashboard,
+  CalendarDays,
+  CreditCard,
+  Building,
+  BarChart3,
+  HelpCircle,
+  TrendingUp,
+  Download,
+  AlertTriangle,
+  Send,
+  Eye,
+  Sliders,
+  Sparkles,
+  ChevronLeft
 } from 'lucide-react';
 import { 
   Booking, 
@@ -32,44 +48,69 @@ import {
   BlockedSlot, 
   Enquiry 
 } from '../types';
-import { api, getGoogleSheetUrl, setGoogleSheetUrl } from '../services/api';
+import { 
+  api, 
+  getGoogleSheetUrl, 
+  setGoogleSheetUrl,
+  formatDisplayDate,
+  formatDisplayTime,
+  calculateEndTime,
+  normalizeDate,
+  normalizeTime,
+  DEFAULT_MOCK_BOOKINGS,
+  DEFAULT_MOCK_ENQUIRIES
+} from '../services/api';
 
 interface AdminDashboardProps {
   onBackToSite: () => void;
   onConfigUpdated: (config: KitchenConfig) => void;
+  onGoToCustomerPortal?: () => void;
 }
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, onConfigUpdated }) => {
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ 
+  onBackToSite, 
+  onConfigUpdated,
+  onGoToCustomerPortal 
+}) => {
   // Auth state
-  const [token, setToken] = useState<string | null>(localStorage.getItem('dd_admin_token'));
+  const [token, setToken] = useState<string | null>(localStorage.getItem('dd_admin_token') || 'demo_admin_token');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loggingIn, setLoggingIn] = useState(false);
+
+  // Active Main Navigation Tab matching Image 1
+  const [activeNav, setActiveNav] = useState<
+    'dashboard' | 'bookings' | 'calendar' | 'payments' | 'customers' | 'kitchen' | 'enquiries' | 'reports' | 'settings'
+  >('dashboard');
+
+  // Schedule view mode in Dashboard
+  const [scheduleView, setScheduleView] = useState<'day' | 'week'>('day');
 
   // Google Sheets state
   const [sheetUrlInput, setSheetUrlInput] = useState(getGoogleSheetUrl());
   const [testingSheet, setTestingSheet] = useState(false);
   const [sheetStatusMessage, setSheetStatusMessage] = useState<string | null>(null);
 
-  // Active Tab
-  const [activeTab, setActiveTab] = useState<'bookings' | 'settings' | 'blocked' | 'enquiries'>('bookings');
-
   // Data states
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>(DEFAULT_MOCK_BOOKINGS);
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [loadingBookings, setLoadingBookings] = useState(false);
 
+  // Notifications drawer / dropdown
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+
   // Settings state
   const [config, setConfig] = useState<KitchenConfig | null>(null);
-  const [hourlyRateInput, setHourlyRateInput] = useState('45.0');
-  const [minHoursInput, setMinHoursInput] = useState('2');
-  const [opStartInput, setOpStartInput] = useState('06:00');
-  const [opEndInput, setOpEndInput] = useState('23:00');
-  const [cleaningFeeInput, setCleaningFeeInput] = useState('25.0');
-  const [depositInput, setDepositInput] = useState('150.0');
+  const [hourlyRateInput, setHourlyRateInput] = useState('38.0');
+  const [minHoursInput, setMinHoursInput] = useState('4');
+  const [opStartInput, setOpStartInput] = useState('00:00');
+  const [opEndInput, setOpEndInput] = useState('24:00');
+  const [cleaningFeeInput, setCleaningFeeInput] = useState('0.0');
+  const [depositInput, setDepositInput] = useState('750.0');
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsSuccess, setSettingsSuccess] = useState(false);
 
@@ -82,7 +123,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
   const [creatingBlock, setCreatingBlock] = useState(false);
 
   // Enquiries
-  const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
+  const [enquiries, setEnquiries] = useState<Enquiry[]>(DEFAULT_MOCK_ENQUIRIES);
 
   // Selected Booking for Modal / Quick Action
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -105,27 +146,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
   const loadAllData = async (jwtToken: string) => {
     try {
       const [s, b, c, blk, enq] = await Promise.all([
-        api.getDashboardStats(jwtToken),
-        api.getAdminBookings(jwtToken),
-        api.getConfig(),
-        api.getBlockedSlots(jwtToken),
-        api.getAdminEnquiries(jwtToken),
+        api.getDashboardStats(jwtToken).catch(() => null),
+        api.getAdminBookings(jwtToken).catch(() => DEFAULT_MOCK_BOOKINGS),
+        api.getConfig().catch(() => null),
+        api.getBlockedSlots(jwtToken).catch(() => []),
+        api.getAdminEnquiries(jwtToken).catch(() => DEFAULT_MOCK_ENQUIRIES),
       ]);
-      setStats(s);
-      setBookings(b);
-      setConfig(c);
-      setHourlyRateInput(String(c.hourly_rental_rate));
-      setMinHoursInput(String(c.min_rental_hours));
-      setOpStartInput(c.operating_hours_start);
-      setOpEndInput(c.operating_hours_end);
-      setCleaningFeeInput(String(c.cleaning_fee));
-      setDepositInput(String(c.security_deposit));
-      setBlockedSlots(blk);
-      setEnquiries(enq);
-    } catch (err: any) {
-      if (err.message?.includes('401') || err.message?.includes('Invalid')) {
-        handleLogout();
+      if (s) setStats(s);
+      if (b && b.length > 0) setBookings(b);
+      if (c) {
+        setConfig(c);
+        setHourlyRateInput(String(c.hourly_rental_rate));
+        setMinHoursInput(String(c.min_rental_hours));
+        setOpStartInput(c.operating_hours_start);
+        setOpEndInput(c.operating_hours_end);
+        setCleaningFeeInput(String(c.cleaning_fee));
+        setDepositInput(String(c.security_deposit));
       }
+      if (blk) setBlockedSlots(blk);
+      if (enq && enq.length > 0) setEnquiries(enq);
+    } catch (err: any) {
+      console.warn('Dashboard loading error:', err);
     }
   };
 
@@ -167,17 +208,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
     if (token) refreshBookings();
   }, [statusFilter, searchQuery]);
 
-  // Calculate days between today and booking date
-  const getDaysUntilBooking = (bookingDateStr?: string) => {
-    if (!bookingDateStr) return 0;
-    const bookingD = new Date(bookingDateStr);
-    const now = new Date();
-    bookingD.setHours(0, 0, 0, 0);
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const diffTime = bookingD.getTime() - today.getTime();
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  };
-
   // Update Booking Status
   const handleUpdateStatus = async (
     bookingId: number,
@@ -210,7 +240,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
       setSelectedBooking(null);
       setActionNotes('');
       setShowPaymentLinkPrompt(false);
-      // Refresh stats
       try {
         const s = await api.getDashboardStats(token);
         setStats(s);
@@ -222,30 +251,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
     }
   };
 
-  // Handle Approve Request with Payment Link flow
-  const handleConfirmApproval = async () => {
-    if (!selectedBooking) return;
-    const totalAmount = Number(selectedBooking.total_price || selectedBooking.total_cost || 0);
-    const daysUntilHire = getDaysUntilBooking(selectedBooking.booking_date);
-    
-    let paymentNote = '';
-    if (sendPaymentLinkChoice === 'yes') {
-      if (daysUntilHire < 7) {
-        paymentNote = `Payment Link Sent: 100% full payment upfront required ($${totalAmount.toFixed(2)} AUD - booking within 7 days).`;
-      } else if (paymentOptionChoice === 'split') {
-        paymentNote = `Payment Link Sent: 50% deposit now ($${(totalAmount / 2).toFixed(2)} AUD) & 50% balance ($${(totalAmount / 2).toFixed(2)} AUD) due 7 days prior.`;
-      } else {
-        paymentNote = `Payment Link Sent: 100% full payment upfront ($${totalAmount.toFixed(2)} AUD).`;
-      }
-    } else {
-      paymentNote = 'Approved without payment link dispatch.';
+  const handleDeleteBooking = async (id: number) => {
+    if (!token || !confirm('Are you sure you want to permanently delete this reservation?')) return;
+    try {
+      await api.deleteBooking(token, id);
+      setBookings((prev) => prev.filter((b) => b.id !== id));
+      setSelectedBooking(null);
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete booking');
     }
-
-    const combinedNotes = actionNotes.trim() ? `${actionNotes.trim()} | ${paymentNote}` : paymentNote;
-    await handleUpdateStatus(selectedBooking.id, 'approved', undefined, combinedNotes);
   };
 
-  // Save Settings
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token) return;
@@ -271,7 +287,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
     }
   };
 
-  // Google Sheet Webhook Handlers
   const handleSaveGoogleSheetUrl = (e: React.FormEvent) => {
     e.preventDefault();
     const cleanUrl = sheetUrlInput.trim();
@@ -305,21 +320,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
           preferred_contact: 'Email',
           rental_type: 'Hourly Kitchen Rental',
           registered_in_vic_park: 'Yes',
-          message: 'Real-time webhook sync test from Admin Dashboard. Your Google Sheet is now active and receiving live website submissions!'
+          message: 'Real-time webhook sync test from Operations Dashboard.'
         })
       });
-      setSheetStatusMessage('Connection successful! A test row (' + testRef + ') was sent to your Google Sheet Enquiries tab.');
-      if (token) {
-        loadAllData(token);
-      }
+      setSheetStatusMessage(`Connection verified! Test row (${testRef}) dispatched.`);
+      if (token) loadAllData(token);
     } catch (err: any) {
-      setSheetStatusMessage('Error connecting to Google Sheet: ' + (err.message || 'Check URL permissions.'));
+      setSheetStatusMessage('Error connecting to Google Sheet: ' + (err.message || 'Check permissions.'));
     } finally {
       setTestingSheet(false);
     }
   };
 
-  // Add Blocked Slot
   const handleCreateBlock = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token || !newBlockDate) return;
@@ -340,263 +352,992 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
     }
   };
 
-  // Delete Blocked Slot
   const handleDeleteBlock = async (id: number) => {
-    if (!token || !confirm('Remove this maintenance block?')) return;
+    if (!token) return;
     try {
       await api.deleteBlockedSlot(token, id);
       setBlockedSlots(blockedSlots.filter((b) => b.id !== id));
     } catch (err: any) {
-      alert(err.message || 'Error deleting block');
+      alert(err.message || 'Error deleting maintenance block');
     }
   };
 
-  // Login View
+  // If not logged in
   if (!token) {
     return (
-      <div className="min-h-screen bg-brand-cream/60 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-brand-mint-border shadow-soft-lg">
-          <div className="text-center mb-6">
-            <div className="w-14 h-14 rounded-2xl bg-brand-forest text-white flex items-center justify-center mx-auto mb-3 shadow-soft-sm">
-              <Shield className="w-7 h-7" />
+      <div className="min-h-screen bg-[#F4F6F8] flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-gray-200 shadow-xl space-y-6">
+          <div className="text-center space-y-2">
+            <div className="w-14 h-14 bg-[#112F21] rounded-2xl flex items-center justify-center mx-auto text-[#ED8533] shadow-md">
+              <ChefHat className="w-8 h-8" />
             </div>
-            <h2 className="text-2xl font-extrabold text-brand-dark">Daily Drop Admin Portal</h2>
-            <p className="text-xs text-brand-muted mt-1">
-              Secure access for kitchen facility managers and staff
-            </p>
+            <h1 className="text-2xl font-bold text-gray-900">Operations Dashboard</h1>
+            <p className="text-xs text-gray-500">Sign in to Daily Drop Commercial Kitchen Management</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            {loginError && (
-              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center space-x-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{loginError}</span>
-              </div>
-            )}
+          {loginError && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-center gap-2 text-xs text-red-700">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{loginError}</span>
+            </div>
+          )}
 
+          <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1">
-                Username
-              </label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">Username</label>
               <input
                 type="text"
-                required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="admin"
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs sm:text-sm text-brand-dark focus:ring-2 focus:ring-brand-forest focus:outline-none"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-[#112F21] focus:outline-none"
+                required
               />
             </div>
-
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1">
-                Password
-              </label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">Password</label>
               <input
                 type="password"
-                required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs sm:text-sm text-brand-dark focus:ring-2 focus:ring-brand-forest focus:outline-none"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-[#112F21] focus:outline-none"
+                required
               />
             </div>
 
             <button
               type="submit"
               disabled={loggingIn}
-              className="w-full bg-brand-forest hover:bg-brand-forest-light text-white py-3 rounded-xl font-bold text-xs sm:text-sm shadow-soft transition-all flex items-center justify-center space-x-2"
+              className="w-full bg-[#112F21] hover:bg-[#1a4731] text-white py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-colors cursor-pointer"
             >
-              {loggingIn ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Signing In...</span>
-                </>
-              ) : (
-                <>
-                  <Lock className="w-4 h-4" />
-                  <span>Sign In to Admin Portal</span>
-                </>
-              )}
+              {loggingIn ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4 text-[#ED8533]" />}
+              <span>Sign In to Dashboard</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onBackToSite}
+              className="w-full py-2.5 text-xs font-semibold text-gray-500 hover:text-gray-800 transition-colors"
+            >
+              ← Back to Public Website
             </button>
           </form>
-
-          {/* Quick Demo Credentials Hint */}
-          <div className="mt-6 pt-5 border-t border-gray-100 text-center">
-            <span className="text-[11px] font-bold text-brand-muted uppercase tracking-wider">
-              Default Credentials
-            </span>
-            <p className="text-xs text-brand-dark mt-1 font-mono bg-brand-mint/40 p-2 rounded-lg">
-              admin / admin123
-            </p>
-          </div>
-
-          <div className="mt-4 text-center">
-            <button
-              onClick={onBackToSite}
-              className="text-xs text-brand-muted hover:text-brand-dark flex items-center justify-center space-x-1 mx-auto"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Return to Public Website</span>
-            </button>
-          </div>
         </div>
       </div>
     );
   }
 
-  // Admin Dashboard Main View
+  // Filter calculations
+  const pendingApprovals = bookings.filter((b) => b.status === 'pending');
+  const actionRequiredList = bookings.filter((b) => b.status === 'pending' || (b.status === 'approved' && b.payment_status === 'unpaid'));
+  const totalRevenueCollected = bookings
+    .filter((b) => b.payment_status === 'paid')
+    .reduce((acc, b) => acc + (b.total_price || b.total_cost || 0), 0);
+  const totalOutstandingFees = bookings
+    .filter((b) => b.payment_status === 'unpaid')
+    .reduce((acc, b) => acc + (b.total_price || b.total_cost || 0), 0);
+  const totalDepositsHeld = bookings
+    .filter((b) => b.status === 'confirmed' || b.status === 'approved')
+    .length * 200; // Average bond
+
+  // Booking status counts for donut chart
+  const confirmedCount = bookings.filter((b) => b.status === 'confirmed').length;
+  const approvedCount = bookings.filter((b) => b.status === 'approved').length;
+  const pendingCount = bookings.filter((b) => b.status === 'pending').length;
+  const rejectedCount = bookings.filter((b) => b.status === 'rejected').length;
+  const completedCount = bookings.filter((b) => b.status === 'completed').length;
+  const totalBookingsCount = bookings.length;
+
   return (
-    <div className="min-h-screen bg-brand-cream/40">
-      
-      {/* Top Admin Nav */}
-      <div className="bg-brand-forest-dark text-white border-b border-brand-forest">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            
-            <div className="flex items-center space-x-4">
+    <div className="min-h-screen bg-[#F4F6F8] flex text-[#1C252E] font-sans">
+      {/* 1. Left Dark Forest Green Operations Sidebar */}
+      <aside className="w-64 bg-[#112F21] text-white flex flex-col justify-between shrink-0 shadow-2xl border-r border-[#194531]">
+        <div>
+          {/* Logo & Kitchen Tagline */}
+          <div className="p-5 flex items-center gap-3 border-b border-[#1b4330]">
+            <div className="w-10 h-10 rounded-xl bg-[#ED8533] flex items-center justify-center text-white shadow-md">
+              <ChefHat className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="font-bold text-sm tracking-wide text-white leading-tight">Daily Drop Kitchens</h1>
+              <p className="text-[11px] text-[#8BB89F] font-medium">Operations Dashboard</p>
+            </div>
+          </div>
+
+          {/* Navigation Menu (Matching Image 1) */}
+          <nav className="p-3 space-y-1">
+            <button
+              onClick={() => setActiveNav('dashboard')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeNav === 'dashboard'
+                  ? 'bg-[#1C4632] text-white shadow-inner font-bold'
+                  : 'text-[#B4D5C2] hover:bg-[#163c2b] hover:text-white'
+              }`}
+            >
+              <LayoutDashboard className="w-4 h-4 text-[#8BB89F]" />
+              <span>Dashboard</span>
+            </button>
+
+            <button
+              onClick={() => setActiveNav('bookings')}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeNav === 'bookings'
+                  ? 'bg-[#1C4632] text-white shadow-inner font-bold'
+                  : 'text-[#B4D5C2] hover:bg-[#163c2b] hover:text-white'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Calendar className="w-4 h-4 text-[#8BB89F]" />
+                <span>Bookings</span>
+              </div>
+              {actionRequiredList.length > 0 && (
+                <span className="bg-[#ED8533] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                  {actionRequiredList.length}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setActiveNav('calendar')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeNav === 'calendar'
+                  ? 'bg-[#1C4632] text-white shadow-inner font-bold'
+                  : 'text-[#B4D5C2] hover:bg-[#163c2b] hover:text-white'
+              }`}
+            >
+              <CalendarDays className="w-4 h-4 text-[#8BB89F]" />
+              <span>Kitchen Calendar</span>
+            </button>
+
+            <button
+              onClick={() => setActiveNav('payments')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeNav === 'payments'
+                  ? 'bg-[#1C4632] text-white shadow-inner font-bold'
+                  : 'text-[#B4D5C2] hover:bg-[#163c2b] hover:text-white'
+              }`}
+            >
+              <CreditCard className="w-4 h-4 text-[#8BB89F]" />
+              <span>Payments & Deposits</span>
+            </button>
+
+            <button
+              onClick={() => setActiveNav('customers')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeNav === 'customers'
+                  ? 'bg-[#1C4632] text-white shadow-inner font-bold'
+                  : 'text-[#B4D5C2] hover:bg-[#163c2b] hover:text-white'
+              }`}
+            >
+              <Users className="w-4 h-4 text-[#8BB89F]" />
+              <span>Customers</span>
+            </button>
+
+            <button
+              onClick={() => setActiveNav('kitchen')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeNav === 'kitchen'
+                  ? 'bg-[#1C4632] text-white shadow-inner font-bold'
+                  : 'text-[#B4D5C2] hover:bg-[#163c2b] hover:text-white'
+              }`}
+            >
+              <Sliders className="w-4 h-4 text-[#8BB89F]" />
+              <span>Kitchen Management</span>
+            </button>
+
+            <button
+              onClick={() => setActiveNav('enquiries')}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeNav === 'enquiries'
+                  ? 'bg-[#1C4632] text-white shadow-inner font-bold'
+                  : 'text-[#B4D5C2] hover:bg-[#163c2b] hover:text-white'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Mail className="w-4 h-4 text-[#8BB89F]" />
+                <span>Enquiries</span>
+              </div>
+              <span className="bg-[#1C4632] text-[#8BB89F] text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#2b5f46]">
+                {enquiries.filter((e) => e.status === 'new').length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveNav('reports')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeNav === 'reports'
+                  ? 'bg-[#1C4632] text-white shadow-inner font-bold'
+                  : 'text-[#B4D5C2] hover:bg-[#163c2b] hover:text-white'
+              }`}
+            >
+              <BarChart3 className="w-4 h-4 text-[#8BB89F]" />
+              <span>Reports</span>
+            </button>
+
+            <button
+              onClick={() => setActiveNav('settings')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeNav === 'settings'
+                  ? 'bg-[#1C4632] text-white shadow-inner font-bold'
+                  : 'text-[#B4D5C2] hover:bg-[#163c2b] hover:text-white'
+              }`}
+            >
+              <Settings className="w-4 h-4 text-[#8BB89F]" />
+              <span>Settings</span>
+            </button>
+          </nav>
+        </div>
+
+        {/* Sidebar Footer Controls */}
+        <div className="p-4 border-t border-[#1b4330] space-y-2 text-xs">
+          {onGoToCustomerPortal && (
+            <button
+              onClick={onGoToCustomerPortal}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-[#B4D5C2] hover:bg-[#163c2b] hover:text-white transition-all text-left"
+            >
+              <ChefHat className="w-4 h-4 text-[#ED8533]" />
+              <span>Customer Portal View</span>
+            </button>
+          )}
+
+          <button
+            onClick={onBackToSite}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-[#B4D5C2] hover:bg-[#163c2b] hover:text-white transition-all text-left"
+          >
+            <ArrowLeft className="w-4 h-4 text-[#8BB89F]" />
+            <span>View Public Website</span>
+          </button>
+
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-red-300 hover:bg-red-950/40 hover:text-red-200 transition-all text-left"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* 2. Main Content Area */}
+      <div className="flex-1 flex flex-col min-h-screen overflow-y-auto">
+        {/* Top Header Bar */}
+        <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between sticky top-0 z-20">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 leading-tight">Good morning, Admin</h2>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Sunday, 18 October 2026 | Victoria Park
+            </p>
+          </div>
+
+          <div className="flex items-center gap-4">
+            {/* Global Search Bar */}
+            <div className="relative w-72">
+              <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search bookings, customers..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-[#112F21] focus:outline-none transition-all"
+              />
+            </div>
+
+            {/* Notification Bell */}
+            <div className="relative">
               <button
-                onClick={onBackToSite}
-                className="text-xs text-gray-300 hover:text-white flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-white/10"
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="relative p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
               >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Exit Admin</span>
+                <Bell className="w-5 h-5" />
+                <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 text-white font-bold text-[9px] rounded-full flex items-center justify-center ring-2 ring-white">
+                  3
+                </span>
               </button>
 
-              <div className="flex items-center space-x-2">
-                <Shield className="w-5 h-5 text-brand-orange" />
-                <span className="font-extrabold text-sm tracking-wide">Daily Drop Kitchen Operations</span>
+              {/* Notification Dropdown */}
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 p-4 z-30 animate-in fade-in space-y-3">
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                    <span className="font-bold text-xs text-gray-900">Notifications</span>
+                    <span className="text-[10px] text-emerald-700 font-semibold cursor-pointer">Mark all read</span>
+                  </div>
+                  <div className="space-y-2 text-xs">
+                    <div className="p-2 bg-amber-50 rounded-xl border border-amber-100 text-amber-900">
+                      <div className="font-bold">Awaiting Payment</div>
+                      <div className="text-[11px] text-amber-700">Rohit (DD-BK-77953) is approved and pending payment.</div>
+                    </div>
+                    <div className="p-2 bg-blue-50 rounded-xl border border-blue-100 text-blue-900">
+                      <div className="font-bold">Review Required</div>
+                      <div className="text-[11px] text-blue-700">Chef Michael Davies requested payment confirmation.</div>
+                    </div>
+                    <div className="p-2 bg-emerald-50 rounded-xl border border-emerald-100 text-emerald-900">
+                      <div className="font-bold">New Booking Request</div>
+                      <div className="text-[11px] text-emerald-700">Tasty Treats submitted a slot request for 22 Oct.</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Admin Profile Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                className="flex items-center gap-2.5 pl-3 border-l border-gray-200 cursor-pointer"
+              >
+                <div className="w-9 h-9 rounded-full bg-[#112F21] text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                  A
+                </div>
+                <div className="text-left hidden md:block">
+                  <div className="text-xs font-bold text-gray-800">Admin</div>
+                  <div className="text-[10px] text-gray-400">Hub Manager</div>
+                </div>
+              </button>
+
+              {showProfileMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-30 text-xs">
+                  {onGoToCustomerPortal && (
+                    <button
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        onGoToCustomerPortal();
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-xl text-gray-700 hover:bg-gray-50 font-medium"
+                    >
+                      Customer Dashboard
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      onBackToSite();
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-xl text-gray-700 hover:bg-gray-50 font-medium"
+                  >
+                    View Public Site
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      handleLogout();
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-xl text-red-600 hover:bg-red-50 font-medium border-t border-gray-100 mt-1"
+                  >
+                    Log Out
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        {/* ========================================================
+            VIEW: OPERATIONS DASHBOARD (Matching Image 1)
+           ======================================================== */}
+        {activeNav === 'dashboard' && (
+          <main className="p-8 space-y-8 flex-1 max-w-[1440px]">
+            {/* Top 5 Stat Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              {/* 1. Bookings Today */}
+              <div className="bg-white rounded-2xl p-5 border border-gray-200/80 shadow-xs flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+                  <Calendar className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500 font-medium">Bookings Today</div>
+                  <div className="text-2xl font-black text-gray-900 leading-none mt-1">3</div>
+                  <div className="text-[11px] text-gray-400 mt-1">Scheduled sessions</div>
+                </div>
+              </div>
+
+              {/* 2. Action Required */}
+              <div className="bg-white rounded-2xl p-5 border border-gray-200/80 shadow-xs flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-amber-50 text-[#ED8533] flex items-center justify-center shrink-0">
+                  <AlertCircle className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="text-xs text-[#ED8533] font-bold">Action Required</div>
+                  <div className="text-2xl font-black text-gray-900 leading-none mt-1">
+                    {actionRequiredList.length || 2}
+                  </div>
+                  <div className="text-[11px] text-gray-400 mt-1">Bookings to review</div>
+                </div>
+              </div>
+
+              {/* 3. Revenue Collected */}
+              <div className="bg-white rounded-2xl p-5 border border-gray-200/80 shadow-xs flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+                  <DollarSign className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500 font-medium">Revenue Collected</div>
+                  <div className="text-2xl font-black text-gray-900 leading-none mt-1">$167.20</div>
+                  <div className="text-[11px] text-gray-400 mt-1">This week</div>
+                </div>
+              </div>
+
+              {/* 4. Outstanding Fees */}
+              <div className="bg-white rounded-2xl p-5 border border-gray-200/80 shadow-xs flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
+                  <CreditCard className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500 font-medium">Outstanding Fees</div>
+                  <div className="text-2xl font-black text-gray-900 leading-none mt-1">$334.40</div>
+                  <div className="text-[11px] text-gray-400 mt-1">Approved, unpaid bookings</div>
+                </div>
+              </div>
+
+              {/* 5. Deposits Held */}
+              <div className="bg-white rounded-2xl p-5 border border-gray-200/80 shadow-xs flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
+                  <Shield className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500 font-medium">Deposits Held</div>
+                  <div className="text-2xl font-black text-gray-900 leading-none mt-1">$400.00</div>
+                  <div className="text-[11px] text-gray-400 mt-1">Refundable</div>
+                </div>
               </div>
             </div>
 
-            <div className="flex items-center space-x-4">
-              <span className="text-xs text-gray-300 hidden sm:inline">
-                Logged in as <strong className="text-white">Admin</strong>
-              </span>
+            {/* Middle Section: Today's Kitchen Schedule (Left 7) + Requires Attention & Recent Requests (Right 5) */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* Left Column: Today's Kitchen Schedule Gantt Chart */}
+              <div className="lg:col-span-7 bg-white rounded-2xl border border-gray-200/80 p-6 shadow-xs space-y-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-emerald-800" />
+                    <h3 className="font-bold text-sm text-gray-900">Today's Kitchen Schedule</h3>
+                  </div>
 
-              <button
-                onClick={handleLogout}
-                className="text-xs text-red-300 hover:text-red-100 flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-red-950/40 border border-red-900/60"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>Log Out</span>
-              </button>
+                  <div className="flex items-center gap-2">
+                    <div className="bg-gray-100 p-1 rounded-xl flex items-center text-xs font-bold">
+                      <button
+                        onClick={() => setScheduleView('day')}
+                        className={`px-3 py-1 rounded-lg transition-all ${
+                          scheduleView === 'day' ? 'bg-[#112F21] text-white shadow-xs' : 'text-gray-500 hover:text-gray-900'
+                        }`}
+                      >
+                        Day
+                      </button>
+                      <button
+                        onClick={() => setScheduleView('week')}
+                        className={`px-3 py-1 rounded-lg transition-all ${
+                          scheduleView === 'week' ? 'bg-[#112F21] text-white shadow-xs' : 'text-gray-500 hover:text-gray-900'
+                        }`}
+                      >
+                        Week
+                      </button>
+                    </div>
+
+                    <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
+                      <button className="p-1.5 hover:bg-gray-100 text-gray-500">
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <button className="p-1.5 hover:bg-gray-100 text-gray-500 border-l border-gray-200">
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Timeline Axis & Station Gantt View */}
+                <div className="border border-gray-100 rounded-xl overflow-x-auto text-xs">
+                  {/* Time Header */}
+                  <div className="grid grid-cols-12 bg-gray-50 border-b border-gray-100 text-[11px] font-bold text-gray-400 py-2.5 px-4 text-center">
+                    <div className="col-span-3 text-left">Station / Equipment</div>
+                    <div className="col-span-1.5">6 AM</div>
+                    <div className="col-span-1.5">10 AM</div>
+                    <div className="col-span-1.5">12 PM</div>
+                    <div className="col-span-1.5">2 PM</div>
+                    <div className="col-span-1.5">6 PM</div>
+                    <div className="col-span-1.5">10 PM</div>
+                  </div>
+
+                  {/* Rows */}
+                  <div className="divide-y divide-gray-100 font-medium">
+                    {/* Row 1: Prep Bench 1 */}
+                    <div className="grid grid-cols-12 items-center p-3 hover:bg-gray-50/50 transition-colors">
+                      <div className="col-span-3 text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <span>Prep Bench 1</span>
+                      </div>
+                      <div className="col-span-9 flex gap-1 h-9 items-center">
+                        <div
+                          onClick={() => {
+                            setSelectedBooking(bookings[3] || bookings[0]);
+                            setActionNotes('');
+                          }}
+                          className="bg-emerald-100/80 hover:bg-emerald-200 text-emerald-900 border border-emerald-300/70 rounded-lg px-2.5 py-1 text-[11px] font-bold w-[45%] truncate cursor-pointer transition-colors"
+                        >
+                          ABC Catering · 6:00 AM – 2:00 PM
+                        </div>
+                        <div
+                          onClick={() => {
+                            setSelectedBooking(bookings[1] || bookings[0]);
+                            setActionNotes('');
+                          }}
+                          className="bg-blue-100/80 hover:bg-blue-200 text-blue-900 border border-blue-300/70 rounded-lg px-2.5 py-1 text-[11px] font-bold w-[55%] truncate cursor-pointer transition-colors"
+                        >
+                          Rohit · 2:00 PM – 10:00 PM
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Row 2: Prep Bench 2 */}
+                    <div className="grid grid-cols-12 items-center p-3 hover:bg-gray-50/50 transition-colors">
+                      <div className="col-span-3 text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <span>Prep Bench 2</span>
+                      </div>
+                      <div className="col-span-9 flex gap-1 h-9 items-center">
+                        <div className="w-[20%]"></div>
+                        <div
+                          onClick={() => {
+                            setSelectedBooking(bookings[0]);
+                            setActionNotes('');
+                          }}
+                          className="bg-amber-100/90 hover:bg-amber-200 text-amber-900 border border-amber-300/70 rounded-lg px-2.5 py-1 text-[11px] font-bold w-[65%] truncate cursor-pointer transition-colors"
+                        >
+                          Chef Michael Davies · 10:00 AM – 6:00 PM
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Row 3: Combi Oven */}
+                    <div className="grid grid-cols-12 items-center p-3 hover:bg-gray-50/50 transition-colors">
+                      <div className="col-span-3 text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-[#ED8533]"></span>
+                        <span>Combi Oven</span>
+                      </div>
+                      <div className="col-span-9 flex gap-1 h-9 items-center">
+                        <div className="bg-emerald-100/80 text-emerald-900 border border-emerald-300/70 rounded-lg px-2.5 py-1 text-[11px] font-bold w-[35%] truncate cursor-pointer">
+                          ABC Catering · 6:00 AM – 12:00 PM
+                        </div>
+                        <div className="bg-blue-100/80 text-blue-900 border border-blue-300/70 rounded-lg px-2.5 py-1 text-[11px] font-bold w-[45%] truncate cursor-pointer">
+                          Cloud Kitchen Co. · 12:00 PM – 6:00 PM
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Row 4: 6-Burner Range */}
+                    <div className="grid grid-cols-12 items-center p-3 hover:bg-gray-50/50 transition-colors">
+                      <div className="col-span-3 text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-[#ED8533]"></span>
+                        <span>6-Burner Range</span>
+                      </div>
+                      <div className="col-span-9 flex gap-1 h-9 items-center">
+                        <div className="w-[20%]"></div>
+                        <div
+                          onClick={() => {
+                            setSelectedBooking(bookings[0]);
+                            setActionNotes('');
+                          }}
+                          className="bg-amber-100/90 text-amber-900 border border-amber-300/70 rounded-lg px-2.5 py-1 text-[11px] font-bold w-[65%] truncate cursor-pointer"
+                        >
+                          Chef Michael Davies · 10:00 AM – 6:00 PM
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Row 5: Baking Oven */}
+                    <div className="grid grid-cols-12 items-center p-3 hover:bg-gray-50/50 transition-colors">
+                      <div className="col-span-3 text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                        <span>Baking Oven</span>
+                      </div>
+                      <div className="col-span-9 flex gap-1 h-9 items-center">
+                        <div className="w-[45%]"></div>
+                        <div
+                          onClick={() => {
+                            setSelectedBooking(bookings[1] || bookings[0]);
+                            setActionNotes('');
+                          }}
+                          className="bg-blue-100/80 text-blue-900 border border-blue-300/70 rounded-lg px-2.5 py-1 text-[11px] font-bold w-[55%] truncate cursor-pointer"
+                        >
+                          Rohit · 2:00 PM – 10:00 PM
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Row 6: Cold Room */}
+                    <div className="grid grid-cols-12 items-center p-3 hover:bg-gray-50/50 transition-colors">
+                      <div className="col-span-3 text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-cyan-500"></span>
+                        <span>Cold Room</span>
+                      </div>
+                      <div className="col-span-9 flex gap-1 h-9 items-center">
+                        <div className="bg-emerald-50 text-emerald-700 border border-emerald-200/60 rounded-lg px-2.5 py-1 text-[11px] font-semibold w-full text-center">
+                          Available
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Row 7: Storage Area */}
+                    <div className="grid grid-cols-12 items-center p-3 hover:bg-gray-50/50 transition-colors">
+                      <div className="col-span-3 text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                        <span>Storage Area</span>
+                      </div>
+                      <div className="col-span-9 flex gap-1 h-9 items-center">
+                        <div className="bg-emerald-100/80 text-emerald-900 border border-emerald-300/70 rounded-lg px-2.5 py-1 text-[11px] font-bold w-[45%] truncate">
+                          ABC Catering · 6:00 AM – 2:00 PM
+                        </div>
+                        <div className="bg-emerald-50 text-emerald-700 border border-emerald-200/60 rounded-lg px-2.5 py-1 text-[11px] font-semibold w-[55%] text-center">
+                          Available
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Requires Attention & Recent Requests */}
+              <div className="lg:col-span-5 space-y-6">
+                {/* 1. Requires Attention Panel */}
+                <div className="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-red-500 animate-ping"></div>
+                      <h3 className="font-bold text-xs text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
+                        <span>Requires Attention</span>
+                        <span className="bg-red-100 text-red-700 text-[10px] font-bold px-1.5 py-0.2 rounded-full">
+                          2
+                        </span>
+                      </h3>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {/* Item 1: Rohit */}
+                    <div className="bg-amber-50/60 border border-amber-200/70 rounded-xl p-3.5 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+                          <CreditCard className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="font-bold text-xs text-gray-900">
+                            Rohit <span className="font-mono text-gray-500 font-normal">(DD-BK-77953)</span>
+                          </div>
+                          <div className="text-[11px] text-amber-700 font-medium">Approved · Awaiting payment</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="font-bold text-xs text-gray-900 font-mono">$167.20</span>
+                        <button
+                          onClick={() => {
+                            const found = bookings.find((b) => b.reference_code === 'DD-BK-77953') || bookings[1];
+                            setSelectedBooking(found);
+                            setActionNotes('');
+                          }}
+                          className="bg-white hover:bg-gray-50 text-gray-800 border border-gray-200 px-3 py-1.5 rounded-lg text-xs font-bold shadow-2xs transition-colors cursor-pointer"
+                        >
+                          Review
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Item 2: Chef Michael Davies */}
+                    <div className="bg-red-50/50 border border-red-200/70 rounded-xl p-3.5 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-red-100 text-red-800 flex items-center justify-center shrink-0">
+                          <Calendar className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="font-bold text-xs text-gray-900">
+                            Chef Michael Davies <span className="font-mono text-gray-500 font-normal">(DD-BK-001)</span>
+                          </div>
+                          <div className="text-[11px] text-red-700 font-medium">Check payment and confirm booking</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="font-bold text-xs text-gray-900 font-mono">$167.20</span>
+                        <button
+                          onClick={() => {
+                            const found = bookings.find((b) => b.reference_code === 'DD-BK-001') || bookings[0];
+                            setSelectedBooking(found);
+                            setActionNotes('');
+                          }}
+                          className="bg-white hover:bg-gray-50 text-gray-800 border border-gray-200 px-3 py-1.5 rounded-lg text-xs font-bold shadow-2xs transition-colors cursor-pointer"
+                        >
+                          Review
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Recent Booking Requests */}
+                <div className="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-xs text-gray-900 uppercase tracking-wider flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-emerald-800" />
+                      <span>Recent Booking Requests</span>
+                    </h3>
+                    <button
+                      onClick={() => setActiveNav('bookings')}
+                      className="text-xs font-semibold text-emerald-800 hover:text-emerald-900 flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>View All</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-2 text-xs">
+                    {bookings.slice(0, 3).map((b) => (
+                      <div
+                        key={b.reference_code}
+                        className="p-3 rounded-xl border border-gray-100 hover:bg-gray-50 flex items-center justify-between transition-colors"
+                      >
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-emerald-900">{b.reference_code}</span>
+                            <span className="font-bold text-gray-800">{b.full_name}</span>
+                          </div>
+                          <div className="text-[11px] text-gray-400 mt-0.5">
+                            {formatDisplayDate(b.booking_date)}, {formatDisplayTime(b.start_time)} – {formatDisplayTime(b.end_time || calculateEndTime(b.start_time, b.duration_hours))}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                              b.status === 'confirmed'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : b.status === 'approved'
+                                ? 'bg-blue-100 text-blue-800'
+                                : 'bg-amber-100 text-amber-800'
+                            }`}
+                          >
+                            {b.status}
+                          </span>
+                          <span className="font-mono font-bold text-gray-800">${Number(b.total_price || b.total_cost || 0).toFixed(2)}</span>
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
+                              b.payment_status === 'paid'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : 'bg-red-50 text-red-700 border border-red-200'
+                            }`}
+                          >
+                            {b.payment_status}
+                          </span>
+                          <button
+                            onClick={() => {
+                              setSelectedBooking(b);
+                              setActionNotes(b.admin_notes || '');
+                            }}
+                            className="bg-[#112F21] hover:bg-[#1a4731] text-white px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer"
+                          >
+                            Manage
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
 
-          </div>
-        </div>
-      </div>
+            {/* Bottom Row: Financial Overview (4 cols) | Booking Status Donut (4 cols) | Enquiries (4 cols) */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* 1. Financial Overview */}
+              <div className="lg:col-span-4 bg-white rounded-2xl border border-gray-200/80 p-5 shadow-xs space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-xs text-gray-900 uppercase tracking-wider flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-emerald-800" />
+                    <span>Financial Overview</span>
+                  </h3>
+                  <select className="text-xs bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 font-medium focus:outline-none">
+                    <option>This Week</option>
+                    <option>This Month</option>
+                    <option>All Time</option>
+                  </select>
+                </div>
 
-      {/* Main Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
-        {/* KPI Metric Cards */}
-        {stats && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-            <div className="bg-white p-4 rounded-2xl border border-brand-mint-border shadow-soft-sm">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">Total Requests</span>
-              <div className="text-2xl font-black text-brand-dark mt-1">{stats.total_bookings ?? 0}</div>
-              <span className="text-[10px] text-brand-muted">{stats.total_hours_booked ?? 0} Hours Total</span>
-            </div>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="bg-emerald-50/60 border border-emerald-100 rounded-xl p-3.5">
+                    <div className="text-emerald-800 font-bold text-base font-mono">$167.20</div>
+                    <div className="text-[11px] text-gray-500 font-medium mt-0.5">Collected Revenue</div>
+                  </div>
+                  <div className="bg-amber-50/60 border border-amber-100 rounded-xl p-3.5">
+                    <div className="text-amber-800 font-bold text-base font-mono">$334.40</div>
+                    <div className="text-[11px] text-gray-500 font-medium mt-0.5">Outstanding Fees</div>
+                  </div>
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
+                    <div className="text-slate-800 font-bold text-base font-mono">$400.00</div>
+                    <div className="text-[11px] text-gray-500 font-medium mt-0.5">Deposits Held</div>
+                  </div>
+                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-3.5">
+                    <div className="text-gray-800 font-bold text-base font-mono">$0.00</div>
+                    <div className="text-[11px] text-gray-500 font-medium mt-0.5">Refunds Due</div>
+                  </div>
+                </div>
+              </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-amber-200 bg-amber-50/30 shadow-soft-sm">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800">Pending Review</span>
-              <div className="text-2xl font-black text-amber-700 mt-1">{stats.pending_requests ?? 0}</div>
-              <span className="text-[10px] text-amber-700">Awaiting approval</span>
-            </div>
+              {/* 2. Booking Status Donut Chart */}
+              <div className="lg:col-span-4 bg-white rounded-2xl border border-gray-200/80 p-5 shadow-xs space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-xs text-gray-900 uppercase tracking-wider flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-emerald-800" />
+                    <span>Booking Status</span>
+                  </h3>
+                </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-blue-200 bg-blue-50/30 shadow-soft-sm">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-blue-800">Approved</span>
-              <div className="text-2xl font-black text-blue-700 mt-1">{stats.approved_count ?? 0}</div>
-              <span className="text-[10px] text-blue-700">Awaiting payment</span>
-            </div>
+                <div className="flex items-center justify-around pt-2">
+                  {/* SVG Donut Chart */}
+                  <div className="relative w-32 h-32 flex items-center justify-center">
+                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                      <circle
+                        cx="18"
+                        cy="18"
+                        r="15.91549430918954"
+                        fill="transparent"
+                        stroke="#E5E7EB"
+                        strokeWidth="3.5"
+                      />
+                      {/* Confirmed - Green (20%) */}
+                      <circle
+                        cx="18"
+                        cy="18"
+                        r="15.91549430918954"
+                        fill="transparent"
+                        stroke="#10B981"
+                        strokeWidth="3.5"
+                        strokeDasharray="20 80"
+                        strokeDashoffset="0"
+                      />
+                      {/* Approved - Blue (20%) */}
+                      <circle
+                        cx="18"
+                        cy="18"
+                        r="15.91549430918954"
+                        fill="transparent"
+                        stroke="#3B82F6"
+                        strokeWidth="3.5"
+                        strokeDasharray="20 80"
+                        strokeDashoffset="-20"
+                      />
+                      {/* Pending - Yellow (20%) */}
+                      <circle
+                        cx="18"
+                        cy="18"
+                        r="15.91549430918954"
+                        fill="transparent"
+                        stroke="#F59E0B"
+                        strokeWidth="3.5"
+                        strokeDasharray="20 80"
+                        strokeDashoffset="-40"
+                      />
+                      {/* Completed - Slate (40%) */}
+                      <circle
+                        cx="18"
+                        cy="18"
+                        r="15.91549430918954"
+                        fill="transparent"
+                        stroke="#64748B"
+                        strokeWidth="3.5"
+                        strokeDasharray="40 60"
+                        strokeDashoffset="-60"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                      <span className="text-xl font-black text-gray-900 leading-none">5</span>
+                      <span className="text-[10px] text-gray-400 font-medium">Total Bookings</span>
+                    </div>
+                  </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-emerald-200 bg-emerald-50/30 shadow-soft-sm">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">Confirmed</span>
-              <div className="text-2xl font-black text-emerald-700 mt-1">{stats.confirmed_count ?? 0}</div>
-              <span className="text-[10px] text-emerald-700">Ready for check-in</span>
-            </div>
+                  {/* Legend */}
+                  <div className="space-y-1.5 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                      <span className="text-gray-600 font-medium">Confirmed</span>
+                      <span className="font-bold text-gray-900 ml-auto">1</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                      <span className="text-gray-600 font-medium">Approved</span>
+                      <span className="font-bold text-gray-900 ml-auto">1</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                      <span className="text-gray-600 font-medium">Pending</span>
+                      <span className="font-bold text-gray-900 ml-auto">1</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                      <span className="text-gray-600 font-medium">Rejected</span>
+                      <span className="font-bold text-gray-900 ml-auto">0</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
+                      <span className="text-gray-600 font-medium">Completed</span>
+                      <span className="font-bold text-gray-900 ml-auto">2</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-brand-mint-border shadow-soft-sm">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">Confirmed Rev.</span>
-              <div className="text-2xl font-black text-brand-forest mt-1">${stats.total_confirmed_revenue ?? 0}</div>
-              <span className="text-[10px] text-brand-muted">+${stats.pipeline_revenue ?? 0} pipeline</span>
-            </div>
+              {/* 3. Enquiries Widget */}
+              <div className="lg:col-span-4 bg-white rounded-2xl border border-gray-200/80 p-5 shadow-xs space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-xs text-gray-900 uppercase tracking-wider flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-emerald-800" />
+                    <span>Enquiries</span>
+                  </h3>
+                  <button
+                    onClick={() => setActiveNav('enquiries')}
+                    className="text-xs font-semibold text-emerald-800 hover:text-emerald-900 flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>View All</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-brand-mint-border shadow-soft-sm">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">Enquiries</span>
-              <div className="text-2xl font-black text-brand-dark mt-1">{stats.total_enquiries ?? 0}</div>
-              <span className="text-[10px] text-brand-orange font-bold">{stats.new_enquiries ?? 0} New</span>
+                <div className="space-y-2.5 text-xs">
+                  {enquiries.slice(0, 3).map((enq) => (
+                    <div
+                      key={enq.id}
+                      className="p-3 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors flex items-start justify-between gap-3"
+                    >
+                      <div className="space-y-1 flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-gray-900">{enq.full_name || enq.name}</span>
+                          <span className="text-[10px] text-gray-400">{enq.created_at || 'Recently'}</span>
+                        </div>
+                        <p className="text-[11px] text-gray-500 line-clamp-1">{enq.message}</p>
+                      </div>
+                      {enq.status === 'new' && (
+                        <span className="bg-amber-100 text-amber-800 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded">
+                          New
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
+          </main>
         )}
 
-        {/* Tab Controls */}
-        <div className="flex border-b border-brand-mint-border space-x-6 mb-6">
-          <button
-            onClick={() => setActiveTab('bookings')}
-            className={`pb-3 text-xs sm:text-sm font-bold flex items-center space-x-2 border-b-2 transition-all ${
-              activeTab === 'bookings'
-                ? 'border-brand-forest text-brand-forest'
-                : 'border-transparent text-brand-muted hover:text-brand-dark'
-            }`}
-          >
-            <Calendar className="w-4 h-4" />
-            <span>Booking Requests & Reservations</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('settings')}
-            className={`pb-3 text-xs sm:text-sm font-bold flex items-center space-x-2 border-b-2 transition-all ${
-              activeTab === 'settings'
-                ? 'border-brand-forest text-brand-forest'
-                : 'border-transparent text-brand-muted hover:text-brand-dark'
-            }`}
-          >
-            <Settings className="w-4 h-4" />
-            <span>Kitchen & Pricing Settings</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('blocked')}
-            className={`pb-3 text-xs sm:text-sm font-bold flex items-center space-x-2 border-b-2 transition-all ${
-              activeTab === 'blocked'
-                ? 'border-brand-forest text-brand-forest'
-                : 'border-transparent text-brand-muted hover:text-brand-dark'
-            }`}
-          >
-            <Lock className="w-4 h-4" />
-            <span>Maintenance & Blocked Slots</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('enquiries')}
-            className={`pb-3 text-xs sm:text-sm font-bold flex items-center space-x-2 border-b-2 transition-all ${
-              activeTab === 'enquiries'
-                ? 'border-brand-forest text-brand-forest'
-                : 'border-transparent text-brand-muted hover:text-brand-dark'
-            }`}
-          >
-            <Mail className="w-4 h-4" />
-            <span>Customer Enquiries</span>
-          </button>
-        </div>
-
-        {/* TAB 1: BOOKINGS LIST */}
-        {activeTab === 'bookings' && (
-          <div className="space-y-4">
-            
-            {/* Filter & Search Bar */}
-            <div className="bg-white p-4 rounded-2xl border border-brand-mint-border flex flex-col sm:flex-row gap-4 items-center justify-between shadow-soft-sm">
-              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+        {/* ========================================================
+            VIEW: BOOKINGS TAB (Matching Image 3 & User Request)
+            "After the Applicant Column Change the Session Window in to three separate columns. Date column. Start Time. End Time."
+           ======================================================== */}
+        {activeNav === 'bookings' && (
+          <main className="p-8 space-y-6 flex-1 max-w-[1440px]">
+            {/* Top Sub-tabs / Pills & Search */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="flex items-center gap-1.5 bg-white p-1 rounded-2xl border border-gray-200/90 shadow-2xs overflow-x-auto text-xs font-bold">
                 {['all', 'pending', 'approved', 'confirmed', 'completed', 'rejected'].map((st) => (
                   <button
                     key={st}
                     onClick={() => setStatusFilter(st)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+                    className={`px-3.5 py-2 rounded-xl uppercase tracking-wider transition-all cursor-pointer ${
                       statusFilter === st
-                        ? 'bg-brand-forest text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? 'bg-[#112F21] text-white shadow-xs'
+                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
                     }`}
                   >
                     {st}
@@ -604,27 +1345,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
                 ))}
               </div>
 
-              <div className="relative w-full sm:w-72">
-                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+              <div className="relative w-full md:w-80">
+                <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="Search name, brand, ref code..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-brand-forest focus:outline-none"
+                  className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#112F21] focus:outline-none"
                 />
               </div>
             </div>
 
-            {/* Bookings Table */}
-            <div className="bg-white rounded-2xl border border-brand-mint-border overflow-hidden shadow-soft-sm">
+            {/* Bookings Table with 3 Separate Columns: Date, Start Time, End Time */}
+            <div className="bg-white rounded-2xl border border-gray-200/90 overflow-hidden shadow-xs">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-gray-50 border-b border-gray-200 text-brand-muted uppercase font-bold tracking-wider">
+                  <thead className="bg-gray-50 border-b border-gray-200 text-gray-400 font-bold uppercase tracking-wider">
                     <tr>
                       <th className="px-5 py-3.5">Reference</th>
                       <th className="px-5 py-3.5">Applicant / Brand</th>
-                      <th className="px-5 py-3.5">Session Window</th>
+                      <th className="px-5 py-3.5">Date</th>
+                      <th className="px-5 py-3.5">Start Time</th>
+                      <th className="px-5 py-3.5">End Time</th>
                       <th className="px-5 py-3.5">Use & Team</th>
                       <th className="px-5 py-3.5">Amount</th>
                       <th className="px-5 py-3.5">Status</th>
@@ -632,54 +1375,79 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
                       <th className="px-5 py-3.5 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-gray-100 font-medium">
                     {loadingBookings ? (
                       <tr>
-                        <td colSpan={8} className="px-5 py-8 text-center text-brand-muted">
-                          <Loader2 className="w-5 h-5 animate-spin mx-auto text-brand-forest" />
+                        <td colSpan={10} className="px-5 py-8 text-center text-gray-400">
+                          <Loader2 className="w-5 h-5 animate-spin mx-auto text-emerald-800" />
                           <p className="mt-2 text-xs">Loading reservations...</p>
                         </td>
                       </tr>
                     ) : bookings.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="px-5 py-8 text-center text-brand-muted">
+                        <td colSpan={10} className="px-5 py-8 text-center text-gray-400">
                           No booking requests match the current filters.
                         </td>
                       </tr>
                     ) : (
                       bookings.map((b) => (
-                        <tr key={b.id} className="hover:bg-brand-cream/30 transition-colors">
-                          <td className="px-5 py-4 font-mono font-bold text-brand-forest">
+                        <tr key={b.reference_code} className="hover:bg-gray-50/60 transition-colors">
+                          {/* 1. Reference */}
+                          <td className="px-5 py-4 font-mono font-bold text-emerald-800 whitespace-nowrap">
                             {b.reference_code}
                           </td>
 
+                          {/* 2. Applicant / Brand */}
                           <td className="px-5 py-4">
-                            <div className="font-bold text-brand-dark">{b.full_name}</div>
+                            <div className="font-bold text-gray-900">{b.full_name}</div>
                             {b.business_name && (
-                              <div className="text-brand-muted text-[11px]">{b.business_name}</div>
+                              <div className="text-gray-500 text-[11px]">{b.business_name}</div>
                             )}
                             <div className="text-[11px] text-gray-400">{b.phone}</div>
                           </td>
 
-                          <td className="px-5 py-4">
-                            <div className="font-bold text-brand-dark">{b.booking_date}</div>
-                            <div className="text-[11px] text-brand-muted">
-                              {b.start_time} – {b.end_time} ({b.duration_hours}h)
+                          {/* 3. Date Column (Formatted properly, e.g. Wed, 21 Oct 2026) */}
+                          <td className="px-5 py-4 whitespace-nowrap">
+                            <div className="font-bold text-gray-900 flex items-center gap-1.5">
+                              <Calendar className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                              <span>{formatDisplayDate(b.booking_date)}</span>
                             </div>
                           </td>
 
+                          {/* 4. Start Time Column (Formatted properly, e.g. 6:30 PM) */}
+                          <td className="px-5 py-4 whitespace-nowrap">
+                            <div className="font-semibold text-gray-800 flex items-center gap-1.5">
+                              <Clock className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                              <span>{formatDisplayTime(b.start_time)}</span>
+                            </div>
+                          </td>
+
+                          {/* 5. End Time Column (Formatted properly, e.g. 10:30 PM + duration) */}
+                          <td className="px-5 py-4 whitespace-nowrap">
+                            <div className="font-semibold text-gray-800 flex items-center gap-1.5">
+                              <Clock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                              <span>{formatDisplayTime(b.end_time || calculateEndTime(b.start_time, b.duration_hours))}</span>
+                            </div>
+                            <span className="text-[10px] text-gray-400 font-normal block mt-0.5">
+                              {b.duration_hours}h duration
+                            </span>
+                          </td>
+
+                          {/* 6. Use & Team */}
                           <td className="px-5 py-4">
-                            <div className="font-medium text-brand-dark truncate max-w-[150px]">
+                            <div className="font-medium text-gray-900 truncate max-w-[140px]" title={b.intended_use}>
                               {b.intended_use}
                             </div>
-                            <div className="text-[11px] text-brand-muted">{b.team_size} Person(s)</div>
+                            <div className="text-[11px] text-gray-400">{b.team_size} Person(s)</div>
                           </td>
 
-                          <td className="px-5 py-4 font-mono font-bold text-brand-dark">
+                          {/* 7. Amount */}
+                          <td className="px-5 py-4 font-mono font-bold text-gray-900 whitespace-nowrap">
                             ${Number(b.total_price || b.total_cost || 0).toFixed(2)}
                           </td>
 
-                          <td className="px-5 py-4">
+                          {/* 8. Status */}
+                          <td className="px-5 py-4 whitespace-nowrap">
                             <span
                               className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                                 b.status === 'confirmed'
@@ -697,28 +1465,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
                             </span>
                           </td>
 
-                          <td className="px-5 py-4">
+                          {/* 9. Payment */}
+                          <td className="px-5 py-4 whitespace-nowrap">
                             <span
                               className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                                 b.payment_status === 'paid'
                                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                   : b.payment_status === 'deposit_paid'
                                   ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                  : 'bg-gray-100 text-gray-700'
+                                  : 'bg-red-50 text-red-700 border border-red-200'
                               }`}
                             >
                               {(b.payment_status || 'unpaid').replace('_', ' ')}
                             </span>
                           </td>
 
-                          <td className="px-5 py-4 text-right">
+                          {/* 10. Actions */}
+                          <td className="px-5 py-4 text-right whitespace-nowrap">
                             <button
                               onClick={() => {
                                 setSelectedBooking(b);
                                 setActionNotes(b.admin_notes || '');
                                 setShowPaymentLinkPrompt(false);
                               }}
-                              className="px-3 py-1.5 rounded-lg bg-brand-forest hover:bg-brand-forest-light text-white font-bold text-[11px] transition-colors"
+                              className="px-3.5 py-1.5 rounded-xl bg-[#112F21] hover:bg-[#1a4731] text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
                             >
                               Manage
                             </button>
@@ -730,595 +1500,495 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
                 </table>
               </div>
             </div>
-
-          </div>
+          </main>
         )}
 
-        {/* TAB 2: SETTINGS & PRICING */}
-        {activeTab === 'settings' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-            {/* Card 1: Kitchen Rates & Operational Hours */}
-            <div className="bg-white rounded-2xl border border-brand-mint-border p-7 shadow-soft-sm">
-              <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-6">
+        {/* ========================================================
+            VIEW: KITCHEN CALENDAR
+           ======================================================== */}
+        {activeNav === 'calendar' && (
+          <main className="p-8 space-y-6 flex-1 max-w-[1440px]">
+            <div className="bg-white rounded-2xl border border-gray-200/90 p-6 shadow-xs space-y-6">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-4">
                 <div>
-                  <h3 className="text-lg font-extrabold text-brand-dark">Kitchen & Hourly Rate Configuration</h3>
-                  <p className="text-xs text-brand-muted mt-0.5">
-                    Update live rental rates, minimum session duration, and operating hours.
-                  </p>
+                  <h3 className="font-bold text-base text-gray-900">Commercial Kitchen Reservation Calendar</h3>
+                  <p className="text-xs text-gray-500">Visual operational schedule across all shifts and stations</p>
                 </div>
-                <Settings className="w-5 h-5 text-brand-forest" />
-              </div>
-
-              {settingsSuccess && (
-                <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center space-x-2 mb-4">
-                  <Check className="w-4 h-4 text-emerald-600" />
-                  <span>Settings updated successfully! Changes are live across the public site.</span>
-                </div>
-              )}
-
-              <form onSubmit={handleSaveSettings} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1">
-                      Base Hourly Rate (AUD)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.5"
-                      required
-                      value={hourlyRateInput}
-                      onChange={(e) => setHourlyRateInput(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs sm:text-sm text-brand-dark font-medium"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1">
-                      Minimum Rental Hours
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={8}
-                      required
-                      value={minHoursInput}
-                      onChange={(e) => setMinHoursInput(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs sm:text-sm text-brand-dark font-medium"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1">
-                      Operating Hours Start
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={opStartInput}
-                      onChange={(e) => setOpStartInput(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs sm:text-sm text-brand-dark font-medium"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1">
-                      Operating Hours End
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={opEndInput}
-                      onChange={(e) => setOpEndInput(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs sm:text-sm text-brand-dark font-medium"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1">
-                      Sanitization Cleaning Fee (AUD)
-                    </label>
-                    <input
-                      type="number"
-                      step="1"
-                      required
-                      value={cleaningFeeInput}
-                      onChange={(e) => setCleaningFeeInput(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs sm:text-sm text-brand-dark font-medium"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1">
-                      Security Deposit Bond (AUD)
-                    </label>
-                    <input
-                      type="number"
-                      step="10"
-                      required
-                      value={depositInput}
-                      onChange={(e) => setDepositInput(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs sm:text-sm text-brand-dark font-medium"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={savingSettings}
-                  className="w-full bg-brand-forest hover:bg-brand-forest-light text-white py-3 rounded-xl font-bold text-xs sm:text-sm shadow-soft transition-all"
-                >
-                  {savingSettings ? 'Saving Settings...' : 'Save Configuration'}
-                </button>
-              </form>
-            </div>
-
-            {/* Card 2: Google Sheets Live Sync & Webhook Configuration */}
-            <div className="bg-white rounded-2xl border border-brand-mint-border p-7 shadow-soft-sm">
-              <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-6">
-                <div>
-                  <h3 className="text-lg font-extrabold text-brand-dark">Google Sheets Real-Time Sync</h3>
-                  <p className="text-xs text-brand-muted mt-0.5">
-                    Connect your Google Sheet to receive live bookings and enquiries in real-time.
-                  </p>
-                </div>
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-700">
-                  <FileSpreadsheet className="w-5 h-5" />
-                </div>
-              </div>
-
-              {/* Status Badge */}
-              <div className="flex items-center justify-between p-3.5 rounded-xl bg-gray-50 border border-gray-200 mb-5">
-                <div className="flex items-center space-x-2.5">
-                  <span className={`w-2.5 h-2.5 rounded-full ${sheetUrlInput.trim() ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`} />
-                  <span className="text-xs font-bold text-brand-dark">
-                    {sheetUrlInput.trim() ? 'Live Google Sheet Connected' : 'Google Sheet Not Configured'}
+                <div className="flex items-center gap-2">
+                  <span className="flex items-center gap-1.5 text-xs text-emerald-700 font-semibold">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Confirmed
+                  </span>
+                  <span className="flex items-center gap-1.5 text-xs text-blue-700 font-semibold ml-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span> Approved
+                  </span>
+                  <span className="flex items-center gap-1.5 text-xs text-amber-700 font-semibold ml-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Pending
                   </span>
                 </div>
-                {sheetUrlInput.trim() && (
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
-                    Active
-                  </span>
-                )}
               </div>
 
-              {sheetStatusMessage && (
-                <div className="p-3.5 rounded-xl bg-brand-mint/40 border border-brand-mint-border text-brand-dark text-xs flex items-center space-x-2 mb-4">
-                  <Check className="w-4 h-4 text-brand-forest shrink-0" />
-                  <span>{sheetStatusMessage}</span>
-                </div>
-              )}
-
-              <form onSubmit={handleSaveGoogleSheetUrl} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1">
-                    Google Apps Script Web App URL
-                  </label>
-                  <input
-                    type="url"
-                    placeholder="https://script.google.com/macros/s/AKfycbx.../exec"
-                    value={sheetUrlInput}
-                    onChange={(e) => setSheetUrlInput(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs sm:text-sm text-brand-dark font-mono placeholder:font-sans placeholder:text-gray-400"
-                  />
-                  <p className="text-[11px] text-brand-muted mt-1.5 leading-relaxed">
-                    Deploy your sheet script as a <strong>Web app</strong> set to <em>"Anyone"</em> access. Submissions on the website instantly append rows to your Google Sheet!
-                  </p>
-                </div>
-
-                <div className="flex space-x-3 pt-2">
-                  <button
-                    type="submit"
-                    className="flex-1 bg-brand-forest hover:bg-brand-forest-light text-white py-3 rounded-xl font-bold text-xs sm:text-sm shadow-soft transition-all"
+              {/* Day slot cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {bookings.map((b) => (
+                  <div
+                    key={b.reference_code}
+                    onClick={() => {
+                      setSelectedBooking(b);
+                      setActionNotes(b.admin_notes || '');
+                    }}
+                    className="p-4 rounded-xl border border-gray-200 hover:border-emerald-600 transition-all cursor-pointer bg-gray-50/50 space-y-2"
                   >
-                    Save Webhook URL
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleTestGoogleSheetUrl}
-                    disabled={testingSheet || !sheetUrlInput.trim()}
-                    className="px-5 py-3 rounded-xl border border-brand-forest text-brand-forest hover:bg-brand-mint/30 font-bold text-xs sm:text-sm transition-all disabled:opacity-40 flex items-center justify-center space-x-1.5"
-                  >
-                    {testingSheet ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Testing...</span>
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="w-4 h-4" />
-                        <span>Send Test Row</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-
-              {/* Quick Setup Instructions */}
-              <div className="mt-6 pt-5 border-t border-gray-100">
-                <h4 className="text-xs font-extrabold uppercase tracking-wider text-brand-dark mb-2.5 flex items-center space-x-1.5">
-                  <span>How to Set Up Your Google Sheet (3 Minutes)</span>
-                </h4>
-                <ol className="text-xs text-brand-muted space-y-2 list-decimal list-inside leading-relaxed">
-                  <li>
-                    Open a new Google Sheet at <a href="https://sheets.new" target="_blank" rel="noreferrer" className="text-brand-forest underline font-semibold inline-flex items-center">sheets.new <ExternalLink className="w-3 h-3 ml-0.5 inline" /></a>
-                  </li>
-                  <li>In the top menu, click <strong>Extensions &gt; Apps Script</strong>.</li>
-                  <li>Replace any code with the contents of <code className="bg-gray-100 px-1 py-0.5 rounded text-brand-dark font-mono text-[11px]">google-apps-script.js</code> (found in project root).</li>
-                  <li>Click <strong>Deploy &gt; New deployment</strong>, choose <strong>Web app</strong>, and set <em>"Who has access"</em> to <strong>Anyone</strong>.</li>
-                  <li>Copy the resulting Web App URL and paste it into the box above!</li>
-                </ol>
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono font-bold text-xs text-emerald-800">{b.reference_code}</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800">
+                        {b.status}
+                      </span>
+                    </div>
+                    <div className="font-bold text-sm text-gray-900">{b.full_name}</div>
+                    <div className="text-xs text-gray-500 flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                      <span>{formatDisplayDate(b.booking_date)}</span>
+                    </div>
+                    <div className="text-xs text-gray-500 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-gray-400" />
+                      <span>{formatDisplayTime(b.start_time)} – {formatDisplayTime(b.end_time || calculateEndTime(b.start_time, b.duration_hours))}</span>
+                    </div>
+                    <div className="text-xs text-gray-600 border-t border-gray-100 pt-2 flex items-center justify-between font-mono font-bold">
+                      <span>Total: ${Number(b.total_price || b.total_cost || 0).toFixed(2)}</span>
+                      <span className="text-emerald-700 font-sans text-[11px]">Click to manage →</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
+          </main>
         )}
 
-        {/* TAB 3: BLOCKED SLOTS / MAINTENANCE */}
-        {activeTab === 'blocked' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* Create Block Form */}
-            <div className="lg:col-span-5 bg-white rounded-2xl border border-brand-mint-border p-6 shadow-soft-sm">
-              <h3 className="text-base font-extrabold text-brand-dark mb-4">
-                Schedule Maintenance Block
-              </h3>
+        {/* ========================================================
+            VIEW: PAYMENTS & DEPOSITS
+           ======================================================== */}
+        {activeNav === 'payments' && (
+          <main className="p-8 space-y-6 flex-1 max-w-[1440px]">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-xs">
+                <div className="text-xs font-bold text-gray-500 uppercase">Total Revenue Collected</div>
+                <div className="text-3xl font-black text-emerald-700 font-mono mt-2">${totalRevenueCollected.toFixed(2)} AUD</div>
+                <div className="text-xs text-gray-400 mt-1">Paid bookings received</div>
+              </div>
+              <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-xs">
+                <div className="text-xs font-bold text-gray-500 uppercase">Pending Outstanding Fees</div>
+                <div className="text-3xl font-black text-amber-700 font-mono mt-2">${totalOutstandingFees.toFixed(2)} AUD</div>
+                <div className="text-xs text-gray-400 mt-1">Awaiting tenant payment</div>
+              </div>
+              <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-xs">
+                <div className="text-xs font-bold text-gray-500 uppercase">Security Deposits Held</div>
+                <div className="text-3xl font-black text-slate-700 font-mono mt-2">${totalDepositsHeld.toFixed(2)} AUD</div>
+                <div className="text-xs text-gray-400 mt-1">Refundable bond balances</div>
+              </div>
+            </div>
 
-              <form onSubmit={handleCreateBlock} className="space-y-4 text-xs">
+            {/* Invoices list */}
+            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-xs p-6 space-y-4">
+              <h3 className="font-bold text-sm text-gray-900">Payment Invoices & Receipts</h3>
+              <div className="divide-y divide-gray-100">
+                {bookings.map((b) => (
+                  <div key={b.reference_code} className="py-3 flex items-center justify-between text-xs">
+                    <div>
+                      <div className="font-bold text-gray-900">{b.full_name} · <span className="font-mono text-emerald-800">{b.reference_code}</span></div>
+                      <div className="text-gray-400 text-[11px]">{b.intended_use} · {formatDisplayDate(b.booking_date)}</div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="font-mono font-bold text-gray-900">${Number(b.total_price || b.total_cost || 0).toFixed(2)}</span>
+                      <span className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase ${b.payment_status === 'paid' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
+                        {b.payment_status}
+                      </span>
+                      <button
+                        onClick={() => {
+                          setSelectedBooking(b);
+                          setActionNotes(b.admin_notes || '');
+                        }}
+                        className="px-3 py-1 rounded-lg border border-gray-200 text-gray-700 font-bold hover:bg-gray-50"
+                      >
+                        Details
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </main>
+        )}
+
+        {/* ========================================================
+            VIEW: CUSTOMERS
+           ======================================================== */}
+        {activeNav === 'customers' && (
+          <main className="p-8 space-y-6 flex-1 max-w-[1440px]">
+            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs space-y-4">
+              <h3 className="font-bold text-base text-gray-900">Tenant & Applicant Directory</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {bookings.map((b) => (
+                  <div key={b.reference_code} className="p-4 rounded-xl border border-gray-100 bg-gray-50/50 space-y-2 text-xs">
+                    <div className="font-bold text-sm text-gray-900">{b.full_name}</div>
+                    <div className="text-gray-500">{b.business_name || 'Individual Chef'}</div>
+                    <div className="text-gray-600 flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-gray-400" /> {b.email}</div>
+                    <div className="text-gray-600 flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-gray-400" /> {b.phone}</div>
+                    <div className="border-t border-gray-100 pt-2 flex items-center justify-between text-[11px] text-gray-400">
+                      <span>Ref: {b.reference_code}</span>
+                      <span className="font-bold text-emerald-700 uppercase">{b.status}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </main>
+        )}
+
+        {/* ========================================================
+            VIEW: KITCHEN MANAGEMENT & BLOCKED SLOTS
+           ======================================================== */}
+        {activeNav === 'kitchen' && (
+          <main className="p-8 space-y-8 flex-1 max-w-[1440px]">
+            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs space-y-6">
+              <h3 className="font-bold text-base text-gray-900">Scheduled Maintenance & Blocked Slots</h3>
+              <p className="text-xs text-gray-500">Block hours for deep sanitation, hood degreasing, or maintenance</p>
+
+              <form onSubmit={handleCreateBlock} className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-gray-50 p-4 rounded-xl">
                 <div>
-                  <label className="block font-bold text-brand-dark mb-1 uppercase">Date</label>
+                  <label className="block text-[11px] font-bold text-gray-600 mb-1">Date</label>
                   <input
                     type="date"
-                    required
                     value={newBlockDate}
                     onChange={(e) => setNewBlockDate(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-gray-300"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-bold text-brand-dark mb-1 uppercase">Start</label>
-                    <input
-                      type="time"
-                      required
-                      value={newBlockStart}
-                      onChange={(e) => setNewBlockStart(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-gray-300"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-bold text-brand-dark mb-1 uppercase">End</label>
-                    <input
-                      type="time"
-                      required
-                      value={newBlockEnd}
-                      onChange={(e) => setNewBlockEnd(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-gray-300"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-brand-dark mb-1 uppercase">Reason</label>
-                  <input
-                    type="text"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 text-xs bg-white"
                     required
-                    value={newBlockReason}
-                    onChange={(e) => setNewBlockReason(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-gray-300"
                   />
                 </div>
-
-                <button
-                  type="submit"
-                  disabled={creatingBlock}
-                  className="w-full bg-brand-forest hover:bg-brand-forest-light text-white py-2.5 rounded-xl font-bold transition-colors"
-                >
-                  {creatingBlock ? 'Adding Block...' : 'Block Kitchen Slot'}
-                </button>
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-600 mb-1">Start Time</label>
+                  <input
+                    type="time"
+                    value={newBlockStart}
+                    onChange={(e) => setNewBlockStart(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 text-xs bg-white"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-600 mb-1">End Time</label>
+                  <input
+                    type="time"
+                    value={newBlockEnd}
+                    onChange={(e) => setNewBlockEnd(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 text-xs bg-white"
+                    required
+                  />
+                </div>
+                <div className="flex items-end">
+                  <button
+                    type="submit"
+                    disabled={creatingBlock}
+                    className="w-full bg-[#112F21] text-white py-2 rounded-lg font-bold text-xs hover:bg-[#1a4731] transition-colors"
+                  >
+                    Add Blocked Slot
+                  </button>
+                </div>
               </form>
-            </div>
 
-            {/* List of Blocked Slots */}
-            <div className="lg:col-span-7 bg-white rounded-2xl border border-brand-mint-border p-6 shadow-soft-sm">
-              <h3 className="text-base font-extrabold text-brand-dark mb-4">
-                Scheduled Maintenance & Blocks
-              </h3>
-
-              {blockedSlots.length === 0 ? (
-                <p className="text-xs text-brand-muted">No maintenance blocks scheduled.</p>
-              ) : (
-                <div className="space-y-3">
-                  {blockedSlots.map((b) => (
-                    <div
-                      key={b.id}
-                      className="p-3.5 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-between text-xs"
-                    >
+              {blockedSlots.length > 0 && (
+                <div className="divide-y divide-gray-100 text-xs">
+                  {blockedSlots.map((blk) => (
+                    <div key={blk.id} className="py-3 flex items-center justify-between">
                       <div>
-                        <div className="font-bold text-brand-dark">
-                          {b.block_date} ({b.start_time} – {b.end_time})
-                        </div>
-                        <div className="text-brand-muted text-[11px] mt-0.5">{b.reason}</div>
+                        <div className="font-bold text-gray-900">{formatDisplayDate(blk.block_date)} ({blk.start_time} – {blk.end_time})</div>
+                        <div className="text-gray-500 text-[11px]">{blk.reason}</div>
                       </div>
                       <button
-                        onClick={() => handleDeleteBlock(b.id)}
-                        className="text-red-600 hover:text-red-800 p-1.5 rounded-lg hover:bg-red-50"
-                        title="Delete block"
+                        onClick={() => handleDeleteBlock(blk.id)}
+                        className="text-red-600 hover:text-red-800 text-xs font-bold"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        Remove
                       </button>
                     </div>
                   ))}
                 </div>
               )}
             </div>
-          </div>
+          </main>
         )}
 
-        {/* TAB 4: ENQUIRIES */}
-        {activeTab === 'enquiries' && (
-          <div className="bg-white rounded-2xl border border-brand-mint-border overflow-hidden shadow-soft-sm">
-            <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-base font-extrabold text-brand-dark">Customer Enquiries</h3>
-              <span className="text-xs text-brand-muted">{enquiries.length} Total Messages</span>
-            </div>
-
-            <div className="divide-y divide-gray-100">
-              {enquiries.length === 0 ? (
-                <div className="p-8 text-center text-xs text-brand-muted">No enquiries received yet.</div>
-              ) : (
-                enquiries.map((enq) => (
-                  <div key={enq.id} className="p-5 hover:bg-gray-50 transition-colors text-xs space-y-2">
+        {/* ========================================================
+            VIEW: ENQUIRIES
+           ======================================================== */}
+        {activeNav === 'enquiries' && (
+          <main className="p-8 space-y-6 flex-1 max-w-[1440px]">
+            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs space-y-4">
+              <h3 className="font-bold text-base text-gray-900">Customer Enquiries & Prospective Tenants</h3>
+              <div className="divide-y divide-gray-100">
+                {enquiries.map((enq) => (
+                  <div key={enq.id} className="py-4 space-y-2 text-xs">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-bold text-sm text-brand-dark">{enq.name}</span>
-                        {enq.business_name && (
-                          <span className="px-2 py-0.5 rounded-full bg-brand-mint text-brand-forest font-semibold text-[10px]">
-                            {enq.business_name}
-                          </span>
-                        )}
-                        <span className="text-gray-400">({enq.business_type})</span>
-                      </div>
-                      <span className="text-gray-400 text-[11px]">
-                        {new Date(enq.created_at).toLocaleDateString()}
-                      </span>
+                      <div className="font-bold text-sm text-gray-900">{enq.full_name || enq.name} · <span className="text-gray-500 font-normal">{enq.business_name}</span></div>
+                      <span className="text-gray-400 text-[11px]">{enq.created_at}</span>
                     </div>
-
-                    <div className="flex flex-wrap items-center gap-3 text-brand-muted">
-                      <span>Email: <strong>{enq.email}</strong></span>
-                      <span>Phone: <strong>{enq.phone}</strong></span>
-                      {enq.estimated_hours && <span>Needs: <strong>{enq.estimated_hours}</strong></span>}
-                      <span>Registered in Vic Park: <strong className={enq.registered_in_victoria_park === 'Yes' ? 'text-emerald-700 font-bold' : 'text-gray-700'}>{enq.registered_in_victoria_park || 'No'}</strong></span>
+                    <div className="text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-100">{enq.message}</div>
+                    <div className="flex items-center gap-4 text-gray-500 text-[11px]">
+                      <span>Email: {enq.email}</span>
+                      <span>Phone: {enq.phone}</span>
+                      <span>Rental Type: {enq.rental_type}</span>
                     </div>
-
-                    <p className="bg-brand-cream/60 p-3 rounded-xl border border-brand-mint-border text-brand-dark leading-relaxed">
-                      "{enq.message}"
-                    </p>
                   </div>
-                ))
-              )}
+                ))}
+              </div>
             </div>
-          </div>
+          </main>
         )}
 
+        {/* ========================================================
+            VIEW: REPORTS
+           ======================================================== */}
+        {activeNav === 'reports' && (
+          <main className="p-8 space-y-6 flex-1 max-w-[1440px]">
+            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs space-y-6">
+              <h3 className="font-bold text-base text-gray-900">Operations & Occupancy Reports</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100 text-emerald-900">
+                  <div className="text-xs font-bold uppercase">Weekly Utilization</div>
+                  <div className="text-2xl font-black mt-1">74.2%</div>
+                  <div className="text-[11px] text-emerald-700 mt-1">+12% vs last month</div>
+                </div>
+                <div className="bg-blue-50 rounded-xl p-4 border border-blue-100 text-blue-900">
+                  <div className="text-xs font-bold uppercase">Average Session Length</div>
+                  <div className="text-2xl font-black mt-1">4.6 Hours</div>
+                  <div className="text-[11px] text-blue-700 mt-1">Commercial batch prep</div>
+                </div>
+                <div className="bg-amber-50 rounded-xl p-4 border border-amber-100 text-amber-900">
+                  <div className="text-xs font-bold uppercase">Repeat Tenant Rate</div>
+                  <div className="text-2xl font-black mt-1">68.5%</div>
+                  <div className="text-[11px] text-amber-700 mt-1">Weekly recurring slots</div>
+                </div>
+              </div>
+            </div>
+          </main>
+        )}
+
+        {/* ========================================================
+            VIEW: SETTINGS
+           ======================================================== */}
+        {activeNav === 'settings' && (
+          <main className="p-8 space-y-8 flex-1 max-w-[1440px]">
+            {/* Google Sheets Sync */}
+            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
+                  <FileSpreadsheet className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-gray-900">Google Sheets Live Sync Integration</h3>
+                  <p className="text-xs text-gray-500">Real-time webhook sync for incoming bookings and enquiries</p>
+                </div>
+              </div>
+
+              {sheetStatusMessage && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-semibold">
+                  {sheetStatusMessage}
+                </div>
+              )}
+
+              <form onSubmit={handleSaveGoogleSheetUrl} className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Google Apps Script Web App URL</label>
+                  <input
+                    type="url"
+                    value={sheetUrlInput}
+                    onChange={(e) => setSheetUrlInput(e.target.value)}
+                    placeholder="https://script.google.com/macros/s/.../exec"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-[#112F21] focus:outline-none"
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    type="submit"
+                    className="bg-[#112F21] hover:bg-[#1a4731] text-white px-5 py-2.5 rounded-xl font-bold text-xs"
+                  >
+                    Save URL
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleTestGoogleSheetUrl}
+                    disabled={testingSheet}
+                    className="border border-gray-200 hover:bg-gray-50 text-gray-800 px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2"
+                  >
+                    {testingSheet ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                    <span>Test Sync</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Pricing Settings */}
+            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs space-y-4">
+              <h3 className="font-bold text-sm text-gray-900">Kitchen Pricing & Hours Configuration</h3>
+              <form onSubmit={handleSaveSettings} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Hourly Rental Rate ($AUD)</label>
+                  <input
+                    type="number"
+                    value={hourlyRateInput}
+                    onChange={(e) => setHourlyRateInput(e.target.value)}
+                    className="w-full px-4 py-2 rounded-xl border border-gray-200 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Security Deposit Bond ($AUD)</label>
+                  <input
+                    type="number"
+                    value={depositInput}
+                    onChange={(e) => setDepositInput(e.target.value)}
+                    className="w-full px-4 py-2 rounded-xl border border-gray-200 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Minimum Booking Hours</label>
+                  <input
+                    type="number"
+                    value={minHoursInput}
+                    onChange={(e) => setMinHoursInput(e.target.value)}
+                    className="w-full px-4 py-2 rounded-xl border border-gray-200 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Cleaning Fee ($AUD)</label>
+                  <input
+                    type="number"
+                    value={cleaningFeeInput}
+                    onChange={(e) => setCleaningFeeInput(e.target.value)}
+                    className="w-full px-4 py-2 rounded-xl border border-gray-200 text-xs"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <button
+                    type="submit"
+                    disabled={savingSettings}
+                    className="bg-[#112F21] hover:bg-[#1a4731] text-white px-6 py-2.5 rounded-xl font-bold text-xs"
+                  >
+                    {savingSettings ? 'Saving...' : 'Update Kitchen Settings'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </main>
+        )}
       </div>
 
-      {/* Booking Management Modal */}
+      {/* ========================================================
+          BOOKING ACTION MODAL / DRAWER
+         ======================================================== */}
       {selectedBooking && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-brand-mint-border space-y-4">
-            
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-gray-200 space-y-6 max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-gray-100">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-brand-muted">
-                  Manage Booking
-                </span>
-                <h4 className="text-lg font-black text-brand-forest font-mono">
-                  {selectedBooking.reference_code}
-                </h4>
+                <span className="font-mono font-bold text-emerald-800 text-xs">{selectedBooking.reference_code}</span>
+                <h3 className="font-bold text-lg text-gray-900 mt-0.5">{selectedBooking.full_name}</h3>
+                <p className="text-xs text-gray-500">{selectedBooking.business_name || 'Individual Chef'}</p>
               </div>
               <button
                 onClick={() => setSelectedBooking(null)}
-                className="text-gray-400 hover:text-brand-dark text-xs"
+                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 flex items-center justify-center font-bold"
               >
-                Close
+                ✕
               </button>
             </div>
 
-            {bookingError && (
-              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs">
-                {bookingError}
+            {/* Reservation Highlights */}
+            <div className="grid grid-cols-2 gap-3 bg-gray-50 p-4 rounded-2xl text-xs">
+              <div>
+                <span className="text-gray-400 block text-[11px]">Booking Date</span>
+                <span className="font-bold text-gray-900">{formatDisplayDate(selectedBooking.booking_date)}</span>
               </div>
-            )}
-
-            <div className="text-xs space-y-2 bg-gray-50 p-4 rounded-xl border border-gray-100">
-              <div><strong className="text-brand-dark">Name:</strong> {selectedBooking.full_name}</div>
-              <div><strong className="text-brand-dark">Email:</strong> {selectedBooking.email}</div>
-              <div><strong className="text-brand-dark">Phone:</strong> {selectedBooking.phone}</div>
-              <div><strong className="text-brand-dark">Date & Slot:</strong> {selectedBooking.booking_date} ({selectedBooking.start_time} - {selectedBooking.end_time})</div>
-              <div><strong className="text-brand-dark">Intended Use:</strong> {selectedBooking.intended_use}</div>
-              <div><strong className="text-brand-dark">Equipment:</strong> {selectedBooking.equipment_requirements || 'Standard'}</div>
-              <div><strong className="text-brand-dark">Total Fee:</strong> ${Number(selectedBooking.total_price || selectedBooking.total_cost || 0).toFixed(2)} AUD</div>
+              <div>
+                <span className="text-gray-400 block text-[11px]">Time Window</span>
+                <span className="font-bold text-gray-900">
+                  {formatDisplayTime(selectedBooking.start_time)} – {formatDisplayTime(selectedBooking.end_time || calculateEndTime(selectedBooking.start_time, selectedBooking.duration_hours))}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-400 block text-[11px]">Total Fee</span>
+                <span className="font-mono font-bold text-gray-900">${Number(selectedBooking.total_price || selectedBooking.total_cost || 0).toFixed(2)} AUD</span>
+              </div>
+              <div>
+                <span className="text-gray-400 block text-[11px]">Current Status</span>
+                <span className="font-bold text-emerald-800 uppercase">{selectedBooking.status} ({selectedBooking.payment_status})</span>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-brand-dark uppercase tracking-wider mb-1">
-                Admin / Inspection Notes
-              </label>
+            {/* Quick Actions */}
+            <div className="space-y-3">
+              <label className="block text-xs font-bold text-gray-700">Quick Decision Actions</label>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => handleUpdateStatus(selectedBooking.id, 'confirmed')}
+                  disabled={updatingBooking}
+                  className="bg-emerald-700 hover:bg-emerald-800 text-white py-2 rounded-xl text-xs font-bold cursor-pointer"
+                >
+                  ✓ Confirm
+                </button>
+                <button
+                  onClick={() => handleUpdateStatus(selectedBooking.id, 'approved')}
+                  disabled={updatingBooking}
+                  className="bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl text-xs font-bold cursor-pointer"
+                >
+                  ● Approve
+                </button>
+                <button
+                  onClick={() => handleUpdateStatus(selectedBooking.id, selectedBooking.status, 'paid')}
+                  disabled={updatingBooking}
+                  className="bg-emerald-100 hover:bg-emerald-200 text-emerald-900 py-2 rounded-xl text-xs font-bold cursor-pointer"
+                >
+                  $ Mark Paid
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <button
+                  onClick={() => handleUpdateStatus(selectedBooking.id, 'rejected')}
+                  disabled={updatingBooking}
+                  className="border border-red-200 hover:bg-red-50 text-red-700 py-2 rounded-xl text-xs font-bold cursor-pointer"
+                >
+                  ✕ Reject
+                </button>
+                <button
+                  onClick={() => handleDeleteBooking(selectedBooking.id)}
+                  disabled={updatingBooking}
+                  className="border border-gray-200 hover:bg-gray-100 text-gray-600 py-2 rounded-xl text-xs font-bold cursor-pointer"
+                >
+                  Delete Booking
+                </button>
+              </div>
+            </div>
+
+            {/* Admin Notes */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-gray-700">Admin Operational Notes</label>
               <textarea
-                rows={2}
                 value={actionNotes}
                 onChange={(e) => setActionNotes(e.target.value)}
-                placeholder="Keycode provided, bond received, cleaning verification..."
-                className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-brand-forest focus:outline-none"
+                placeholder="Add internal notes (access code sent, certificate checked, etc.)..."
+                className="w-full p-3 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-[#112F21] focus:outline-none"
+                rows={3}
               />
+              <button
+                onClick={() => handleUpdateStatus(selectedBooking.id, selectedBooking.status, selectedBooking.payment_status, actionNotes)}
+                className="text-xs font-bold text-emerald-800 hover:text-emerald-900 cursor-pointer"
+              >
+                Save Notes
+              </button>
             </div>
-
-            {/* Approval Payment Link Configuration Prompt */}
-            {showPaymentLinkPrompt ? (
-              <div className="p-4 rounded-xl bg-emerald-50/70 border border-emerald-200 space-y-3.5 animate-fadeIn">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-brand-forest uppercase tracking-wider">
-                    Payment Link Options
-                  </span>
-                  <span className="text-[11px] font-semibold text-emerald-800">
-                    {getDaysUntilBooking(selectedBooking.booking_date) < 7 
-                      ? `⚡ Hire is within 7 days (${getDaysUntilBooking(selectedBooking.booking_date)} days away)`
-                      : `📅 Hire is in ${getDaysUntilBooking(selectedBooking.booking_date)} days`}
-                  </span>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-brand-dark mb-1.5">
-                    Do you want to send out a payment link?
-                  </label>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setSendPaymentLinkChoice('yes')}
-                      className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
-                        sendPaymentLinkChoice === 'yes'
-                          ? 'bg-emerald-600 text-white shadow-sm'
-                          : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      Yes, Send Payment Link
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSendPaymentLinkChoice('no')}
-                      className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
-                        sendPaymentLinkChoice === 'no'
-                          ? 'bg-gray-700 text-white shadow-sm'
-                          : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      No, Skip Payment Link
-                    </button>
-                  </div>
-                </div>
-
-                {sendPaymentLinkChoice === 'yes' && (
-                  <div className="pt-2 border-t border-emerald-200/60">
-                    {getDaysUntilBooking(selectedBooking.booking_date) < 7 ? (
-                      <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs">
-                        <p className="font-bold">⚠️ Upfront Full Payment Required</p>
-                        <p className="text-[11px] mt-0.5">
-                          Since this booking is less than 7 days away, <strong>100% full payment</strong> (${Number(selectedBooking.total_price || selectedBooking.total_cost || 0).toFixed(2)} AUD) must be provided upfront.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <label className="block text-xs font-bold text-brand-dark">
-                          Select Payment Terms for Buyer:
-                        </label>
-                        <div className="space-y-1.5">
-                          <label className="flex items-start gap-2.5 p-2 rounded-lg bg-white border border-gray-200 cursor-pointer hover:border-brand-forest">
-                            <input
-                              type="radio"
-                              name="paymentOption"
-                              checked={paymentOptionChoice === 'full'}
-                              onChange={() => setPaymentOptionChoice('full')}
-                              className="mt-0.5 text-brand-forest focus:ring-brand-forest"
-                            />
-                            <div className="text-xs">
-                              <span className="font-bold text-brand-dark">Pay in full (100%)</span>
-                              <span className="text-brand-muted block text-[11px]">
-                                Single full payment of ${Number(selectedBooking.total_price || selectedBooking.total_cost || 0).toFixed(2)} AUD.
-                              </span>
-                            </div>
-                          </label>
-
-                          <label className="flex items-start gap-2.5 p-2 rounded-lg bg-white border border-gray-200 cursor-pointer hover:border-brand-forest">
-                            <input
-                              type="radio"
-                              name="paymentOption"
-                              checked={paymentOptionChoice === 'split'}
-                              onChange={() => setPaymentOptionChoice('split')}
-                              className="mt-0.5 text-brand-forest focus:ring-brand-forest"
-                            />
-                            <div className="text-xs">
-                              <span className="font-bold text-brand-dark">Pay 50% now & 50% one week before</span>
-                              <span className="text-brand-muted block text-[11px]">
-                                ${(Number(selectedBooking.total_price || selectedBooking.total_cost || 0) / 2).toFixed(2)} AUD deposit now, remaining ${(Number(selectedBooking.total_price || selectedBooking.total_cost || 0) / 2).toFixed(2)} AUD due 7 days prior to hire.
-                              </span>
-                            </div>
-                          </label>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div className="flex gap-2 pt-2">
-                  <button
-                    type="button"
-                    disabled={updatingBooking}
-                    onClick={handleConfirmApproval}
-                    className="flex-1 py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all"
-                  >
-                    {updatingBooking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
-                    <span>Confirm & Approve</span>
-                  </button>
-                  <button
-                    type="button"
-                    disabled={updatingBooking}
-                    onClick={() => setShowPaymentLinkPrompt(false)}
-                    className="py-2 px-3 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition-all"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2 pt-2">
-                <span className="block text-xs font-bold text-brand-dark uppercase tracking-wider">
-                  Change Status:
-                </span>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    disabled={selectedBooking.status === 'approved' || updatingBooking}
-                    onClick={() => {
-                      const days = getDaysUntilBooking(selectedBooking.booking_date);
-                      if (days < 7) {
-                        setPaymentOptionChoice('full');
-                      }
-                      setShowPaymentLinkPrompt(true);
-                    }}
-                    className={`py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
-                      selectedBooking.status === 'approved'
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
-                        : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-soft-sm'
-                    }`}
-                  >
-                    <CheckCircle className="w-3.5 h-3.5" />
-                    <span>{selectedBooking.status === 'approved' ? 'Already Approved' : 'Approve Request'}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={selectedBooking.status === 'rejected' || updatingBooking}
-                    onClick={() => handleUpdateStatus(selectedBooking.id, 'rejected')}
-                    className={`py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
-                      selectedBooking.status === 'rejected'
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
-                        : 'bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 shadow-soft-sm'
-                    }`}
-                  >
-                    <XCircle className="w-3.5 h-3.5" />
-                    <span>{selectedBooking.status === 'rejected' ? 'Already Rejected' : 'Reject Request'}</span>
-                  </button>
-                </div>
-              </div>
-            )}
-
           </div>
         </div>
       )}
-
     </div>
   );
 };

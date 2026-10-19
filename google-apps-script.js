@@ -207,6 +207,17 @@ function doGet(e) {
       for (var i = 1; i < rows.length; i++) {
         var r = rows[i];
         if (!r[1]) continue;
+        var rawDate = r[6];
+        var formattedDate = rawDate;
+        if (rawDate instanceof Date) {
+          formattedDate = Utilities.formatDate(rawDate, "Australia/Perth", "yyyy-MM-dd");
+        }
+        var rawTime = r[7];
+        var formattedTime = rawTime;
+        if (rawTime instanceof Date) {
+          formattedTime = Utilities.formatDate(rawTime, "Australia/Perth", "HH:mm");
+        }
+
         bookings.push({
           id: i,
           created_at: r[0],
@@ -215,8 +226,8 @@ function doGet(e) {
           business_name: r[3],
           email: r[4],
           phone: r[5],
-          booking_date: r[6],
-          start_time: r[7],
+          booking_date: formattedDate,
+          start_time: formattedTime,
           duration_hours: Number(r[8]),
           base_cost: Number(r[9]),
           cleaning_fee: 0,

@@ -16,7 +16,7 @@ export const getGoogleSheetUrl = (): string => {
   return (
     localStorage.getItem('dd_sheet_webhook_url') ||
     import.meta.env.VITE_GOOGLE_SHEET_WEBHOOK_URL ||
-    'https://script.google.com/macros/s/AKfycbwuBpSsyTDnR4ff6Cil6MC0TnIZE4uvUmrBukPtAk8VJnFjTxbCB-ndaz9KEs9Pa13I/exec'
+    'https://script.google.com/macros/s/AKfycbxwTzH4ENrycbllJN8ZY_WvH7RbbscjbddN5rAsLDl9rxNrPZSDOZCx0xTqy2PmlImROw/exec'
   );
 };
 
@@ -30,11 +30,252 @@ const LS_ENQUIRIES = 'dd_local_enquiries';
 const LS_BLOCKED = 'dd_local_blocked_slots';
 const LS_CONFIG = 'dd_local_config';
 
+export const normalizeDate = (val?: string | Date): string => {
+  if (!val) return '';
+  const s = String(val).trim();
+  if (!s) return '';
+  if (s.includes('T')) {
+    try {
+      const d = new Date(s);
+      if (!isNaN(d.getTime())) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      }
+    } catch {}
+    return s.split('T')[0];
+  }
+  return s;
+};
+
+export const normalizeTime = (val?: string | Date): string => {
+  if (!val) return '';
+  const s = String(val).trim();
+  if (!s) return '';
+  if (s.includes('T')) {
+    try {
+      const d = new Date(s);
+      if (!isNaN(d.getTime())) {
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mm = String(d.getMinutes()).padStart(2, '0');
+        return `${hh}:${mm}`;
+      }
+    } catch {}
+  }
+  const match = s.match(/^(\d{1,2}):(\d{2})/);
+  if (match) {
+    return `${match[1].padStart(2, '0')}:${match[2]}`;
+  }
+  return s;
+};
+
+export const formatDisplayDate = (val?: string | Date): string => {
+  if (!val) return '—';
+  const clean = normalizeDate(val);
+  if (!clean) return '—';
+  try {
+    const parts = clean.split('-');
+    if (parts.length === 3) {
+      const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      return d.toLocaleDateString('en-AU', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      });
+    }
+  } catch {}
+  return clean;
+};
+
+export const formatDisplayTime = (val?: string | Date): string => {
+  if (!val) return '—';
+  const clean = normalizeTime(val);
+  const match = clean.match(/^(\d{1,2}):(\d{2})/);
+  if (match) {
+    let h = parseInt(match[1], 10);
+    const m = match[2];
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return `${h}:${m} ${ampm}`;
+  }
+  return clean;
+};
+
+export const calculateEndTime = (startTime: string, durationHours: number = 4): string => {
+  const clean = normalizeTime(startTime);
+  const match = clean.match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return '';
+  const h = parseInt(match[1], 10);
+  const m = parseInt(match[2], 10);
+  const totalMinutes = h * 60 + m + Math.round(durationHours * 60);
+  const endH = Math.floor(totalMinutes / 60) % 24;
+  const endM = totalMinutes % 60;
+  return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+};
+
+export const DEFAULT_MOCK_BOOKINGS: Booking[] = [
+  {
+    id: 1,
+    reference_code: 'DD-BK-001',
+    full_name: 'Chef Michael Davies',
+    business_name: 'Perth Catering Co.',
+    email: 'michael.davies@perthcatering.com.au',
+    phone: '0412 345 678',
+    booking_date: '2026-10-21',
+    start_time: '18:30',
+    end_time: '22:30',
+    duration_hours: 4,
+    intended_use: 'Corporate Luncheon Meal Prep',
+    team_size: 3,
+    equipment_requirements: 'Combi oven, 6-burner range, Prep benches',
+    total_price: 167.20,
+    base_price: 152.00,
+    status: 'confirmed',
+    payment_status: 'unpaid',
+    admin_notes: 'Check payment and confirm booking',
+    created_at: '2026-10-18T08:30:00Z',
+  },
+  {
+    id: 2,
+    reference_code: 'DD-BK-77953',
+    full_name: 'Rohit',
+    business_name: 'AEC Cloud Kitchen Prep',
+    email: 'rohit@aecprep.com.au',
+    phone: '+619028292208',
+    booking_date: '2026-10-19',
+    start_time: '18:30',
+    end_time: '22:30',
+    duration_hours: 4,
+    intended_use: 'Cloud Kitchen Delivery Prep',
+    team_size: 2,
+    equipment_requirements: 'Baking oven, Prep bench 1',
+    total_price: 167.20,
+    base_price: 152.00,
+    status: 'approved',
+    payment_status: 'unpaid',
+    admin_notes: 'Approved · Awaiting payment',
+    created_at: '2026-10-18T09:15:00Z',
+  },
+  {
+    id: 3,
+    reference_code: 'DD-BK-77952',
+    full_name: 'Tasty Treats',
+    business_name: 'Artisan Bakery',
+    email: 'orders@tastytreats.com.au',
+    phone: '0413 555 123',
+    booking_date: '2026-10-22',
+    start_time: '10:00',
+    end_time: '14:00',
+    duration_hours: 4,
+    intended_use: 'Farmers Market Pastry Batching',
+    team_size: 2,
+    equipment_requirements: 'Deck oven, Spiral mixer',
+    total_price: 200.00,
+    base_price: 181.82,
+    status: 'pending',
+    payment_status: 'unpaid',
+    admin_notes: 'Requires review for allergen protocols',
+    created_at: '2026-10-18T11:00:00Z',
+  },
+  {
+    id: 4,
+    reference_code: 'DD-BK-77940',
+    full_name: 'ABC Catering',
+    business_name: 'ABC Catering Co.',
+    email: 'events@abccatering.com.au',
+    phone: '0411 222 333',
+    booking_date: '2026-10-18',
+    start_time: '06:00',
+    end_time: '14:00',
+    duration_hours: 8,
+    intended_use: 'Event Catering Batch Prep',
+    team_size: 5,
+    equipment_requirements: 'Combi oven, Prep Bench 1, Storage Area',
+    total_price: 256.00,
+    base_price: 232.73,
+    status: 'completed',
+    payment_status: 'paid',
+    admin_notes: 'Facility left clean and sanitized',
+    created_at: '2026-10-17T14:00:00Z',
+  },
+  {
+    id: 5,
+    reference_code: 'DD-BK-77938',
+    full_name: 'Cloud Kitchen Co.',
+    business_name: 'Cloud Kitchen Hubs',
+    email: 'hub@cloudkitchen.com.au',
+    phone: '0419 888 777',
+    booking_date: '2026-10-18',
+    start_time: '12:00',
+    end_time: '18:00',
+    duration_hours: 6,
+    intended_use: 'Dark Kitchen Food Delivery Prep',
+    team_size: 3,
+    equipment_requirements: 'Combi oven, 6-Burner range',
+    total_price: 204.00,
+    base_price: 185.45,
+    status: 'completed',
+    payment_status: 'paid',
+    admin_notes: 'Tenancy agreement active',
+    created_at: '2026-10-17T15:30:00Z',
+  }
+];
+
+export const DEFAULT_MOCK_ENQUIRIES: Enquiry[] = [
+  {
+    id: 1,
+    reference_code: 'DD-ENQ-101',
+    name: 'Sarah Lim',
+    full_name: 'Sarah Lim',
+    email: 'sarah.lim@bakestudio.com.au',
+    phone: '0432 111 222',
+    business_name: 'Lim Sweet Studio',
+    message: 'Interested in weekend booking for artisan cake decorating workshop.',
+    rental_type: 'Weekend Hourly',
+    status: 'new',
+    created_at: '2 hours ago',
+  },
+  {
+    id: 2,
+    reference_code: 'DD-ENQ-102',
+    name: 'Green Food Co.',
+    full_name: 'Green Food Co.',
+    email: 'ops@greenfood.com.au',
+    phone: '0450 999 888',
+    business_name: 'Green Food Co.',
+    message: 'Enquiry about pricing and availability for regular commercial production line.',
+    rental_type: 'Recurring Monthly',
+    status: 'new',
+    created_at: '1 day ago',
+  },
+  {
+    id: 3,
+    reference_code: 'DD-ENQ-103',
+    name: 'James Lee',
+    full_name: 'James Lee',
+    email: 'james@chillispot.com',
+    phone: '0421 777 444',
+    business_name: 'Perth Chilli Spot',
+    message: 'Looking for long-term kitchen rental 15 hours weekly.',
+    rental_type: 'Long Term Lease',
+    status: 'in_progress',
+    created_at: '2 days ago',
+  }
+];
+
 const getStoredBookings = (): Booking[] => {
   try {
-    return JSON.parse(localStorage.getItem(LS_BOOKINGS) || '[]');
+    const raw = localStorage.getItem(LS_BOOKINGS);
+    if (!raw) {
+      localStorage.setItem(LS_BOOKINGS, JSON.stringify(DEFAULT_MOCK_BOOKINGS));
+      return DEFAULT_MOCK_BOOKINGS;
+    }
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_MOCK_BOOKINGS;
   } catch {
-    return [];
+    return DEFAULT_MOCK_BOOKINGS;
   }
 };
 
@@ -44,9 +285,15 @@ const saveStoredBookings = (list: Booking[]) => {
 
 const getStoredEnquiries = (): Enquiry[] => {
   try {
-    return JSON.parse(localStorage.getItem(LS_ENQUIRIES) || '[]');
+    const raw = localStorage.getItem(LS_ENQUIRIES);
+    if (!raw) {
+      localStorage.setItem(LS_ENQUIRIES, JSON.stringify(DEFAULT_MOCK_ENQUIRIES));
+      return DEFAULT_MOCK_ENQUIRIES;
+    }
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_MOCK_ENQUIRIES;
   } catch {
-    return [];
+    return DEFAULT_MOCK_ENQUIRIES;
   }
 };
 
@@ -374,9 +621,9 @@ export const api = {
               business_name: item.business_name || '',
               email: item.email || '',
               phone: item.phone || '',
-              booking_date: item.booking_date || item.date || '',
-              start_time: item.start_time || item.time || '',
-              end_time: item.end_time || '',
+              booking_date: normalizeDate(item.booking_date || item.date || ''),
+              start_time: normalizeTime(item.start_time || item.time || ''),
+              end_time: normalizeTime(item.end_time || calculateEndTime(item.start_time || item.time || '', Number(item.duration_hours || 4))),
               duration_hours: Number(item.duration_hours || 2),
               hourly_rate: Number(item.hourly_rate || 45),
               base_price: Number(item.base_price || item.base_cost || 0),

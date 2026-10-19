@@ -15,13 +15,14 @@ import { FAQ } from './components/FAQ';
 import { Contact } from './components/Contact';
 import { Footer } from './components/Footer';
 import { AdminDashboard } from './components/AdminDashboard';
+import { CustomerDashboard } from './components/CustomerDashboard';
 import { KitchenConfig, Booking } from './types';
 import { api } from './services/api';
 import { Calendar, ArrowUp } from 'lucide-react';
 
 export function App() {
   const [config, setConfig] = useState<KitchenConfig | null>(null);
-  const [isAdminView, setIsAdminView] = useState<boolean>(false);
+  const [viewMode, setViewMode] = useState<'site' | 'admin' | 'customer'>('site');
   const [latestBooking, setLatestBooking] = useState<Booking | null>(null);
   const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
 
@@ -59,19 +60,25 @@ export function App() {
   }, []);
 
   const scrollToBooking = (date?: string, time?: string, duration?: number) => {
+    setViewMode('site');
     if (date) setBookingDate(date);
     if (time) setBookingTime(time);
     if (duration) setBookingDuration(duration);
 
-    const el = document.getElementById('booking-section');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-    }
+    setTimeout(() => {
+      const el = document.getElementById('booking-section');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
   };
 
   const scrollToSection = (id: string) => {
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
+    setViewMode('site');
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
   };
 
   const handleBookingSuccess = (booking: Booking) => {
@@ -80,11 +87,23 @@ export function App() {
   };
 
   // If viewing admin panel
-  if (isAdminView) {
+  if (viewMode === 'admin') {
     return (
       <AdminDashboard
-        onBackToSite={() => setIsAdminView(false)}
+        onBackToSite={() => setViewMode('site')}
         onConfigUpdated={(newConfig) => setConfig(newConfig)}
+        onGoToCustomerPortal={() => setViewMode('customer')}
+      />
+    );
+  }
+
+  // If viewing customer dashboard
+  if (viewMode === 'customer') {
+    return (
+      <CustomerDashboard
+        onBackToSite={() => setViewMode('site')}
+        onGoToAdminPortal={() => setViewMode('admin')}
+        onBookClick={() => scrollToBooking()}
       />
     );
   }
@@ -97,7 +116,8 @@ export function App() {
       {/* Top Sticky Header */}
       <Navbar
         onBookClick={() => scrollToBooking()}
-        onAdminClick={() => setIsAdminView(true)}
+        onAdminClick={() => setViewMode('admin')}
+        onCustomerClick={() => setViewMode('customer')}
         isAdminLoggedIn={Boolean(localStorage.getItem('dd_admin_token'))}
       />
 
@@ -163,7 +183,7 @@ export function App() {
       {/* Footer */}
       <Footer
         config={config}
-        onAdminClick={() => setIsAdminView(true)}
+        onAdminClick={() => setViewMode('admin')}
       />
 
       {/* Booking Confirmation Modal */}
