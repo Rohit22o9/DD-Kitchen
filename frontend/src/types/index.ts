@@ -76,6 +76,16 @@ export interface AvailabilityData {
   total_booked_hours?: number;
 }
 
+export interface DayAvailabilitySummary {
+  date: string;
+  total_booked_hours: number;
+  available_hours: number;
+  bookings_count: number;
+  status: 'available' | 'partially_booked' | 'fully_booked' | 'blocked';
+  slots: SlotInterval[];
+  equipment_in_use: string[];
+}
+
 export interface BlockedSlot {
   id: number;
   block_date: string;

@@ -3,6 +3,8 @@ import {
   Booking,
   BookingCreateInput,
   AvailabilityData,
+  DayAvailabilitySummary,
+  SlotInterval,
   BlockedSlot,
   EnquiryInput,
   Enquiry,
@@ -403,6 +405,92 @@ export const api = {
       existing_bookings_count: bookings.length,
       total_booked_hours: bookings.reduce((sum, b) => sum + b.duration_hours, 0),
     };
+  },
+
+  async getMonthAvailability(year: number, month: number): Promise<Record<string, DayAvailabilitySummary>> {
+    const monthStr = `${year}-${String(month).padStart(2, '0')}`;
+    try {
+      const res = await fetch(`${API_BASE}/month-availability?year=${year}&month=${month}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json && typeof json === 'object') return json;
+      }
+    } catch {
+      // Fallback
+    }
+
+    // Local check against stored bookings and blocked slots
+    const bookings = getStoredBookings().filter(
+      (b) => b.booking_date && b.booking_date.startsWith(monthStr) && b.status !== 'cancelled' && b.status !== 'rejected'
+    );
+    const blockedSlots = (await this.getBlockedSlots('')).filter(
+      (s) => s.block_date && s.block_date.startsWith(monthStr)
+    );
+
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const result: Record<string, DayAvailabilitySummary> = {};
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const dayBookings = bookings.filter((b) => b.booking_date === dStr);
+      const dayBlocked = blockedSlots.filter((b) => b.block_date === dStr);
+
+      const slots: SlotInterval[] = [];
+      const equipmentSet = new Set<string>();
+
+      dayBookings.forEach((b) => {
+        const [sh, sm] = (b.start_time || '00:00').split(':').map(Number);
+        const endTotal = sh * 60 + sm + Math.round((b.duration_hours || 4) * 60);
+        const eh = Math.floor(endTotal / 60) % 24;
+        const em = endTotal % 60;
+        slots.push({
+          start_time: b.start_time,
+          end_time: `${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}`,
+          status: 'booked',
+          reason: b.intended_use || 'Reserved Shift',
+          reference: b.reference_code,
+        });
+
+        if (b.equipment_requirements) {
+          b.equipment_requirements.split(',').forEach((eq) => {
+            const clean = eq.trim();
+            if (clean) equipmentSet.add(clean);
+          });
+        }
+      });
+
+      dayBlocked.forEach((blk) => {
+        slots.push({
+          start_time: blk.start_time,
+          end_time: blk.end_time,
+          status: 'blocked',
+          reason: blk.reason || 'Maintenance Block',
+        });
+      });
+
+      const totalBookedHours = dayBookings.reduce((sum, b) => sum + (b.duration_hours || 0), 0);
+      const isAllDayBlocked = dayBlocked.some((blk) => blk.start_time === '00:00' && (blk.end_time === '24:00' || blk.end_time === '23:59'));
+      const availableHours = Math.max(0, 24 - totalBookedHours);
+
+      let status: 'available' | 'partially_booked' | 'fully_booked' | 'blocked' = 'available';
+      if (isAllDayBlocked || totalBookedHours >= 22) {
+        status = isAllDayBlocked ? 'blocked' : 'fully_booked';
+      } else if (totalBookedHours > 0 || dayBlocked.length > 0) {
+        status = 'partially_booked';
+      }
+
+      result[dStr] = {
+        date: dStr,
+        total_booked_hours: totalBookedHours,
+        available_hours: availableHours,
+        bookings_count: dayBookings.length,
+        status,
+        slots,
+        equipment_in_use: Array.from(equipmentSet),
+      };
+    }
+
+    return result;
   },
 
   async createBooking(data: BookingCreateInput): Promise<Booking> {

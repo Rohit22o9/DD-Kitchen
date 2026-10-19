@@ -79,6 +79,85 @@ def get_availability(date_str: str = Query(..., alias="date", pattern=r"^\d{4}-\
         existing_bookings_count=len(bookings)
     )
 
+@router.get("/month-availability")
+def get_month_availability(
+    year: int = Query(..., ge=2020, le=2035),
+    month: int = Query(..., ge=1, le=12),
+    db: Session = Depends(get_db)
+):
+    """
+    Returns aggregated availability summary, slot status, and equipment use
+    for each day of the specified calendar month.
+    """
+    import calendar
+    _, last_day = calendar.monthrange(year, month)
+    start_date = f"{year:04d}-{month:02d}-01"
+    end_date = f"{year:04d}-{month:02d}-{last_day:02d}"
+    
+    bookings = db.query(Booking).filter(
+        Booking.booking_date >= start_date,
+        Booking.booking_date <= end_date,
+        Booking.status.in_(["pending", "approved", "confirmed"])
+    ).all()
+    
+    blocked = db.query(BlockedSlot).filter(
+        BlockedSlot.block_date >= start_date,
+        BlockedSlot.block_date <= end_date
+    ).all()
+    
+    result = {}
+    for day in range(1, last_day + 1):
+        d_str = f"{year:04d}-{month:02d}-{day:02d}"
+        day_bookings = [b for b in bookings if b.booking_date == d_str]
+        day_blocked = [b for b in blocked if b.block_date == d_str]
+        
+        slots = []
+        equipment_set = set()
+        total_booked_hours = 0.0
+        
+        for b in day_bookings:
+            slots.append({
+                "start_time": b.start_time,
+                "end_time": b.end_time,
+                "status": "booked",
+                "reference": b.reference_code,
+                "reason": f"Reserved ({b.status.capitalize()})"
+            })
+            total_booked_hours += float(b.duration_hours or 0)
+            if b.equipment_requirements:
+                for eq in b.equipment_requirements.split(","):
+                    clean_eq = eq.strip()
+                    if clean_eq:
+                        equipment_set.add(clean_eq)
+                        
+        for blk in day_blocked:
+            slots.append({
+                "start_time": blk.start_time,
+                "end_time": blk.end_time,
+                "status": "blocked",
+                "reference": None,
+                "reason": blk.reason or "Maintenance Block"
+            })
+            
+        is_all_day_blocked = any(blk.start_time == "00:00" and blk.end_time in ["24:00", "23:59"] for blk in day_blocked)
+        status_val = "available"
+        if is_all_day_blocked or total_booked_hours >= 22:
+            status_val = "blocked" if is_all_day_blocked else "fully_booked"
+        elif total_booked_hours > 0 or len(day_blocked) > 0:
+            status_val = "partially_booked"
+            
+        result[d_str] = {
+            "date": d_str,
+            "total_booked_hours": total_booked_hours,
+            "available_hours": max(0.0, 24.0 - total_booked_hours),
+            "bookings_count": len(day_bookings),
+            "status": status_val,
+            "slots": slots,
+            "equipment_in_use": list(equipment_set)
+        }
+        
+    return result
+
 @router.post("/bookings", response_model=BookingResponse, status_code=status.HTTP_201_CREATED)
 def create_booking_request(booking_in: BookingCreate, db: Session = Depends(get_db)):
     """
