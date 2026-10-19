@@ -66,7 +66,7 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
   return (
     <>
       {/* Main Hero Section: Light, High Visibility Background */}
-      <section id="hero" className="relative pt-10 pb-16 lg:pt-16 lg:pb-24 overflow-hidden bg-brand-cream">
+      <section id="hero" className="relative pt-4 pb-6 lg:pt-6 lg:pb-8 overflow-hidden bg-brand-cream">
         
         {/* Background Slideshow: Light, vibrant and clearly visible */}
         <div className="absolute inset-0 z-0">
@@ -91,62 +91,62 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
             
             {/* Left Column: Headlines & 3 Benefit Badges */}
-            <div className="lg:col-span-7 space-y-6">
+            <div className="lg:col-span-7 space-y-4">
               
               {/* Pill Badge */}
-              <div className="inline-flex items-center space-x-2 bg-black/35 backdrop-blur-md text-white px-3.5 py-1.5 rounded-full border border-white/20 text-xs font-semibold shadow-xs">
+              <div className="inline-flex items-center space-x-2 bg-black/35 backdrop-blur-md text-white px-3 py-1 rounded-full border border-white/20 text-xs font-semibold shadow-xs">
                 <span className="w-2 h-2 rounded-full bg-brand-orange animate-pulse" />
                 <span>Perth's Flexible Commercial Kitchen Rental</span>
               </div>
 
               {/* Main Headline */}
-              <h1 className="text-4xl sm:text-5xl lg:text-[56px] font-black text-white tracking-tight leading-[1.12] drop-shadow-sm">
+              <h1 className="text-3xl sm:text-4xl lg:text-[44px] font-black text-white tracking-tight leading-[1.12] drop-shadow-sm">
                 A Professional Kitchen, <br />
                 <span className="text-brand-orange drop-shadow-sm">Whenever You Need It.</span>
               </h1>
 
               {/* Subtitle */}
-              <p className="text-base sm:text-lg text-gray-100 max-w-xl font-normal leading-relaxed drop-shadow-xs">
+              <p className="text-sm sm:text-base text-gray-100 max-w-xl font-normal leading-relaxed drop-shadow-xs">
                 Rent a fully equipped, council-compliant commercial kitchen by the hour. 
                 Perfect for caterers, food businesses, meal prep and more.
               </p>
 
               {/* 3 Benefit Cards in a Horizontal Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 max-w-2xl">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 max-w-2xl">
                 
                 {/* 1. Flexible Rentals */}
-                <div className="flex items-center space-x-3 p-3 rounded-2xl bg-white/95 backdrop-blur-md shadow-md border border-white/40">
-                  <div className="w-10 h-10 rounded-xl bg-brand-mint text-brand-forest flex items-center justify-center shrink-0">
-                    <Calendar className="w-5 h-5 text-brand-forest" />
+                <div className="flex items-center space-x-2.5 p-2.5 rounded-xl bg-white/95 backdrop-blur-md shadow-md border border-white/40">
+                  <div className="w-9 h-9 rounded-lg bg-brand-mint text-brand-forest flex items-center justify-center shrink-0">
+                    <Calendar className="w-4 h-4 text-brand-forest" />
                   </div>
                   <div>
                     <h4 className="text-xs font-extrabold text-gray-900 leading-tight">Flexible Rentals</h4>
-                    <p className="text-[11px] text-gray-500 mt-0.5 font-medium">From 4 hours upwards</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5 font-medium">From 4 hours upwards</p>
                   </div>
                 </div>
 
                 {/* 2. Certified Facility */}
-                <div className="flex items-center space-x-3 p-3 rounded-2xl bg-white/95 backdrop-blur-md shadow-md border border-white/40">
-                  <div className="w-10 h-10 rounded-xl bg-brand-mint text-brand-forest flex items-center justify-center shrink-0">
-                    <ShieldCheck className="w-5 h-5 text-brand-forest" />
+                <div className="flex items-center space-x-2.5 p-2.5 rounded-xl bg-white/95 backdrop-blur-md shadow-md border border-white/40">
+                  <div className="w-9 h-9 rounded-lg bg-brand-mint text-brand-forest flex items-center justify-center shrink-0">
+                    <ShieldCheck className="w-4 h-4 text-brand-forest" />
                   </div>
                   <div>
                     <h4 className="text-xs font-extrabold text-gray-900 leading-tight">Certified Facility</h4>
-                    <p className="text-[11px] text-gray-500 mt-0.5 font-medium">HACCP & Council approved</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5 font-medium">HACCP & Council approved</p>
                   </div>
                 </div>
 
                 {/* 3. 24/7 Access */}
-                <div className="flex items-center space-x-3 p-3 rounded-2xl bg-white/95 backdrop-blur-md shadow-md border border-white/40">
-                  <div className="w-10 h-10 rounded-xl bg-brand-mint text-brand-forest flex items-center justify-center shrink-0">
-                    <Clock className="w-5 h-5 text-brand-forest" />
+                <div className="flex items-center space-x-2.5 p-2.5 rounded-xl bg-white/95 backdrop-blur-md shadow-md border border-white/40">
+                  <div className="w-9 h-9 rounded-lg bg-brand-mint text-brand-forest flex items-center justify-center shrink-0">
+                    <Clock className="w-4 h-4 text-brand-forest" />
                   </div>
                   <div>
                     <h4 className="text-xs font-extrabold text-gray-900 leading-tight">24/7 Access</h4>
-                    <p className="text-[11px] text-gray-500 mt-0.5 font-medium">Around your schedule</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5 font-medium">Around your schedule</p>
                   </div>
                 </div>
 
@@ -154,38 +154,38 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
 
             </div>
 
-            {/* Right Column: High-Contrast, Attractive Rate Calculator Card */}
+            {/* Right Column: High-Contrast, Compact Rate Calculator Card */}
             <div className="lg:col-span-5">
-              <div className="bg-white rounded-3xl shadow-2xl p-7 sm:p-8 border border-gray-100/80 ring-1 ring-black/5 relative backdrop-blur-xl">
+              <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-5 border border-gray-100/80 ring-1 ring-black/5 relative backdrop-blur-xl">
                 
                 {/* Header: Instant Rate Calculator + Price Badge */}
-                <div className="flex items-start justify-between pb-4 border-b border-gray-100 gap-3">
+                <div className="flex items-start justify-between pb-2.5 border-b border-gray-100 gap-2">
                   <div>
-                    <div className="inline-flex items-center space-x-1.5 bg-brand-orange-light text-brand-orange px-2.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider mb-1.5 border border-brand-orange/20">
-                      <Sparkles className="w-3 h-3 text-brand-orange" />
+                    <div className="inline-flex items-center space-x-1.5 bg-brand-orange-light text-brand-orange px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider mb-1 border border-brand-orange/20">
+                      <Sparkles className="w-2.5 h-2.5 text-brand-orange" />
                       <span>Instant Rate Calculator</span>
                     </div>
-                    <h3 className="text-2xl sm:text-[26px] font-black text-gray-900 tracking-tight leading-tight">
+                    <h3 className="text-lg sm:text-xl font-black text-gray-900 tracking-tight leading-tight">
                       Check Hourly Availability
                     </h3>
                   </div>
                   
-                  <div className="text-right bg-brand-cream/80 border border-brand-mint-border px-3.5 py-2 rounded-2xl shadow-xs shrink-0">
-                    <div className="flex items-baseline space-x-1 justify-end">
-                      <span className="text-3xl font-black text-brand-forest">$38</span>
-                      <span className="text-xs font-bold text-gray-600">/hr + GST</span>
+                  <div className="text-right bg-brand-cream/80 border border-brand-mint-border px-2.5 py-1.5 rounded-xl shadow-xs shrink-0">
+                    <div className="flex items-baseline space-x-0.5 justify-end">
+                      <span className="text-2xl font-black text-brand-forest">$38</span>
+                      <span className="text-[11px] font-bold text-gray-600">/hr + GST</span>
                     </div>
-                    <span className="text-xs text-brand-orange font-extrabold block mt-0.5">
+                    <span className="text-[10px] text-brand-orange font-extrabold block">
                       Min 4h ($152 + GST)
                     </span>
                   </div>
                 </div>
 
-                <form onSubmit={handleQuickSubmit} className="space-y-4 pt-4">
+                <form onSubmit={handleQuickSubmit} className="space-y-2.5 pt-2.5">
                   
                   {/* 1. SELECT RENTAL DATE */}
                   <div>
-                    <label className="block text-xs font-black text-gray-800 uppercase tracking-wider mb-1.5">
+                    <label className="block text-[11px] font-black text-gray-800 uppercase tracking-wider mb-1">
                       1. SELECT RENTAL DATE
                     </label>
                     <div className="relative">
@@ -195,21 +195,21 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
                         value={selectedDate}
                         onChange={(e) => setSelectedDate(e.target.value)}
                         required
-                        className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-200 bg-white text-gray-900 font-bold text-sm focus:outline-none focus:border-brand-forest focus:ring-2 focus:ring-brand-forest/20 shadow-xs transition-all"
+                        className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-gray-900 font-bold text-xs sm:text-sm focus:outline-none focus:border-brand-forest focus:ring-2 focus:ring-brand-forest/20 shadow-xs transition-all"
                       />
                     </div>
                   </div>
 
                   {/* 2. START TIME & 3. DURATION */}
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-2.5">
                     <div>
-                      <label className="block text-xs font-black text-gray-800 uppercase tracking-wider mb-1.5">
+                      <label className="block text-[11px] font-black text-gray-800 uppercase tracking-wider mb-1">
                         2. START TIME
                       </label>
                       <select
                         value={selectedTime}
                         onChange={(e) => setSelectedTime(e.target.value)}
-                        className="w-full px-3.5 py-3.5 rounded-xl border-2 border-gray-200 bg-white text-gray-900 font-bold text-xs sm:text-sm focus:outline-none focus:border-brand-forest focus:ring-2 focus:ring-brand-forest/20 shadow-xs transition-all cursor-pointer"
+                        className="w-full px-2.5 py-2 rounded-xl border border-gray-200 bg-white text-gray-900 font-bold text-xs focus:outline-none focus:border-brand-forest focus:ring-2 focus:ring-brand-forest/20 shadow-xs transition-all cursor-pointer"
                       >
                         <option value="00:00">12:00 AM (Midnight)</option>
                         <option value="02:00">02:00 AM (Overnight)</option>
@@ -229,13 +229,13 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
                     </div>
 
                     <div>
-                      <label className="block text-xs font-black text-gray-800 uppercase tracking-wider mb-1.5">
+                      <label className="block text-[11px] font-black text-gray-800 uppercase tracking-wider mb-1">
                         3. DURATION
                       </label>
                       <select
                         value={selectedDuration}
                         onChange={(e) => setSelectedDuration(Number(e.target.value))}
-                        className="w-full px-3.5 py-3.5 rounded-xl border-2 border-gray-200 bg-white text-gray-900 font-bold text-xs sm:text-sm focus:outline-none focus:border-brand-forest focus:ring-2 focus:ring-brand-forest/20 shadow-xs transition-all cursor-pointer"
+                        className="w-full px-2.5 py-2 rounded-xl border border-gray-200 bg-white text-gray-900 font-bold text-xs focus:outline-none focus:border-brand-forest focus:ring-2 focus:ring-brand-forest/20 shadow-xs transition-all cursor-pointer"
                       >
                         <option value={2}>2 Hours (Test Shift — $100)</option>
                         <option value={4}>4 Hours (Standard Base — $152)</option>
@@ -248,26 +248,26 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
                     </div>
                   </div>
 
-                  {/* High-Contrast Pricing Breakdown Card */}
-                  <div className="p-4 rounded-2xl bg-emerald-50/70 border-2 border-emerald-100/90 space-y-2 text-xs shadow-xs">
+                  {/* Compact Pricing Breakdown Card */}
+                  <div className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-100/90 space-y-1 text-xs shadow-xs">
                     <div className="flex justify-between items-center text-gray-700">
-                      <span className="font-semibold text-xs sm:text-[13px]">Shift Rental ({selectedDuration} hrs excl. GST):</span>
-                      <span className="font-extrabold text-gray-900 text-sm">${estimatedSubtotal.toFixed(2)}</span>
+                      <span className="font-semibold text-xs">Shift Rental ({selectedDuration} hrs excl. GST):</span>
+                      <span className="font-extrabold text-gray-900 text-xs sm:text-sm">${estimatedSubtotal.toFixed(2)}</span>
                     </div>
                     
                     <div className="flex justify-between items-center text-gray-700">
-                      <span className="font-semibold text-xs sm:text-[13px]">GST (10%):</span>
-                      <span className="font-extrabold text-gray-900 text-sm">${estimatedGst.toFixed(2)}</span>
+                      <span className="font-semibold text-xs">GST (10%):</span>
+                      <span className="font-extrabold text-gray-900 text-xs sm:text-sm">${estimatedGst.toFixed(2)}</span>
                     </div>
 
                     <div className="flex justify-between items-center text-gray-700">
-                      <span className="font-semibold text-xs sm:text-[13px]">End-of-Shift Clean:</span>
-                      <span className="font-extrabold text-emerald-800">Cleaned by Tenant ($0)</span>
+                      <span className="font-semibold text-xs">End-of-Shift Clean:</span>
+                      <span className="font-extrabold text-emerald-800 text-xs">Cleaned by Tenant ($0)</span>
                     </div>
 
-                    <div className="pt-2.5 border-t border-emerald-200/80 flex justify-between items-center">
-                      <span className="text-sm font-black text-gray-900">Total Estimated (inc. GST):</span>
-                      <span className="text-2xl font-black text-brand-orange">
+                    <div className="pt-1.5 border-t border-emerald-200/80 flex justify-between items-center">
+                      <span className="text-xs sm:text-sm font-black text-gray-900">Total Estimated (inc. GST):</span>
+                      <span className="text-lg sm:text-xl font-black text-brand-orange">
                         ${estimatedTotal.toFixed(2)}
                       </span>
                     </div>
@@ -276,13 +276,13 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
                   {/* Dark Forest Green Submit Button */}
                   <button
                     type="submit"
-                    className="w-full bg-[#1A3A25] hover:bg-[#245033] text-white py-4 px-6 rounded-2xl font-black text-base shadow-lg shadow-emerald-950/20 hover:shadow-emerald-950/30 transition-all duration-200 flex items-center justify-center space-x-2.5 transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+                    className="w-full bg-[#1A3A25] hover:bg-[#245033] text-white py-3 px-5 rounded-xl font-black text-sm shadow-md shadow-emerald-950/20 hover:shadow-emerald-950/30 transition-all duration-200 flex items-center justify-center space-x-2 transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
                   >
                     <span>Check Availability & Proceed</span>
-                    <ArrowRight className="w-5 h-5" />
+                    <ArrowRight className="w-4 h-4" />
                   </button>
 
-                  <p className="text-xs text-center text-gray-600 font-semibold leading-tight pt-1">
+                  <p className="text-[10px] text-center text-gray-500 font-medium leading-tight">
                     No immediate payment required. Availability verified in real time before booking request submission.
                   </p>
                 </form>
