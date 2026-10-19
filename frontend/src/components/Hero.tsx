@@ -29,13 +29,9 @@ export const Hero: React.FC<HeroProps> = ({ config, onQuickBook, onExploreFacili
   const [selectedTime, setSelectedTime] = useState('09:00');
   const [selectedDuration, setSelectedDuration] = useState(4);
 
-  // Slideshow background images
-  const slides = [
-    Images.hero,
-    Images.prepStation,
-    Images.cookingRange,
-    Images.coldStorage,
-  ];
+  // Slideshow background images with actual Daily Drop kitchen photos
+  const slides = Images.heroSlides;
+
 
   const [currentSlide, setCurrentSlide] = useState(0);
 

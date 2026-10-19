@@ -79,7 +79,7 @@ export const Facilities: React.FC = () => {
       specs: '82°C sanitising rinse cycle, chemical dosing, triple sink pre-rinse',
       status: 'Available',
       icon: Sparkles,
-      image: Images.hero,
+      image: Images.washStation,
     },
     {
       name: 'Dedicated Packaging & Dispatch Counter',
