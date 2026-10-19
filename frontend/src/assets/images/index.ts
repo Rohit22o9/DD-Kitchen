@@ -1,48 +1,51 @@
 import dailyDropLogo from './daily_drop_logo.png';
 import dailyDropLogoWhite from './daily_drop_logo_white.png';
 
-// Appliance images (preserved for Certified Facilities & Commercial Appliances section)
+// Fallback/Legacy Appliance images
 import applianceHero from './hero_kitchen.jpg';
 import appliancePrep from './prep_station.jpg';
 import applianceRange from './cooking_range.jpg';
 import applianceStorage from './cold_storage.jpg';
 
-// Exact Actual Daily Drop Commercial Kitchen Photos from 'DD kitchen pics'
-import pic1035 from '../kitchen_actual/10353e7c-140a-444a-ae53-3886e0ec3d2c.png';
-import pic2485 from '../kitchen_actual/2485bcbe-98d6-466f-b7b1-b92134873640.png';
-import pic4a6b from '../kitchen_actual/4a6bdfbf-ae0d-4451-a81c-042ab9e85980.png';
-import picAba1 from '../kitchen_actual/aba14660-ff37-46c9-a574-7c4fa40370c8.png';
-import picD51a from '../kitchen_actual/d51a661f-364c-4d16-a8b5-0e7ad7c1662c.png';
-import picDa8f from '../kitchen_actual/da8f9ab8-9c9a-4013-a1e9-f3ad261708f9.png';
-import picEc7f from '../kitchen_actual/ec7fa2a8-33f3-49f8-91e2-af6dfbb17245.png';
+// Exact Actual Daily Drop Commercial Kitchen Photos with updated people from 'DD kitchen pics'
+import picImage from '../kitchen_actual/image.png';
+import picCopy from '../kitchen_actual/image copy.png';
+import picCopy2 from '../kitchen_actual/image copy 2.png';
+import picCopy3 from '../kitchen_actual/image copy 3.png';
+import picCopy4 from '../kitchen_actual/image copy 4.png';
+import picCopy5 from '../kitchen_actual/image copy 5.png';
+import picCopy6 from '../kitchen_actual/image copy 6.png';
 
 export const Images = {
   logo: dailyDropLogo,
   logoWhite: dailyDropLogoWhite,
 
-  // Appliances images kept as-is for Certified Facilities section
+  // Appliances images kept for reference
   hero: applianceHero,
   prepStation: appliancePrep,
   cookingRange: applianceRange,
   coldStorage: applianceStorage,
 
-  // Actual kitchen photos from 'DD kitchen pics' for Hero, OurKitchen, and WhyChoose sections
+  // Actual kitchen photos for:
+  // 1. 1st screen background (Hero)
+  // 2. A Kitchen That Works For Your Business (OurKitchen)
+  // 3. Why Food Creators Choose Daily Drop Commercial Kitchens (WhyChoose)
   actual: {
-    hero: picDa8f,
-    cookline: picEc7f,
-    range: pic2485,
-    prep: picAba1,
-    wash: picD51a,
-    benches: pic4a6b,
-    overview: pic1035,
+    hero: picImage,           // Wide panoramic shot of active kitchen with chefs
+    cookline: picCopy2,       // Center perspective showing cookline & prep stations
+    range: picCopy,           // Commercial cookline & prep stations
+    prep: picCopy3,           // Active prep stations with chefs & mixer
+    wash: picCopy5,           // Spotless wash bay, dishwasher & coffee station
+    benches: picCopy4,        // Food prep workstations with chefs
+    storage: picCopy6,        // Deep freezer & dry storage shelving
     slideshow: [
-      picDa8f,
-      picEc7f,
-      pic1035,
-      pic4a6b,
-      pic2485,
-      picAba1,
-      picD51a,
+      picImage,               // 1. Panoramic kitchen view
+      picCopy2,               // 2. Main floor & cookline overview
+      picCopy,                // 3. Cookline & stainless prep benches
+      picCopy3,               // 4. Multi-chef prep & plating
+      picCopy4,               // 5. Food prep workstations & equipment
+      picCopy5,               // 6. Dishwashing & hygiene station
+      picCopy6,               // 7. Bulk freezer & inventory storage
     ],
   },
 };
