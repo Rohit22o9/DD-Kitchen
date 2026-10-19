@@ -392,7 +392,10 @@ export const api = {
         start_time: b.start_time,
         end_time: `${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}`,
         status: 'booked' as const,
-        reason: 'Reserved Shift',
+        reason: b.intended_use || 'Reserved Shift',
+        reference: b.reference_code,
+        full_name: b.full_name || b.business_name || 'Reserved Tenant',
+        equipment: b.equipment_requirements || '',
       };
     });
 

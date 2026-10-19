@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { KitchenConfig, AvailabilityData, Booking, BookingCreateInput } from '../types';
 import { api } from '../services/api';
-import { AvailabilityCalendarPicker } from './AvailabilityCalendarPicker';
+import { StationTimelineBars } from './StationTimelineBars';
 
 interface BookingEngineProps {
   config: KitchenConfig | null;
@@ -313,27 +313,77 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                 </div>
 
                 <div className="space-y-4">
-                  {/* Interactive Color-Coded Calendar Date Picker */}
+                  {/* Date of Rental Picker */}
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark">
-                        Date of Rental
+                        Date of Rental (Past dates disabled)
                       </label>
                       <span className="text-[11px] text-brand-muted font-semibold hidden sm:inline">
-                        Live slots & equipment status on dates
+                        24-Hour Kitchen Open
                       </span>
                     </div>
 
-                    <AvailabilityCalendarPicker
-                      selectedDate={date}
-                      onSelectDate={(newDate) => setDate(newDate)}
-                      minDate={minDateStr}
-                      onSelectQuickSlot={(newStartTime, newDuration) => {
-                        setStartTime(newStartTime);
-                        setDuration(newDuration);
-                      }}
-                    />
+                    <div className="relative">
+                      <input
+                        type="date"
+                        min={minDateStr}
+                        value={date}
+                        onChange={(e) => setDate(e.target.value)}
+                        required
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none shadow-xs"
+                      />
+                    </div>
+
+                    {/* Quick date shortcuts */}
+                    <div className="flex flex-wrap gap-2 mt-2.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const d = new Date();
+                          d.setDate(d.getDate() + 1);
+                          setDate(d.toISOString().split('T')[0]);
+                        }}
+                        className="text-xs px-2.5 py-1 rounded-md bg-white border border-gray-200 text-brand-dark hover:bg-brand-mint hover:border-brand-forest/30 transition-colors cursor-pointer"
+                      >
+                        Tomorrow
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const d = new Date();
+                          d.setDate(d.getDate() + 2);
+                          setDate(d.toISOString().split('T')[0]);
+                        }}
+                        className="text-xs px-2.5 py-1 rounded-md bg-white border border-gray-200 text-brand-dark hover:bg-brand-mint hover:border-brand-forest/30 transition-colors cursor-pointer"
+                      >
+                        In 2 Days
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const d = new Date();
+                          d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7 || 7));
+                          setDate(d.toISOString().split('T')[0]);
+                        }}
+                        className="text-xs px-2.5 py-1 rounded-md bg-white border border-gray-200 text-brand-dark hover:bg-brand-mint hover:border-brand-forest/30 transition-colors cursor-pointer"
+                      >
+                        Upcoming Weekend
+                      </button>
+                    </div>
                   </div>
+
+                  {/* 24-Hour Station & Equipment Timeline with Colored Bars (Admin Panel Style) */}
+                  <StationTimelineBars
+                    selectedDate={date}
+                    startTime={startTime}
+                    duration={duration}
+                    availability={availability}
+                    onSelectSlot={(newStart, newDuration) => {
+                      setStartTime(newStart);
+                      setDuration(newDuration);
+                    }}
+                  />
 
                   {/* Start Time & Duration */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
