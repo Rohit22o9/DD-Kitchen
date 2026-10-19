@@ -19,17 +19,17 @@ export const OurKitchen: React.FC<OurKitchenProps> = ({ onCheckAvailability, onL
 
   const cards = [
     {
-      src: Images.cookingRange,
+      src: Images.actual.range,
       title: 'Commercial-Grade Equipment',
       description: 'Ovens, burners, prep benches, cold storage and more.',
     },
     {
-      src: Images.prepStation,
+      src: Images.actual.prep,
       title: 'Flexible Hourly Rental',
       description: 'Book from 4 hours upwards, when you need it.',
     },
     {
-      src: Images.hero,
+      src: Images.actual.wash,
       title: 'Clean, Compliant & Ready',
       description: 'Council approved and maintained to the highest standards.',
     },

@@ -70,8 +70,8 @@ export const WhyChoose: React.FC = () => {
           <div className="lg:col-span-5 relative">
             <div className="relative rounded-3xl overflow-hidden shadow-soft-lg border-4 border-white aspect-[4/5] bg-gray-100">
               <img
-                src={Images.prepStation}
-                alt="Chef prepping in Daily Drop Commercial Kitchen"
+                src={Images.actual.cookline}
+                alt="Daily Drop Commercial Kitchen Cookline and Facilities"
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-brand-forest/90 via-transparent to-transparent flex items-end p-6 sm:p-8">

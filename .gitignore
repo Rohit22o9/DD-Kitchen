@@ -29,3 +29,5 @@ Thumbs.db
 
 # Temp extraction directory
 extracted_assets/
+DD kitchen pics/
+*.HEIC
