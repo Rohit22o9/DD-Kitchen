@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { KitchenConfig, AvailabilityData, Booking, BookingCreateInput } from '../types';
 import { api } from '../services/api';
-import { StationTimelineBars } from './StationTimelineBars';
+import { AvailabilityTimelineBar } from './AvailabilityTimelineBar';
 
 interface BookingEngineProps {
   config: KitchenConfig | null;
@@ -35,10 +35,9 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
   initialDuration,
   onBookingSuccess,
 }) => {
-  // Tomorrow's date
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const minDateStr = tomorrow.toISOString().split('T')[0];
+  // Today's date (past dates disabled)
+  const today = new Date();
+  const minDateStr = today.toISOString().split('T')[0];
 
   // Multi-stage stepper state (1: Date & Time, 2: Equipment & Use, 3: Contact & Submit)
   const [currentStage, setCurrentStage] = useState<1 | 2 | 3>(1);
@@ -313,17 +312,11 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                 </div>
 
                 <div className="space-y-4">
-                  {/* Date of Rental Picker */}
+                  {/* Date Picker */}
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark">
-                        Date of Rental (Past dates disabled)
-                      </label>
-                      <span className="text-[11px] text-brand-muted font-semibold hidden sm:inline">
-                        24-Hour Kitchen Open
-                      </span>
-                    </div>
-
+                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-2">
+                      Date of Rental (Past dates disabled)
+                    </label>
                     <div className="relative">
                       <input
                         type="date"
@@ -331,12 +324,21 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                         value={date}
                         onChange={(e) => setDate(e.target.value)}
                         required
-                        className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none shadow-xs"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none cursor-pointer"
                       />
                     </div>
-
                     {/* Quick date shortcuts */}
                     <div className="flex flex-wrap gap-2 mt-2.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const d = new Date();
+                          setDate(d.toISOString().split('T')[0]);
+                        }}
+                        className="text-xs px-2.5 py-1 rounded-md bg-white border border-gray-200 text-brand-dark hover:bg-brand-mint hover:border-brand-forest/30 transition-colors cursor-pointer"
+                      >
+                        Today
+                      </button>
                       <button
                         type="button"
                         onClick={() => {
@@ -373,16 +375,16 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                     </div>
                   </div>
 
-                  {/* 24-Hour Station & Equipment Timeline with Colored Bars (Admin Panel Style) */}
-                  <StationTimelineBars
-                    selectedDate={date}
-                    startTime={startTime}
-                    duration={duration}
-                    availability={availability}
-                    onSelectSlot={(newStart, newDuration) => {
-                      setStartTime(newStart);
-                      setDuration(newDuration);
-                    }}
+                  {/* 24-HOUR VISUAL TIMELINE BAR (RED = Booked, GREEN = Available) */}
+                  <AvailabilityTimelineBar
+                    date={date}
+                    slots={availability?.slots || []}
+                    loading={loadingAvailability}
+                    selectedStartTime={startTime}
+                    selectedDuration={duration}
+                    onSelectStartTime={(newTime) => setStartTime(newTime)}
+                    hasConflict={slotConflict.hasConflict}
+                    conflictReason={slotConflict.reason}
                   />
 
                   {/* Start Time & Duration */}

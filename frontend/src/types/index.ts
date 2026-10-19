@@ -61,8 +61,8 @@ export interface SlotInterval {
   status: 'available' | 'booked' | 'blocked';
   reference?: string;
   reason?: string;
-  full_name?: string;
   equipment?: string;
+  full_name?: string;
 }
 
 export interface AvailabilityData {
