@@ -34,7 +34,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick, onAdminClick, onCus
             <img
               src={Images.logo}
               alt="Daily Drop Commercial Kitchen Rental"
-              className="h-10 sm:h-11 w-auto object-contain transition-transform group-hover:scale-[1.02]"
+              className="h-10 sm:h-11 w-auto object-contain mix-blend-multiply transition-transform group-hover:scale-[1.02]"
             />
             <div className="hidden xl:flex flex-col pl-3 border-l border-brand-mint-border/80">
               <span className="text-[11px] font-black tracking-wider uppercase text-brand-forest leading-tight">

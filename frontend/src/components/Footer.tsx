@@ -24,11 +24,11 @@ export const Footer: React.FC<FooterProps> = ({ config, onAdminClick }) => {
           
           {/* Brand Col */}
           <div className="lg:col-span-5 space-y-4">
-            <div className="flex items-center space-x-3 bg-white/95 p-2 rounded-2xl w-fit">
+            <div className="flex items-center space-x-3">
               <img
-                src={Images.logo}
+                src={Images.logoWhite}
                 alt="Daily Drop Commercial Kitchen"
-                className="h-10 w-auto object-contain"
+                className="h-10 sm:h-11 w-auto object-contain"
               />
             </div>
             
