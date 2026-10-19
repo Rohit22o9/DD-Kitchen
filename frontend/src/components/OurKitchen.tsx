@@ -29,7 +29,7 @@ export const OurKitchen: React.FC<OurKitchenProps> = ({ onCheckAvailability, onL
       description: 'Book from 4 hours upwards, when you need it.',
     },
     {
-      src: Images.washStation,
+      src: Images.hero,
       title: 'Clean, Compliant & Ready',
       description: 'Council approved and maintained to the highest standards.',
     },
