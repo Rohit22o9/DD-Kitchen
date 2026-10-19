@@ -1,8 +1,9 @@
-import brattPan from './IMG_0747.jpg';
-import turbofanOven from './IMG_0744.jpg';
-import gasFryer from './IMG_0748.jpg';
-import benchFryers from './IMG_0783.jpg';
-import contactGrill from './IMG_0781.jpg';
+import brattPan from './Tilting Bratt Pan.jpeg';
+import turbofanOven from './Commercial Convection Oven.jpeg';
+import gasFryer from './Commercial Floor-Standing Deep Fryer.jpeg';
+import doubleTankFryer from './Commercial Double-Tank Countertop Deep Fryer.jpeg';
+import tableTopFryer from './Table Top Electric Fryer.jpg';
+import contactGrill from './Commercial Contact Grill.jpeg';
 import doughMixer from './IMG_0755.jpg';
 import breadSlicer from './IMG_0728.jpg';
 import prepFridge from './IMG_0756.jpg';
@@ -19,7 +20,9 @@ export const ApplianceImages = {
   brattPan,
   turbofanOven,
   gasFryer,
-  benchFryers,
+  benchFryers: tableTopFryer, // Table Top Electric Fryer / Commercial Double Tank Fryer
+  doubleTankFryer,
+  tableTopFryer,
   contactGrill,
   doughMixer,
   breadSlicer,
