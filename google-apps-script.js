@@ -1,3 +1,6 @@
+// @ts-nocheck
+/* global SpreadsheetApp, Utilities, MailApp, ContentService, Logger */
+/* eslint-disable no-unused-vars, no-undef */
 /**
  * DAILY DROP COMMERCIAL KITCHEN & STORAGE - GOOGLE APPS SCRIPT WEBHOOK
  * Timezone: Australia/Perth (AWST · UTC+8)

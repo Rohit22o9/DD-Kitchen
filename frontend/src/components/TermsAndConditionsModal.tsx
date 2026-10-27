@@ -125,3 +125,4 @@ export const TermsAndConditionsModal: React.FC<TermsModalProps> = ({
     </div>
   );
 };
+
