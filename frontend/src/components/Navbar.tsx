@@ -5,6 +5,7 @@ import { User } from '../types';
 
 interface NavbarProps {
   onBookClick: () => void;
+  onStorageClick?: () => void;
   onAdminClick: () => void;
   onCustomerClick?: () => void;
   onLoginClick?: () => void;
@@ -15,6 +16,7 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ 
   onBookClick, 
+  onStorageClick,
   onAdminClick, 
   onCustomerClick, 
   onLoginClick,
@@ -83,6 +85,18 @@ export const Navbar: React.FC<NavbarProps> = ({
               className="px-3 py-1.5 rounded-lg text-brand-dark/90 hover:text-brand-forest hover:bg-brand-mint/50 transition-all cursor-pointer"
             >
               Pricing
+            </button>
+            <button 
+              onClick={() => {
+                if (onStorageClick) onStorageClick();
+                else scrollToSection('booking-section');
+              }} 
+              className="px-3 py-1.5 rounded-lg text-brand-forest font-bold hover:bg-brand-mint/60 transition-all cursor-pointer flex items-center space-x-1.5"
+            >
+              <span>Storage Space</span>
+              <span className="text-[9px] font-black uppercase tracking-wider bg-brand-orange text-white px-1.5 py-0.5 rounded-full">
+                Max 2
+              </span>
             </button>
             <button 
               onClick={() => scrollToSection('faq')} 
@@ -246,6 +260,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               className="text-left py-2 hover:text-brand-forest border-b border-gray-100"
             >
               Hourly Pricing
+            </button>
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                if (onStorageClick) onStorageClick();
+                else scrollToSection('booking-section');
+              }}
+              className="text-left py-2 text-brand-forest font-bold flex items-center justify-between border-b border-gray-100"
+            >
+              <span>Commercial Storage Space</span>
+              <span className="text-[9px] bg-brand-orange text-white px-2 py-0.5 rounded-full font-black">
+                Max 2 Bays
+              </span>
             </button>
             <button
               onClick={() => scrollToSection('faq')}

@@ -1,18 +1,28 @@
 from datetime import date, datetime, timedelta
 from sqlalchemy import text
 from .database import engine, Base, SessionLocal
-from .models import AdminUser, KitchenSetting, Booking, BlockedSlot, Enquiry, User
+from .models import AdminUser, KitchenSetting, Booking, BlockedSlot, Enquiry, User, StorageBooking
 from .auth import hash_password
 from .booking_service import DEFAULT_SETTINGS
 
 def init_db():
     Base.metadata.create_all(bind=engine)
     with engine.connect() as conn:
-        try:
-            conn.execute(text("ALTER TABLE enquiries ADD COLUMN registered_in_victoria_park VARCHAR(10) DEFAULT 'No'"))
-            conn.commit()
-        except Exception:
-            pass
+        for col_stmt in [
+            "ALTER TABLE enquiries ADD COLUMN registered_in_victoria_park VARCHAR(10) DEFAULT 'No'",
+            "ALTER TABLE bookings ADD COLUMN abn VARCHAR(50)",
+            "ALTER TABLE users ADD COLUMN abn VARCHAR(50)",
+            "ALTER TABLE users ADD COLUMN food_safety_cert_name VARCHAR(255)",
+            "ALTER TABLE users ADD COLUMN food_safety_cert_data TEXT",
+            "ALTER TABLE users ADD COLUMN liability_insurance_name VARCHAR(255)",
+            "ALTER TABLE users ADD COLUMN liability_insurance_data TEXT",
+            "ALTER TABLE users ADD COLUMN terms_accepted VARCHAR(10) DEFAULT 'Yes'",
+        ]:
+            try:
+                conn.execute(text(col_stmt))
+                conn.commit()
+            except Exception:
+                pass
     db = SessionLocal()
     
     try:

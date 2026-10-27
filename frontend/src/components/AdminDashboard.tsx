@@ -39,14 +39,16 @@ import {
   Eye,
   Sliders,
   Sparkles,
-  ChevronLeft
+  ChevronLeft,
+  Package
 } from 'lucide-react';
 import { 
   Booking, 
   DashboardStats, 
   KitchenConfig, 
   BlockedSlot, 
-  Enquiry 
+  Enquiry,
+  StorageBooking 
 } from '../types';
 import { 
   api, 
@@ -81,8 +83,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // Active Main Navigation Tab matching Image 1
   const [activeNav, setActiveNav] = useState<
-    'dashboard' | 'bookings' | 'calendar' | 'payments' | 'customers' | 'kitchen' | 'enquiries' | 'reports' | 'settings'
+    'dashboard' | 'bookings' | 'calendar' | 'payments' | 'customers' | 'kitchen' | 'storage' | 'enquiries' | 'reports' | 'settings'
   >('dashboard');
+
+  const [storageBookings, setStorageBookings] = useState<StorageBooking[]>([]);
 
   // Schedule view mode in Dashboard
   const [scheduleView, setScheduleView] = useState<'day' | 'week'>('day');
@@ -181,6 +185,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       }
       if (blk) setBlockedSlots(blk);
       if (enq && enq.length > 0) setEnquiries(enq);
+      const st = await api.getStorageBookings().catch(() => []);
+      if (st && st.length > 0) setStorageBookings(st);
     } catch (err: any) {
       console.warn('Dashboard loading error:', err);
     }
@@ -620,6 +626,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </button>
 
             <button
+              onClick={() => setActiveNav('storage')}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeNav === 'storage'
+                  ? 'bg-[#1C4632] text-white shadow-inner font-bold'
+                  : 'text-[#B4D5C2] hover:bg-[#163c2b] hover:text-white'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Package className="w-4 h-4 text-[#8BB89F]" />
+                <span>Storage Bays</span>
+              </div>
+              <span className="bg-[#1C4632] text-[#8BB89F] text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#2b5f46]">
+                Max 2
+              </span>
+            </button>
+
+            <button
               onClick={() => setActiveNav('enquiries')}
               className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                 activeNav === 'enquiries'
@@ -698,9 +721,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between sticky top-0 z-20">
           <div>
             <h2 className="text-xl font-bold text-gray-900 leading-tight">Good morning, Admin</h2>
-            <p className="text-xs text-gray-400 mt-0.5">
-              Sunday, 18 October 2026 | Victoria Park
-            </p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <p className="text-xs text-gray-500">
+                Sunday, 18 October 2026 | Victoria Park, WA
+              </p>
+              <span className="px-2 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded text-[10px] font-bold">
+                Perth Time (AWST · UTC+8)
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-4">
@@ -1423,10 +1451,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <thead className="bg-gray-50 border-b border-gray-200 text-gray-400 font-bold uppercase tracking-wider">
                     <tr>
                       <th className="px-5 py-3.5">Reference</th>
-                      <th className="px-5 py-3.5">Applicant / Brand</th>
+                      <th className="px-5 py-3.5">Applicant / Brand / ABN</th>
                       <th className="px-5 py-3.5">Date</th>
-                      <th className="px-5 py-3.5">Start Time</th>
-                      <th className="px-5 py-3.5">End Time</th>
+                      <th className="px-5 py-3.5">Start Time (AWST)</th>
+                      <th className="px-5 py-3.5">End Time (AWST)</th>
                       <th className="px-5 py-3.5">Use & Team</th>
                       <th className="px-5 py-3.5">Amount</th>
                       <th className="px-5 py-3.5">Status</th>
@@ -1462,10 +1490,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             {b.business_name && (
                               <div className="text-gray-500 text-[11px]">{b.business_name}</div>
                             )}
+                            {b.abn && (
+                              <div className="text-emerald-700 font-mono text-[10px] font-bold">ABN: {b.abn}</div>
+                            )}
                             <div className="text-[11px] text-gray-400">{b.phone}</div>
                           </td>
 
-                          {/* 3. Date Column (Formatted properly, e.g. Wed, 21 Oct 2026) */}
+                          {/* 3. Date Column (Formatted properly in Perth time) */}
                           <td className="px-5 py-4 whitespace-nowrap">
                             <div className="font-bold text-gray-900 flex items-center gap-1.5">
                               <Calendar className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
@@ -1473,15 +1504,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </div>
                           </td>
 
-                          {/* 4. Start Time Column (Formatted properly, e.g. 6:30 PM) */}
+                          {/* 4. Start Time Column (Formatted properly in Perth time) */}
                           <td className="px-5 py-4 whitespace-nowrap">
                             <div className="font-semibold text-gray-800 flex items-center gap-1.5">
                               <Clock className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
                               <span>{formatDisplayTime(b.start_time)}</span>
                             </div>
+                            <span className="text-[10px] text-emerald-800 font-bold block mt-0.5">AWST</span>
                           </td>
 
-                          {/* 5. End Time Column (Formatted properly, e.g. 10:30 PM + duration) */}
+                          {/* 5. End Time Column (Formatted properly in Perth time) */}
                           <td className="px-5 py-4 whitespace-nowrap">
                             <div className="font-semibold text-gray-800 flex items-center gap-1.5">
                               <Clock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
@@ -1762,6 +1794,190 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   ))}
                 </div>
               )}
+            </div>
+          </main>
+        )}
+
+        {/* ========================================================
+            VIEW: STORAGE BAYS (MAX 2 TENANTS CAPACITY)
+           ======================================================== */}
+        {activeNav === 'storage' && (
+          <main className="p-8 space-y-8 flex-1 max-w-[1440px]">
+            {/* Storage Header & Stats */}
+            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-sky-100 text-sky-800 text-xs font-bold mb-2">
+                    <Package className="w-3.5 h-3.5" />
+                    <span>Commercial Storage Space Management</span>
+                  </div>
+                  <h3 className="font-extrabold text-xl text-gray-900">Dedicated Storage Bays (Max 2 Tenants)</h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Daily Drop has limited cold room, freezer & dry storage space. Enforcing strict maximum 2-tenant capacity constraint.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-xl bg-sky-50 border border-sky-200 text-sky-900 text-xs">
+                    <span className="font-bold">Total Bays: 2</span>
+                    <span className="text-gray-400 mx-1.5">|</span>
+                    <span className="text-emerald-700 font-bold">
+                      {Math.max(0, 2 - storageBookings.filter(s => s.status !== 'cancelled' && s.status !== 'rejected').length)} Available
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bay 1 and Bay 2 Status Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
+                {/* Bay 1 Card */}
+                {(() => {
+                  const bay1Booking = storageBookings.find(s => s.bay_number === 1 && s.status !== 'cancelled');
+                  return (
+                    <div className={`p-5 rounded-2xl border ${
+                      bay1Booking ? 'bg-sky-50/60 border-sky-200' : 'bg-gray-50/60 border-gray-200'
+                    } space-y-3`}>
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-sm text-gray-900 flex items-center gap-2">
+                          <Package className="w-4 h-4 text-sky-700" />
+                          <span>Storage Bay #1</span>
+                        </span>
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          bay1Booking ? 'bg-sky-200 text-sky-900' : 'bg-emerald-100 text-emerald-800'
+                        }`}>
+                          {bay1Booking ? 'Occupied' : 'Vacant / Available'}
+                        </span>
+                      </div>
+
+                      {bay1Booking ? (
+                        <div className="space-y-1.5 text-xs text-gray-700">
+                          <div><strong>Tenant:</strong> {bay1Booking.full_name} ({bay1Booking.business_name || 'Sole Trader'})</div>
+                          {bay1Booking.abn && <div><strong>ABN:</strong> <span className="font-mono">{bay1Booking.abn}</span></div>}
+                          <div><strong>Type:</strong> <span className="capitalize">{bay1Booking.storage_type.replace('_', ' ')}</span></div>
+                          <div><strong>Dates:</strong> {formatDisplayDate(bay1Booking.start_date)} – {formatDisplayDate(bay1Booking.end_date)}</div>
+                          <div><strong>Rental:</strong> ${Number(bay1Booking.total_price).toFixed(2)} AUD ({bay1Booking.payment_status.toUpperCase()})</div>
+                          <div className="text-[11px] text-gray-500">Ref: <span className="font-mono">{bay1Booking.reference_code}</span></div>
+                        </div>
+                      ) : (
+                        <div className="text-xs text-gray-500 py-3 text-center">
+                          Bay #1 is clean, sanitized, and open for instant customer rental.
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Bay 2 Card */}
+                {(() => {
+                  const bay2Booking = storageBookings.find(s => s.bay_number === 2 && s.status !== 'cancelled');
+                  return (
+                    <div className={`p-5 rounded-2xl border ${
+                      bay2Booking ? 'bg-sky-50/60 border-sky-200' : 'bg-gray-50/60 border-gray-200'
+                    } space-y-3`}>
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-sm text-gray-900 flex items-center gap-2">
+                          <Package className="w-4 h-4 text-sky-700" />
+                          <span>Storage Bay #2</span>
+                        </span>
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          bay2Booking ? 'bg-sky-200 text-sky-900' : 'bg-emerald-100 text-emerald-800'
+                        }`}>
+                          {bay2Booking ? 'Occupied' : 'Vacant / Available'}
+                        </span>
+                      </div>
+
+                      {bay2Booking ? (
+                        <div className="space-y-1.5 text-xs text-gray-700">
+                          <div><strong>Tenant:</strong> {bay2Booking.full_name} ({bay2Booking.business_name || 'Sole Trader'})</div>
+                          {bay2Booking.abn && <div><strong>ABN:</strong> <span className="font-mono">{bay2Booking.abn}</span></div>}
+                          <div><strong>Type:</strong> <span className="capitalize">{bay2Booking.storage_type.replace('_', ' ')}</span></div>
+                          <div><strong>Dates:</strong> {formatDisplayDate(bay2Booking.start_date)} – {formatDisplayDate(bay2Booking.end_date)}</div>
+                          <div><strong>Rental:</strong> ${Number(bay2Booking.total_price).toFixed(2)} AUD ({bay2Booking.payment_status.toUpperCase()})</div>
+                          <div className="text-[11px] text-gray-500">Ref: <span className="font-mono">{bay2Booking.reference_code}</span></div>
+                        </div>
+                      ) : (
+                        <div className="text-xs text-gray-500 py-3 text-center">
+                          Bay #2 is clean, sanitized, and open for instant customer rental.
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* Storage Bookings Table */}
+            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-xs">
+              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h4 className="font-bold text-sm text-gray-900">All Commercial Storage Leases</h4>
+                <span className="text-xs text-gray-400">{storageBookings.length} Total Lease(s)</span>
+              </div>
+              <table className="w-full text-left text-xs">
+                <thead className="bg-gray-50 border-b border-gray-200 text-gray-400 font-bold uppercase tracking-wider">
+                  <tr>
+                    <th className="px-5 py-3.5">Reference</th>
+                    <th className="px-5 py-3.5">Tenant / ABN</th>
+                    <th className="px-5 py-3.5">Bay #</th>
+                    <th className="px-5 py-3.5">Storage Type</th>
+                    <th className="px-5 py-3.5">Rental Window</th>
+                    <th className="px-5 py-3.5">Amount</th>
+                    <th className="px-5 py-3.5">Status</th>
+                    <th className="px-5 py-3.5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 font-medium">
+                  {storageBookings.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-5 py-8 text-center text-gray-400">
+                        No storage leases recorded yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    storageBookings.map((st) => (
+                      <tr key={st.reference_code} className="hover:bg-gray-50/60 transition-colors">
+                        <td className="px-5 py-4 font-mono font-bold text-sky-800">{st.reference_code}</td>
+                        <td className="px-5 py-4">
+                          <div className="font-bold text-gray-900">{st.full_name}</div>
+                          {st.business_name && <div className="text-[11px] text-gray-500">{st.business_name}</div>}
+                          {st.abn && <div className="text-[10px] text-emerald-700 font-mono font-bold">ABN: {st.abn}</div>}
+                          <div className="text-[11px] text-gray-400">{st.phone}</div>
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className="px-2 py-0.5 rounded-md bg-sky-100 text-sky-900 font-bold font-mono text-[11px]">
+                            Bay #{st.bay_number}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4 capitalize">{st.storage_type.replace('_', ' ')}</td>
+                        <td className="px-5 py-4 whitespace-nowrap">
+                          <div>{formatDisplayDate(st.start_date)}</div>
+                          <div className="text-[11px] text-gray-400">to {formatDisplayDate(st.end_date)} ({st.duration_days}d)</div>
+                        </td>
+                        <td className="px-5 py-4 font-mono font-bold">${Number(st.total_price).toFixed(2)} AUD</td>
+                        <td className="px-5 py-4">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                            st.status === 'confirmed' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                          }`}>
+                            {st.status}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4 text-right">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await api.updateStorageBookingStatus(st.reference_code, st.status === 'confirmed' ? 'completed' : 'confirmed');
+                              const refreshed = await api.getStorageBookings();
+                              setStorageBookings(refreshed);
+                            }}
+                            className="text-xs px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-emerald-50 hover:text-emerald-700 font-bold transition-colors cursor-pointer"
+                          >
+                            {st.status === 'confirmed' ? 'Mark Completed' : 'Approve Lease'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </main>
         )}

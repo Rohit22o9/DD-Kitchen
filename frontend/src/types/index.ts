@@ -18,6 +18,7 @@ export interface Booking {
   reference_code: string;
   full_name: string;
   business_name?: string;
+  abn?: string;
   email: string;
   phone: string;
   booking_date: string;
@@ -44,6 +45,7 @@ export interface Booking {
 export interface BookingCreateInput {
   full_name: string;
   business_name?: string;
+  abn?: string;
   email: string;
   phone: string;
   booking_date: string;
@@ -153,7 +155,14 @@ export interface User {
   email: string;
   full_name: string;
   business_name?: string;
+  abn?: string;
   phone?: string;
+  food_safety_cert_name?: string;
+  food_safety_cert_data?: string;
+  liability_insurance_name?: string;
+  liability_insurance_data?: string;
+  terms_accepted?: boolean;
+  terms_accepted_at?: string;
   created_at?: string;
 }
 
@@ -162,4 +171,41 @@ export interface UserAuthResponse {
   token_type: string;
   user: User;
 }
+
+export type StorageType = 'dry_storage' | 'cool_room' | 'freezer';
+export type StorageDurationType = 'daily' | 'weekly' | 'monthly' | 'custom';
+
+export interface StorageBooking {
+  id: number | string;
+  reference_code: string;
+  user_id?: number | string;
+  full_name: string;
+  business_name?: string;
+  email: string;
+  phone: string;
+  abn?: string;
+  storage_type: StorageType;
+  bay_number: number; // 1 or 2 (Max 2 bays capacity)
+  start_date: string; // YYYY-MM-DD
+  end_date: string; // YYYY-MM-DD
+  duration_days: number;
+  duration_type: StorageDurationType;
+  daily_rate: number;
+  total_price: number;
+  security_deposit: number;
+  status: 'pending' | 'approved' | 'confirmed' | 'rejected' | 'cancelled' | 'completed';
+  payment_status: 'unpaid' | 'paid';
+  special_requirements?: string;
+  created_at: string;
+}
+
+export interface StorageAvailability {
+  available: boolean;
+  occupied_bays_count: number;
+  max_bays: number; // 2
+  available_bays_count: number; // max_bays - occupied_bays_count
+  available_bay_numbers: number[]; // e.g. [1, 2] or [2] or []
+  overlapping_bookings: StorageBooking[];
+}
+
 

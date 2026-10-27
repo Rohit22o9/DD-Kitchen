@@ -9,6 +9,7 @@ class Booking(Base):
     reference_code = Column(String(50), unique=True, index=True, nullable=False)
     full_name = Column(String(150), nullable=False)
     business_name = Column(String(150), nullable=True)
+    abn = Column(String(50), nullable=True)
     email = Column(String(150), nullable=False, index=True)
     phone = Column(String(50), nullable=False)
     
@@ -88,7 +89,42 @@ class User(Base):
     salt = Column(String(100), nullable=False)
     full_name = Column(String(150), nullable=False)
     business_name = Column(String(150), nullable=True)
+    abn = Column(String(50), nullable=True)
     phone = Column(String(50), nullable=True)
+    food_safety_cert_name = Column(String(255), nullable=True)
+    food_safety_cert_data = Column(Text, nullable=True)
+    liability_insurance_name = Column(String(255), nullable=True)
+    liability_insurance_data = Column(Text, nullable=True)
+    terms_accepted = Column(String(10), default="Yes")
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+class StorageBooking(Base):
+    __tablename__ = "storage_bookings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    reference_code = Column(String(50), unique=True, index=True, nullable=False)
+    user_id = Column(Integer, nullable=True)
+    full_name = Column(String(150), nullable=False)
+    business_name = Column(String(150), nullable=True)
+    abn = Column(String(50), nullable=True)
+    email = Column(String(150), nullable=False, index=True)
+    phone = Column(String(50), nullable=False)
+    
+    storage_type = Column(String(50), nullable=False)     # dry_storage, cool_room, freezer
+    bay_number = Column(Integer, default=1)               # 1 or 2 (Max 2 bays capacity)
+    start_date = Column(String(10), nullable=False)       # YYYY-MM-DD
+    end_date = Column(String(10), nullable=False)         # YYYY-MM-DD
+    duration_days = Column(Integer, nullable=False)
+    duration_type = Column(String(30), default="monthly") # daily, weekly, monthly, custom
+    
+    daily_rate = Column(Float, nullable=False, default=7.5)
+    total_price = Column(Float, nullable=False)
+    security_deposit = Column(Float, default=200.0)
+    status = Column(String(30), default="pending", index=True)
+    payment_status = Column(String(30), default="unpaid")
+    special_requirements = Column(Text, nullable=True)
+    
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 

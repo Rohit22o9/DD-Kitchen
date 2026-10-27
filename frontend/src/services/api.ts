@@ -10,11 +10,17 @@ import {
   Enquiry,
   DashboardStats,
   User,
-  UserAuthResponse
+  UserAuthResponse,
+  StorageBooking,
+  StorageType,
+  StorageDurationType,
+  StorageAvailability
 } from '../types';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/+$/, '');
 
+// Commercial Kitchen Timezone: Australian Western Standard Time (Perth, WA · UTC+8)
+export const PERTH_TIMEZONE = 'Australia/Perth';
 
 // Get configured Google Sheet Webhook URL (from .env or saved in Admin Settings)
 export const getGoogleSheetUrl = (): string => {
@@ -31,6 +37,7 @@ export const setGoogleSheetUrl = (url: string) => {
 
 // Local storage keys for instant fallback
 const LS_BOOKINGS = 'dd_local_bookings';
+const LS_STORAGE_BOOKINGS = 'dd_local_storage_bookings';
 const LS_ENQUIRIES = 'dd_local_enquiries';
 const LS_BLOCKED = 'dd_local_blocked_slots';
 const LS_CONFIG = 'dd_local_config';
@@ -49,7 +56,12 @@ const DEFAULT_USERS: StoredUserAccount[] = [
     password: 'kitchen123',
     full_name: 'Michael Davies',
     business_name: 'Perth Catering Co.',
-    phone: '0412 345 678',
+    abn: '54 123 456 789',
+    phone: '+61 412 345 678',
+    food_safety_cert_name: 'FSS_Michael_Davies_WA.pdf',
+    liability_insurance_name: 'QBE_Public_Liability_20M.pdf',
+    terms_accepted: true,
+    terms_accepted_at: '2026-10-01T08:00:00Z',
     created_at: new Date().toISOString()
   }
 ];
@@ -71,42 +83,82 @@ const saveStoredUsers = (users: StoredUserAccount[]) => {
   localStorage.setItem(LS_USERS, JSON.stringify(users));
 };
 
+/**
+ * Standardize dates strictly into Perth YYYY-MM-DD
+ */
 export const normalizeDate = (val?: string | Date): string => {
   if (!val) return '';
   const s = String(val).trim();
   if (!s) return '';
-  if (s.includes('T')) {
-    try {
-      const d = new Date(s);
-      if (!isNaN(d.getTime())) {
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${y}-${m}-${day}`;
-      }
-    } catch {}
-    return s.split('T')[0];
-  }
-  return s;
+
+  // Already clean YYYY-MM-DD
+  const cleanMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (cleanMatch) return s;
+
+  try {
+    const d = val instanceof Date ? val : new Date(s);
+    if (!isNaN(d.getTime())) {
+      const formatter = new Intl.DateTimeFormat('en-AU', {
+        timeZone: PERTH_TIMEZONE,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+      const parts = formatter.formatToParts(d);
+      const year = parts.find((p) => p.type === 'year')?.value;
+      const month = parts.find((p) => p.type === 'month')?.value;
+      const day = parts.find((p) => p.type === 'day')?.value;
+      if (year && month && day) return `${year}-${month}-${day}`;
+    }
+  } catch {}
+
+  return s.split('T')[0];
 };
 
+/**
+ * Standardize time string into HH:mm (Perth, AWST)
+ * Handles ISO strings, full date stamps, and plain HH:mm
+ */
 export const normalizeTime = (val?: string | Date): string => {
   if (!val) return '';
   const s = String(val).trim();
   if (!s) return '';
-  if (s.includes('T')) {
+
+  // 1. Direct standard HH:mm (e.g. "08:00", "18:30")
+  const standardMatch = s.match(/^(\d{1,2}):(\d{2})$/);
+  if (standardMatch) {
+    return `${standardMatch[1].padStart(2, '0')}:${standardMatch[2]}`;
+  }
+
+  // 2. Direct HH:mm:ss
+  const secMatch = s.match(/^(\d{1,2}):(\d{2}):\d{2}$/);
+  if (secMatch) {
+    return `${secMatch[1].padStart(2, '0')}:${secMatch[2]}`;
+  }
+
+  // 3. ISO / Date object string (Converts explicitly using Australia/Perth timezone)
+  if (s.includes('T') || val instanceof Date) {
     try {
-      const d = new Date(s);
+      const d = val instanceof Date ? val : new Date(s);
       if (!isNaN(d.getTime())) {
-        const hh = String(d.getHours()).padStart(2, '0');
-        const mm = String(d.getMinutes()).padStart(2, '0');
-        return `${hh}:${mm}`;
+        const formatter = new Intl.DateTimeFormat('en-AU', {
+          timeZone: PERTH_TIMEZONE,
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        });
+        const parts = formatter.formatToParts(d);
+        const hour = parts.find((p) => p.type === 'hour')?.value || '00';
+        const min = parts.find((p) => p.type === 'minute')?.value || '00';
+        const hNum = parseInt(hour, 10) % 24;
+        return `${String(hNum).padStart(2, '0')}:${min}`;
       }
     } catch {}
   }
-  const match = s.match(/^(\d{1,2}):(\d{2})/);
-  if (match) {
-    return `${match[1].padStart(2, '0')}:${match[2]}`;
+
+  const anyMatch = s.match(/(\d{1,2}):(\d{2})/);
+  if (anyMatch) {
+    return `${anyMatch[1].padStart(2, '0')}:${anyMatch[2]}`;
   }
   return s;
 };
@@ -118,8 +170,10 @@ export const formatDisplayDate = (val?: string | Date): string => {
   try {
     const parts = clean.split('-');
     if (parts.length === 3) {
-      const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      // Use noon to prevent +/- 1 day boundary drift
+      const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12, 0, 0);
       return d.toLocaleDateString('en-AU', {
+        timeZone: PERTH_TIMEZONE,
         weekday: 'short',
         day: 'numeric',
         month: 'short',
@@ -130,7 +184,7 @@ export const formatDisplayDate = (val?: string | Date): string => {
   return clean;
 };
 
-export const formatDisplayTime = (val?: string | Date): string => {
+export const formatDisplayTime = (val?: string | Date, includeTzLabel: boolean = false): string => {
   if (!val) return '—';
   const clean = normalizeTime(val);
   const match = clean.match(/^(\d{1,2}):(\d{2})/);
@@ -139,7 +193,8 @@ export const formatDisplayTime = (val?: string | Date): string => {
     const m = match[2];
     const ampm = h >= 12 ? 'PM' : 'AM';
     h = h % 12 || 12;
-    return `${h}:${m} ${ampm}`;
+    const timeStr = `${h}:${m} ${ampm}`;
+    return includeTzLabel ? `${timeStr} AWST` : timeStr;
   }
   return clean;
 };
@@ -305,6 +360,50 @@ export const DEFAULT_MOCK_ENQUIRIES: Enquiry[] = [
     created_at: '2 days ago',
   }
 ];
+
+export const DEFAULT_MOCK_STORAGE_BOOKINGS: StorageBooking[] = [
+  {
+    id: 1,
+    reference_code: 'DD-ST-88102',
+    user_id: 1,
+    full_name: 'Chef Michael Davies',
+    business_name: 'Perth Catering Co.',
+    abn: '54 123 456 789',
+    email: 'michael.davies@perthcatering.com.au',
+    phone: '+61 412 345 678',
+    storage_type: 'cool_room',
+    bay_number: 1,
+    start_date: '2026-10-15',
+    end_date: '2026-11-15',
+    duration_days: 31,
+    duration_type: 'monthly',
+    daily_rate: 7.10,
+    total_price: 220.00,
+    security_deposit: 200.00,
+    status: 'confirmed',
+    payment_status: 'paid',
+    special_requirements: 'Chilled dairy & prepared pastry rack storage',
+    created_at: '2026-10-14T08:00:00Z',
+  }
+];
+
+const getStoredStorageBookings = (): StorageBooking[] => {
+  try {
+    const raw = localStorage.getItem(LS_STORAGE_BOOKINGS);
+    if (!raw) {
+      localStorage.setItem(LS_STORAGE_BOOKINGS, JSON.stringify(DEFAULT_MOCK_STORAGE_BOOKINGS));
+      return DEFAULT_MOCK_STORAGE_BOOKINGS;
+    }
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_MOCK_STORAGE_BOOKINGS;
+  } catch {
+    return DEFAULT_MOCK_STORAGE_BOOKINGS;
+  }
+};
+
+const saveStoredStorageBookings = (list: StorageBooking[]) => {
+  localStorage.setItem(LS_STORAGE_BOOKINGS, JSON.stringify(list));
+};
 
 const getStoredBookings = (): Booking[] => {
   try {
@@ -551,6 +650,7 @@ export const api = {
       reference_code: refCode,
       full_name: data.full_name,
       business_name: data.business_name,
+      abn: data.abn,
       email: data.email,
       phone: data.phone,
       booking_date: data.booking_date,
@@ -578,6 +678,7 @@ export const api = {
       reference_code: refCode,
       full_name: data.full_name,
       business_name: data.business_name || '',
+      abn: data.abn || '',
       email: data.email,
       phone: data.phone ? (data.phone.startsWith('+') ? "'" + data.phone : data.phone) : '',
       booking_date: data.booking_date,
@@ -1075,7 +1176,14 @@ export const api = {
     password: string;
     full_name: string;
     business_name?: string;
+    abn?: string;
     phone?: string;
+    food_safety_cert_name?: string;
+    food_safety_cert_data?: string;
+    liability_insurance_name?: string;
+    liability_insurance_data?: string;
+    terms_accepted?: boolean;
+    terms_accepted_at?: string;
   }): Promise<UserAuthResponse> {
     const cleanEmail = data.email.trim().toLowerCase();
 
@@ -1094,9 +1202,20 @@ export const api = {
       });
       if (res.ok) {
         const authData: UserAuthResponse = await res.json();
+        // Augment with frontend compliance data
+        const enrichedUser: User = {
+          ...authData.user,
+          abn: data.abn?.trim() || undefined,
+          food_safety_cert_name: data.food_safety_cert_name,
+          food_safety_cert_data: data.food_safety_cert_data,
+          liability_insurance_name: data.liability_insurance_name,
+          liability_insurance_data: data.liability_insurance_data,
+          terms_accepted: data.terms_accepted ?? true,
+          terms_accepted_at: data.terms_accepted_at || new Date().toISOString()
+        };
         localStorage.setItem(LS_USER_TOKEN, authData.access_token);
-        localStorage.setItem(LS_CURRENT_USER, JSON.stringify(authData.user));
-        return authData;
+        localStorage.setItem(LS_CURRENT_USER, JSON.stringify(enrichedUser));
+        return { ...authData, user: enrichedUser };
       } else {
         const errJson = await res.json().catch(() => null);
         if (errJson?.detail) {
@@ -1122,7 +1241,14 @@ export const api = {
       password: data.password,
       full_name: data.full_name.trim(),
       business_name: data.business_name?.trim() || '',
+      abn: data.abn?.trim() || '',
       phone: data.phone?.trim() || '',
+      food_safety_cert_name: data.food_safety_cert_name,
+      food_safety_cert_data: data.food_safety_cert_data,
+      liability_insurance_name: data.liability_insurance_name,
+      liability_insurance_data: data.liability_insurance_data,
+      terms_accepted: data.terms_accepted ?? true,
+      terms_accepted_at: data.terms_accepted_at || new Date().toISOString(),
       created_at: new Date().toISOString(),
     };
 
@@ -1153,9 +1279,21 @@ export const api = {
       });
       if (res.ok) {
         const authData: UserAuthResponse = await res.json();
+        // Check if there is stored local compliance info for this user
+        const localUser = getStoredUsers().find((u) => u.email.toLowerCase() === cleanEmail);
+        const enrichedUser: User = {
+          ...authData.user,
+          abn: localUser?.abn || authData.user.abn,
+          food_safety_cert_name: localUser?.food_safety_cert_name,
+          food_safety_cert_data: localUser?.food_safety_cert_data,
+          liability_insurance_name: localUser?.liability_insurance_name,
+          liability_insurance_data: localUser?.liability_insurance_data,
+          terms_accepted: localUser?.terms_accepted ?? true,
+          terms_accepted_at: localUser?.terms_accepted_at
+        };
         localStorage.setItem(LS_USER_TOKEN, authData.access_token);
-        localStorage.setItem(LS_CURRENT_USER, JSON.stringify(authData.user));
-        return authData;
+        localStorage.setItem(LS_CURRENT_USER, JSON.stringify(enrichedUser));
+        return { ...authData, user: enrichedUser };
       } else {
         const errJson = await res.json().catch(() => null);
         if (errJson?.detail) {
@@ -1205,6 +1343,27 @@ export const api = {
     localStorage.removeItem(LS_CURRENT_USER);
   },
 
+  updateUserProfile(updatedData: Partial<User>): User {
+    const current = this.getCurrentUser();
+    const merged: User = {
+      ...(current || {
+        id: Date.now(),
+        email: 'user@dailydrop.today',
+        full_name: 'Commercial Tenant'
+      }),
+      ...updatedData
+    };
+    localStorage.setItem(LS_CURRENT_USER, JSON.stringify(merged));
+
+    const users = getStoredUsers();
+    const idx = users.findIndex((u) => u.email.toLowerCase() === merged.email.toLowerCase());
+    if (idx !== -1) {
+      users[idx] = { ...users[idx], ...updatedData };
+      saveStoredUsers(users);
+    }
+    return merged;
+  },
+
   async getUserBookings(email?: string): Promise<Booking[]> {
     const targetEmail = (email || this.getCurrentUser()?.email || '').trim().toLowerCase();
     if (!targetEmail) return [];
@@ -1240,4 +1399,202 @@ export const api = {
       (a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime()
     );
   },
+
+  // ==========================================
+  // STORAGE SPACE MANAGEMENT (MAX 2 TENANTS RESTRICTION)
+  // ==========================================
+  checkStorageAvailability(startDate: string, endDate: string): StorageAvailability {
+    const normStart = normalizeDate(startDate);
+    const normEnd = normalizeDate(endDate);
+
+    const allStorage = getStoredStorageBookings().filter(
+      (s) => s.status !== 'cancelled' && s.status !== 'rejected'
+    );
+
+    // Overlap condition: start <= other_end && end >= other_start
+    const overlapping = allStorage.filter((b) => {
+      const bStart = normalizeDate(b.start_date);
+      const bEnd = normalizeDate(b.end_date);
+      return normStart <= bEnd && normEnd >= bStart;
+    });
+
+    const occupiedBaysCount = overlapping.length;
+    const maxBays = 2; // Strict capacity: at most 2 tenants at any time
+    const availableBaysCount = Math.max(0, maxBays - occupiedBaysCount);
+
+    const occupiedBayNumbers = new Set(overlapping.map((o) => o.bay_number));
+    const availableBayNumbers: number[] = [];
+    if (!occupiedBayNumbers.has(1)) availableBayNumbers.push(1);
+    if (!occupiedBayNumbers.has(2)) availableBayNumbers.push(2);
+
+    return {
+      available: availableBaysCount > 0,
+      occupied_bays_count: occupiedBaysCount,
+      max_bays: maxBays,
+      available_bays_count: availableBaysCount,
+      available_bay_numbers: availableBayNumbers,
+      overlapping_bookings: overlapping,
+    };
+  },
+
+  async getStorageBookings(): Promise<StorageBooking[]> {
+    // Check if Google Sheet Webhook has live storage data
+    const sheetUrl = getGoogleSheetUrl();
+    if (sheetUrl) {
+      try {
+        const res = await fetch(`${sheetUrl}?action=get_storage_bookings`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.status === 'success' && Array.isArray(json.data) && json.data.length > 0) {
+            const result: StorageBooking[] = json.data.map((item: any, idx: number) => ({
+              id: item.id || (Date.now() + idx),
+              reference_code: item.reference_code || `DD-ST-${idx}`,
+              full_name: item.full_name || '',
+              business_name: item.business_name || '',
+              abn: item.abn || '',
+              email: item.email || '',
+              phone: item.phone || '',
+              storage_type: item.storage_type || 'cool_room',
+              bay_number: Number(item.bay_number || 1),
+              start_date: normalizeDate(item.start_date || ''),
+              end_date: normalizeDate(item.end_date || ''),
+              duration_days: Number(item.duration_days || 1),
+              duration_type: item.duration_type || 'monthly',
+              daily_rate: Number(item.daily_rate || 7.5),
+              total_price: Number(item.total_price || item.total_cost || 0),
+              security_deposit: Number(item.security_deposit || 200),
+              status: item.status || 'pending',
+              payment_status: item.payment_status || 'unpaid',
+              special_requirements: item.special_requirements || '',
+              created_at: item.created_at || new Date().toISOString()
+            }));
+            saveStoredStorageBookings(result);
+            return result;
+          }
+        }
+      } catch {}
+    }
+
+    return getStoredStorageBookings();
+  },
+
+  async getUserStorageBookings(email?: string): Promise<StorageBooking[]> {
+    const targetEmail = (email || this.getCurrentUser()?.email || '').trim().toLowerCase();
+    if (!targetEmail) return [];
+    const all = await this.getStorageBookings();
+    return all.filter((s) => s.email && s.email.trim().toLowerCase() === targetEmail);
+  },
+
+  async createStorageBooking(data: {
+    full_name: string;
+    business_name?: string;
+    abn?: string;
+    email: string;
+    phone: string;
+    storage_type: StorageType;
+    start_date: string;
+    end_date: string;
+    duration_type: StorageDurationType;
+    special_requirements?: string;
+  }): Promise<StorageBooking> {
+    const availability = this.checkStorageAvailability(data.start_date, data.end_date);
+    if (!availability.available || availability.available_bay_numbers.length === 0) {
+      throw new Error(
+        'Commercial Storage is currently at maximum capacity (2 tenants) for the requested dates. Daily Drop has limited storage bays, so concurrent bookings cannot exceed 2.'
+      );
+    }
+
+    // Calculate duration in days
+    const dStart = new Date(data.start_date);
+    const dEnd = new Date(data.end_date);
+    const diffTime = Math.max(1, Math.round((dEnd.getTime() - dStart.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+
+    // Tiered Storage Rates:
+    // Daily: $15/day
+    // Weekly: $70/week ($10/day)
+    // Monthly: $220/month (~$7.33/day)
+    let totalPrice = 0;
+    if (data.duration_type === 'daily' || diffTime === 1) {
+      totalPrice = diffTime * 15.0;
+    } else if (data.duration_type === 'weekly' || diffTime <= 7) {
+      totalPrice = 70.0 * Math.max(1, Math.ceil(diffTime / 7));
+    } else if (data.duration_type === 'monthly' || diffTime <= 31) {
+      totalPrice = 220.0 * Math.max(1, Math.ceil(diffTime / 30));
+    } else {
+      totalPrice = diffTime * 8.0;
+    }
+
+    const assignedBay = availability.available_bay_numbers[0] || 1;
+    const refCode = `DD-ST-${Math.floor(10000 + Math.random() * 90000)}`;
+    const currentUser = this.getCurrentUser();
+
+    const newStorageBooking: StorageBooking = {
+      id: Date.now(),
+      reference_code: refCode,
+      user_id: currentUser?.id,
+      full_name: data.full_name,
+      business_name: data.business_name || '',
+      abn: data.abn || '',
+      email: data.email,
+      phone: data.phone,
+      storage_type: data.storage_type,
+      bay_number: assignedBay,
+      start_date: data.start_date,
+      end_date: data.end_date,
+      duration_days: diffTime,
+      duration_type: data.duration_type,
+      daily_rate: Number((totalPrice / diffTime).toFixed(2)),
+      total_price: Number(totalPrice.toFixed(2)),
+      security_deposit: 200.0,
+      status: 'pending',
+      payment_status: 'unpaid',
+      special_requirements: data.special_requirements || '',
+      created_at: new Date().toISOString(),
+    };
+
+    // 1. Post to Google Sheets Webhook
+    await postToGoogleSheet({
+      action: 'create_storage_booking',
+      reference_code: refCode,
+      full_name: data.full_name,
+      business_name: data.business_name || '',
+      abn: data.abn || '',
+      email: data.email,
+      phone: data.phone ? (data.phone.startsWith('+') ? "'" + data.phone : data.phone) : '',
+      storage_type: data.storage_type,
+      bay_number: assignedBay,
+      start_date: data.start_date,
+      end_date: data.end_date,
+      duration_days: diffTime,
+      duration_type: data.duration_type,
+      total_price: totalPrice,
+      security_deposit: 200.0,
+      special_requirements: data.special_requirements || '',
+      status: 'pending_approval'
+    });
+
+    // 2. Save to local storage
+    const stored = getStoredStorageBookings();
+    saveStoredStorageBookings([newStorageBooking, ...stored]);
+    return newStorageBooking;
+  },
+
+  async updateStorageBookingStatus(idOrRef: string | number, status: string): Promise<void> {
+    const list = getStoredStorageBookings();
+    const idx = list.findIndex((s) => s.id === idOrRef || s.reference_code === idOrRef);
+    if (idx !== -1) {
+      list[idx].status = status as any;
+      saveStoredStorageBookings(list);
+    }
+
+    const sheetUrl = getGoogleSheetUrl();
+    if (sheetUrl) {
+      await postToGoogleSheet({
+        action: 'update_storage_status',
+        reference_code: typeof idOrRef === 'string' ? idOrRef : undefined,
+        storage_id: typeof idOrRef === 'number' ? idOrRef : undefined,
+        status,
+      });
+    }
+  }
 };

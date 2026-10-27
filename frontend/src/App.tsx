@@ -31,11 +31,13 @@ export function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(() => api.getCurrentUser());
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [authModalTab, setAuthModalTab] = useState<'login' | 'signup'>('login');
+  const [authModalPrompt, setAuthModalPrompt] = useState<string | undefined>(undefined);
 
   // Prefill states for booking engine
   const [bookingDate, setBookingDate] = useState<string | undefined>(undefined);
   const [bookingTime, setBookingTime] = useState<string | undefined>(undefined);
   const [bookingDuration, setBookingDuration] = useState<number | undefined>(undefined);
+  const [bookingServiceTab, setBookingServiceTab] = useState<'kitchen' | 'storage'>('kitchen');
 
   // Load config on startup
   useEffect(() => {
@@ -67,10 +69,22 @@ export function App() {
 
   const scrollToBooking = (date?: string, time?: string, duration?: number) => {
     setViewMode('site');
+    setBookingServiceTab('kitchen');
     if (date) setBookingDate(date);
     if (time) setBookingTime(time);
     if (duration) setBookingDuration(duration);
 
+    setTimeout(() => {
+      const el = document.getElementById('booking-section');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
+  };
+
+  const scrollToStorage = () => {
+    setViewMode('site');
+    setBookingServiceTab('storage');
     setTimeout(() => {
       const el = document.getElementById('booking-section');
       if (el) {
@@ -123,9 +137,11 @@ export function App() {
       {/* Top Sticky Header */}
       <Navbar
         onBookClick={() => scrollToBooking()}
+        onStorageClick={() => scrollToStorage()}
         onAdminClick={() => setViewMode('admin')}
         onCustomerClick={() => setViewMode('customer')}
         onLoginClick={() => {
+          setAuthModalPrompt(undefined);
           setAuthModalTab('login');
           setShowAuthModal(true);
         }}
@@ -189,6 +205,13 @@ export function App() {
           initialDate={bookingDate}
           initialTime={bookingTime}
           initialDuration={bookingDuration}
+          initialServiceTab={bookingServiceTab}
+          currentUser={currentUser}
+          onRequireAuth={(prompt) => {
+            setAuthModalPrompt(prompt);
+            setAuthModalTab('login');
+            setShowAuthModal(true);
+          }}
           onBookingSuccess={handleBookingSuccess}
         />
 
@@ -215,10 +238,15 @@ export function App() {
       <UserAuthModal
         isOpen={showAuthModal}
         initialTab={authModalTab}
-        onClose={() => setShowAuthModal(false)}
+        promptMessage={authModalPrompt}
+        onClose={() => {
+          setShowAuthModal(false);
+          setAuthModalPrompt(undefined);
+        }}
         onAuthSuccess={(user) => {
           setCurrentUser(user);
           setShowAuthModal(false);
+          setAuthModalPrompt(undefined);
         }}
       />
 

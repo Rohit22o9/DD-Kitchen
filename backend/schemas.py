@@ -7,6 +7,7 @@ EMAIL_PATTERN = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
 class BookingCreate(BaseModel):
     full_name: str = Field(..., min_length=2, max_length=150)
     business_name: Optional[str] = None
+    abn: Optional[str] = None
     email: str = Field(..., pattern=EMAIL_PATTERN)
     phone: str = Field(..., min_length=6, max_length=50)
     booking_date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")
@@ -22,6 +23,7 @@ class BookingResponse(BaseModel):
     reference_code: str
     full_name: str
     business_name: Optional[str] = None
+    abn: Optional[str] = None
     email: str
     phone: str
     booking_date: str
@@ -123,6 +125,7 @@ class UserSignUp(BaseModel):
     password: str = Field(..., min_length=6)
     full_name: str = Field(..., min_length=2, max_length=150)
     business_name: Optional[str] = None
+    abn: Optional[str] = None
     phone: Optional[str] = None
 
 class UserLogin(BaseModel):
@@ -134,7 +137,49 @@ class UserResponse(BaseModel):
     email: str
     full_name: str
     business_name: Optional[str] = None
+    abn: Optional[str] = None
     phone: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class StorageBookingCreate(BaseModel):
+    full_name: str = Field(..., min_length=2)
+    business_name: Optional[str] = None
+    abn: Optional[str] = None
+    email: str = Field(..., pattern=EMAIL_PATTERN)
+    phone: str = Field(..., min_length=6)
+    storage_type: str = "cool_room"
+    bay_number: Optional[int] = 1
+    start_date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")
+    end_date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")
+    duration_days: int = Field(default=30, ge=1)
+    duration_type: str = "monthly"
+    total_price: float
+    security_deposit: float = 200.0
+    special_requirements: Optional[str] = None
+
+class StorageBookingResponse(BaseModel):
+    id: int
+    reference_code: str
+    full_name: str
+    business_name: Optional[str] = None
+    abn: Optional[str] = None
+    email: str
+    phone: str
+    storage_type: str
+    bay_number: int
+    start_date: str
+    end_date: str
+    duration_days: int
+    duration_type: str
+    daily_rate: float
+    total_price: float
+    security_deposit: float
+    status: str
+    payment_status: str
+    special_requirements: Optional[str] = None
     created_at: datetime
 
     class Config:
