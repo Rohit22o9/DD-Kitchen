@@ -48,6 +48,8 @@ class BookingStatusUpdate(BaseModel):
     status: Optional[str] = None
     payment_status: Optional[str] = None
     admin_notes: Optional[str] = None
+    reference_code: Optional[str] = None
+
 
 class BlockedSlotCreate(BaseModel):
     block_date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")
@@ -115,6 +117,33 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     username: str
+
+class UserSignUp(BaseModel):
+    email: str = Field(..., pattern=EMAIL_PATTERN)
+    password: str = Field(..., min_length=6)
+    full_name: str = Field(..., min_length=2, max_length=150)
+    business_name: Optional[str] = None
+    phone: Optional[str] = None
+
+class UserLogin(BaseModel):
+    email: str = Field(..., pattern=EMAIL_PATTERN)
+    password: str = Field(..., min_length=1)
+
+class UserResponse(BaseModel):
+    id: int
+    email: str
+    full_name: str
+    business_name: Optional[str] = None
+    phone: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class UserTokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserResponse
 
 class SlotInterval(BaseModel):
     start_time: str

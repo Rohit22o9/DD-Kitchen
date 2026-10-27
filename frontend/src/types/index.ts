@@ -147,3 +147,19 @@ export interface DashboardStats {
   pending_bookings?: number;
   total_revenue_aud?: number;
 }
+
+export interface User {
+  id: number | string;
+  email: string;
+  full_name: string;
+  business_name?: string;
+  phone?: string;
+  created_at?: string;
+}
+
+export interface UserAuthResponse {
+  access_token: string;
+  token_type: string;
+  user: User;
+}
+

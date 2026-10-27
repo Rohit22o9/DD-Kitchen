@@ -1,11 +1,18 @@
 from datetime import date, datetime, timedelta
+from sqlalchemy import text
 from .database import engine, Base, SessionLocal
-from .models import AdminUser, KitchenSetting, Booking, BlockedSlot, Enquiry
+from .models import AdminUser, KitchenSetting, Booking, BlockedSlot, Enquiry, User
 from .auth import hash_password
 from .booking_service import DEFAULT_SETTINGS
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("ALTER TABLE enquiries ADD COLUMN registered_in_victoria_park VARCHAR(10) DEFAULT 'No'"))
+            conn.commit()
+        except Exception:
+            pass
     db = SessionLocal()
     
     try:
@@ -20,6 +27,21 @@ def init_db():
             )
             db.add(admin)
             print("Admin user created: admin / admin123")
+
+        # 1.5 Demo customer user
+        demo_user = db.query(User).filter(User.email == "demo@dailydrop.today").first()
+        if not demo_user:
+            demo_pwd, demo_salt = hash_password("kitchen123")
+            demo_user = User(
+                email="demo@dailydrop.today",
+                password_hash=demo_pwd,
+                salt=demo_salt,
+                full_name="Michael Davies",
+                business_name="Perth Catering Co.",
+                phone="0412 345 678"
+            )
+            db.add(demo_user)
+            print("Demo user created: demo@dailydrop.today / kitchen123")
             
         # 2. Kitchen settings
         for k, v in DEFAULT_SETTINGS.items():
@@ -31,6 +53,50 @@ def init_db():
         if db.query(Booking).count() == 0:
             today = date.today()
             sample_bookings = [
+                {
+                    "reference_code": "DD-BK-001",
+                    "full_name": "Chef Michael Davies",
+                    "business_name": "Perth Catering Co.",
+                    "email": "michael.davies@perthcatering.com.au",
+                    "phone": "0412 345 678",
+                    "booking_date": (today + timedelta(days=1)).strftime("%Y-%m-%d"),
+                    "start_time": "08:00",
+                    "end_time": "12:00",
+                    "duration_hours": 4.0,
+                    "intended_use": "Corporate Luncheon Meal Prep",
+                    "team_size": 3,
+                    "equipment_requirements": "Combi oven, 6-burner range, Prep benches",
+                    "additional_notes": "First booking of the week. Needs prep station 1.",
+                    "hourly_rate": 38.0,
+                    "base_price": 152.0,
+                    "cleaning_fee": 0.0,
+                    "total_price": 167.2,
+                    "status": "confirmed",
+                    "payment_status": "unpaid",
+                    "admin_notes": "Check payment and confirm booking"
+                },
+                {
+                    "reference_code": "DD-BK-77953",
+                    "full_name": "Rohit",
+                    "business_name": "AEC Cloud Kitchen Prep",
+                    "email": "rohit@aecprep.com.au",
+                    "phone": "+619028292208",
+                    "booking_date": (today + timedelta(days=2)).strftime("%Y-%m-%d"),
+                    "start_time": "18:30",
+                    "end_time": "22:30",
+                    "duration_hours": 4.0,
+                    "intended_use": "Cloud Kitchen Delivery Prep",
+                    "team_size": 2,
+                    "equipment_requirements": "Baking oven, Prep bench 1",
+                    "additional_notes": "Evening shift commercial prep.",
+                    "hourly_rate": 38.0,
+                    "base_price": 152.0,
+                    "cleaning_fee": 0.0,
+                    "total_price": 167.2,
+                    "status": "approved",
+                    "payment_status": "unpaid",
+                    "admin_notes": "Approved · Awaiting payment"
+                },
                 {
                     "reference_code": "DD-K-10824",
                     "full_name": "Shaun Tan",

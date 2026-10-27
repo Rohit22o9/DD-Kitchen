@@ -117,15 +117,72 @@ function doPost(e) {
         bond.toFixed(2),
         data.intended_use || "",
         data.team_size || 1,
-        data.equipment_requirements || "",
+        data.equipment_requirements || "Full Commercial Facility Access Included",
         data.status || "pending_approval",
         data.additional_notes || ""
       ]);
 
+      // AUTOMATED CONFIRMATION EMAIL TO CUSTOMER WITH PAYMENT INSTRUCTIONS
+      if (data.email) {
+        try {
+          var customerEmail = String(data.email).trim();
+          var custName = data.full_name || "Valued Customer";
+          var emailSubject = "Booking Received & Payment Required - Daily Drop Kitchen (" + refCode + ")";
+          var emailHtml = '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #E8F4EC; border-radius: 12px; overflow: hidden; background: #ffffff;">' +
+            '<div style="background-color: #112F21; color: #ffffff; padding: 24px; text-align: center;">' +
+              '<h2 style="margin: 0; font-size: 20px; letter-spacing: 1px;">DAILY DROP COMMERCIAL KITCHEN</h2>' +
+              '<p style="margin: 6px 0 0; color: #ED8533; font-size: 13px; font-weight: bold;">Unit 1, 1 Lichfield St, Victoria Park, Perth WA 6101</p>' +
+            '</div>' +
+            '<div style="padding: 24px;">' +
+              '<div style="background: #FFF3EB; border: 1px solid #FCD3B6; border-radius: 10px; padding: 16px; margin-bottom: 20px;">' +
+                '<h3 style="color: #ED8533; margin: 0 0 6px 0; font-size: 15px;">⚠️ ACTION REQUIRED: PAYMENT TO CONFIRM YOUR SLOT</h3>' +
+                '<p style="margin: 0; font-size: 13px; color: #4B5563; line-height: 1.5;">' +
+                  'Your booking request has been received and the slot is temporarily on hold. ' +
+                  '<strong>Please note: You need to complete your payment before the slot is officially booked.</strong> ' +
+                  'After payment is verified, your slot will be locked in and your electronic door entry PIN will be sent.' +
+                '</p>' +
+              '</div>' +
+              '<p style="font-size: 14px; margin-top: 0;">Hi <strong>' + custName + '</strong>,</p>' +
+              '<p style="font-size: 13px; color: #374151; line-height: 1.5;">' +
+                'Thank you for booking with Daily Drop Commercial Kitchen. Here is your reservation summary:' +
+              '</p>' +
+              '<table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px;">' +
+                '<tr style="border-bottom: 1px solid #F3F4F6;"><td style="padding: 8px 0; color: #6B7280;">Reference Code:</td><td style="padding: 8px 0; font-weight: bold; font-family: monospace; color: #112F21;">' + refCode + '</td></tr>' +
+                '<tr style="border-bottom: 1px solid #F3F4F6;"><td style="padding: 8px 0; color: #6B7280;">Booking Date:</td><td style="padding: 8px 0; font-weight: bold;">' + (data.booking_date || 'N/A') + '</td></tr>' +
+                '<tr style="border-bottom: 1px solid #F3F4F6;"><td style="padding: 8px 0; color: #6B7280;">Time & Duration:</td><td style="padding: 8px 0; font-weight: bold;">' + (data.start_time || '08:00') + ' (' + duration + ' Hours)</td></tr>' +
+                '<tr style="border-bottom: 1px solid #F3F4F6;"><td style="padding: 8px 0; color: #6B7280;">Rental Total:</td><td style="padding: 8px 0; font-weight: bold; color: #112F21;">$' + total.toFixed(2) + ' AUD (incl. GST)</td></tr>' +
+                '<tr style="border-bottom: 1px solid #F3F4F6;"><td style="padding: 8px 0; color: #6B7280;">Security Bond:</td><td style="padding: 8px 0; font-weight: bold;">$' + bond.toFixed(2) + ' AUD (refundable)</td></tr>' +
+                '<tr><td style="padding: 8px 0; color: #6B7280;">Kitchen Equipment:</td><td style="padding: 8px 0; font-weight: bold; color: #166534;">All-Inclusive Commercial Kitchen Facility</td></tr>' +
+              '</table>' +
+              '<div style="background: #F8FAF8; border: 1px solid #D1E5D5; border-radius: 10px; padding: 16px; margin: 20px 0;">' +
+                '<h4 style="margin: 0 0 10px 0; color: #112F21; font-size: 14px;">💳 Bank Transfer & PayID Details</h4>' +
+                '<p style="margin: 3px 0; font-size: 12px;"><strong>Bank:</strong> Commonwealth Bank of Australia</p>' +
+                '<p style="margin: 3px 0; font-size: 12px;"><strong>Account Name:</strong> Daily Drop Commercial Kitchens Pty Ltd</p>' +
+                '<p style="margin: 3px 0; font-size: 12px;"><strong>BSB:</strong> 066-123</p>' +
+                '<p style="margin: 3px 0; font-size: 12px;"><strong>Account Number:</strong> 1234 5678</p>' +
+                '<p style="margin: 3px 0; font-size: 12px;"><strong>Reference:</strong> <span style="font-family: monospace; background: #E8F4EC; padding: 2px 6px; border-radius: 3px; font-weight: bold;">' + refCode + '</span></p>' +
+                '<p style="margin: 3px 0; font-size: 12px;"><strong>PayID:</strong> payments@dailydrop.today</p>' +
+              '</div>' +
+              '<p style="font-size: 12px; color: #4B5563; line-height: 1.5;">' +
+                'Need urgent assistance or have questions? Contact us at <strong>hello@dailydrop.today</strong> or phone <strong>0479 175 705</strong>.' +
+              '</p>' +
+            '</div>' +
+          '</div>';
+
+          MailApp.sendEmail({
+            to: customerEmail,
+            subject: emailSubject,
+            htmlBody: emailHtml
+          });
+        } catch (emailErr) {
+          Logger.log("Customer email notification error: " + emailErr.toString());
+        }
+      }
+
       return ContentService.createTextOutput(JSON.stringify({
         status: "success",
         reference_code: refCode,
-        message: "Booking request saved successfully in Google Sheets"
+        message: "Booking request saved successfully and confirmation email sent"
       })).setMimeType(ContentService.MimeType.JSON);
 
     } else if (action === "submit_enquiry") {

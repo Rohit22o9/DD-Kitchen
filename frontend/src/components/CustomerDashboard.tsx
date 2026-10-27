@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Calendar, 
   Clock, 
@@ -28,6 +28,7 @@ import {
   AlertCircle,
   Check,
   Search,
+  Lock,
   Filter,
   Phone,
   Mail,
@@ -37,18 +38,41 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { Images } from '../assets/images';
+import { api } from '../services/api';
+import { User as UserType } from '../types';
 
 interface CustomerDashboardProps {
   onBackToSite: () => void;
   onGoToAdminPortal: () => void;
   onBookClick: () => void;
+  onUserAuthChange?: (user: UserType | null) => void;
 }
 
 export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
   onBackToSite,
   onGoToAdminPortal,
   onBookClick,
+  onUserAuthChange,
 }) => {
+  const [currentUser, setCurrentUser] = useState<UserType | null>(() => api.getCurrentUser());
+  const [authTab, setAuthTab] = useState<'login' | 'signup'>('login');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authFullName, setAuthFullName] = useState('');
+  const [authBusiness, setAuthBusiness] = useState('');
+  const [authPhone, setAuthPhone] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  // Payment instruction modal state
+  const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
+  const [paymentBooking, setPaymentBooking] = useState<any | null>(null);
+  const [paymentCopied, setPaymentCopied] = useState(false);
+  const [paymentSuccessToast, setPaymentSuccessToast] = useState<string | null>(null);
+
+  // Live user bookings from database & storage
+  const [liveUserBookings, setLiveUserBookings] = useState<any[]>([]);
+
   const [activeNav, setActiveNav] = useState<
     'dashboard' | 'bookings' | 'payments' | 'recurring' | 'guidelines' | 'support' | 'account'
   >('dashboard');
@@ -71,15 +95,62 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
 
   // Account profile state
   const [profileSaved, setProfileSaved] = useState<boolean>(false);
-  const [chefName, setChefName] = useState<string>('Michael Davies');
-  const [businessName, setBusinessName] = useState<string>('Artisan Gourmet Preps Pty Ltd');
-  const [chefEmail, setChefEmail] = useState<string>('michael.davies@example.com');
-  const [chefPhone, setChefPhone] = useState<string>('+61 412 345 678');
+  const [chefName, setChefName] = useState<string>(() => currentUser?.full_name || 'Michael Davies');
+  const [businessName, setBusinessName] = useState<string>(() => currentUser?.business_name || 'Perth Catering Co.');
+  const [chefEmail, setChefEmail] = useState<string>(() => currentUser?.email || 'michael.davies@example.com');
+  const [chefPhone, setChefPhone] = useState<string>(() => currentUser?.phone || '+61 412 345 678');
   const [abnNumber, setAbnNumber] = useState<string>('54 123 456 789');
   const [fssCert, setFssCert] = useState<string>('FSS-WA-2024-8891');
 
   // Payment mock state
   const [paidInvoices, setPaidInvoices] = useState<string[]>(['REC-918', 'REC-890', 'REC-855']);
+
+  // Synchronize chef details when user logs in/out
+  useEffect(() => {
+    if (currentUser) {
+      if (currentUser.full_name) setChefName(currentUser.full_name);
+      if (currentUser.business_name) setBusinessName(currentUser.business_name);
+      if (currentUser.email) setChefEmail(currentUser.email);
+      if (currentUser.phone) setChefPhone(currentUser.phone);
+    }
+  }, [currentUser]);
+
+  // Load bookings for current user
+  useEffect(() => {
+    async function loadBookings() {
+      if (currentUser?.email) {
+        try {
+          const list = await api.getUserBookings(currentUser.email);
+          if (list && list.length > 0) {
+            setLiveUserBookings(list.map((b) => ({
+              reference_code: b.reference_code,
+              booking_date: b.booking_date,
+              date_time: `${b.booking_date}, ${b.start_time} – ${b.end_time}`,
+              intended_use: b.intended_use,
+              status: b.status === 'pending_approval' ? 'pending' : b.status,
+              payment_status: b.payment_status || 'unpaid',
+              amount: b.total_price || b.total_cost || 167.20,
+              duration: `${b.duration_hours} hours`,
+              team: `${b.team_size || 2} Persons`,
+              equipment: b.equipment_requirements || 'All-Inclusive Commercial Equipment',
+              location: 'Unit 1, 1 Lichfield St, Victoria Park',
+              duration_hours: b.duration_hours,
+              team_size: b.team_size || 2,
+              start_time: b.start_time,
+              end_time: b.end_time,
+              hourly_rate: b.hourly_rate || 38,
+              cleaning_fee: b.cleaning_fee || 0,
+              security_deposit: b.security_deposit || 750,
+              total_price: b.total_price || 167.20,
+            })));
+          }
+        } catch (e) {
+          console.warn('Error fetching bookings:', e);
+        }
+      }
+    }
+    loadBookings();
+  }, [currentUser]);
 
   // Mock primary booking
   const nextBooking = {
@@ -239,6 +310,72 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
     alert(`Payment of invoice ${invId} completed successfully! A receipt has been issued.`);
   };
 
+  const handleDashboardLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    setAuthLoading(true);
+    try {
+      const res = await api.userLogin(authEmail, authPassword);
+      setCurrentUser(res.user);
+      onUserAuthChange?.(res.user);
+    } catch (err: any) {
+      setAuthError(err.message || 'Login failed. Please check credentials.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleDashboardSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    setAuthLoading(true);
+    try {
+      const res = await api.userSignUp({
+        email: authEmail,
+        password: authPassword,
+        full_name: authFullName,
+        business_name: authBusiness || undefined,
+        phone: authPhone || undefined,
+      });
+      setCurrentUser(res.user);
+      onUserAuthChange?.(res.user);
+    } catch (err: any) {
+      setAuthError(err.message || 'Signup failed. Please try again.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleDashboardLogout = () => {
+    api.userLogout();
+    setCurrentUser(null);
+    onUserAuthChange?.(null);
+  };
+
+  const handleOpenPaymentModal = (b: any) => {
+    setPaymentBooking(b);
+    setShowPaymentModal(true);
+  };
+
+  const handleConfirmBookingPayment = () => {
+    if (!paymentBooking) return;
+    const ref = paymentBooking.reference_code;
+    
+    // Update live bookings state
+    setLiveUserBookings((prev) =>
+      prev.map((item) =>
+        item.reference_code === ref
+          ? { ...item, payment_status: 'paid', status: 'confirmed' }
+          : item
+      )
+    );
+
+    setPaidInvoices((prev) => [...prev, `INV-${ref}`, ref]);
+    setPaymentSuccessToast(`Payment recorded for ${ref}! Your slot is officially booked. Keypad PIN: 4892#`);
+    setShowPaymentModal(false);
+    setTimeout(() => setPaymentSuccessToast(null), 8000);
+  };
+
   const downloadCalendarFile = (booking: any) => {
     const icsContent = [
       'BEGIN:VCALENDAR',
@@ -266,14 +403,236 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
     document.body.removeChild(link);
   };
 
+  // Merge live user bookings with mock templates
+  const combinedBookings = [
+    ...liveUserBookings,
+    ...allBookings.filter((m) => !liveUserBookings.some((l) => l.reference_code === m.reference_code)),
+  ];
+
+  const primaryBooking = combinedBookings[0] || nextBooking;
+
   // Filtered bookings for the Bookings Tab
-  const filteredBookings = allBookings.filter((b) => {
+  const filteredBookings = combinedBookings.filter((b) => {
     const matchesStatus = bookingFilterStatus === 'all' || b.status === bookingFilterStatus;
     const matchesSearch = 
       b.reference_code.toLowerCase().includes(bookingSearch.toLowerCase()) ||
       b.intended_use.toLowerCase().includes(bookingSearch.toLowerCase());
     return matchesStatus && matchesSearch;
   });
+
+  // If user is not authenticated, show sign up / login portal screen
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-[#F4F6F8] flex flex-col justify-center items-center p-4 selection:bg-brand-mint selection:text-brand-forest">
+        {/* Brand Header */}
+        <div className="max-w-md w-full mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#112F21] text-[#ED8533] flex items-center justify-center shadow-md">
+              <ChefHat className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="font-extrabold text-base text-gray-900 leading-tight">Daily Drop Kitchens</h1>
+              <p className="text-xs text-gray-500">Customer & Tenant Portal</p>
+            </div>
+          </div>
+          <button
+            onClick={onBackToSite}
+            className="text-xs font-bold text-emerald-800 hover:text-emerald-900 flex items-center gap-1 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs cursor-pointer"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back to Site</span>
+          </button>
+        </div>
+
+        {/* Auth Card */}
+        <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-xl border border-gray-200 space-y-5">
+          <div className="text-center">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#ED8533] bg-[#FFF3EB] px-3 py-1 rounded-full">
+              Member Access
+            </span>
+            <h2 className="text-2xl font-black text-gray-900 mt-2">
+              {authTab === 'login' ? 'Customer Sign In' : 'Create Customer Account'}
+            </h2>
+            <p className="text-xs text-gray-500 mt-1">
+              Sign up or log in using your email to view your kitchen bookings, payment confirmations & door keypad access.
+            </p>
+          </div>
+
+          {/* Toggle buttons */}
+          <div className="flex bg-[#F4F6F8] p-1 rounded-xl border border-gray-200">
+            <button
+              type="button"
+              onClick={() => { setAuthTab('login'); setAuthError(null); }}
+              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                authTab === 'login' ? 'bg-[#112F21] text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              onClick={() => { setAuthTab('signup'); setAuthError(null); }}
+              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                authTab === 'signup' ? 'bg-[#112F21] text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Sign Up (New User)
+            </button>
+          </div>
+
+          {authError && (
+            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{authError}</span>
+            </div>
+          )}
+
+          {authTab === 'login' ? (
+            <form onSubmit={handleDashboardLogin} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <input
+                    type="email"
+                    required
+                    placeholder="name@business.com.au"
+                    value={authEmail}
+                    onChange={(e) => setAuthEmail(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-[#112F21] focus:outline-none"
+                  />
+                  <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                  Password
+                </label>
+                <div className="relative">
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-[#112F21] focus:outline-none"
+                  />
+                  <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={authLoading}
+                className="w-full bg-[#112F21] hover:bg-[#1a4731] text-white py-3 rounded-xl font-bold text-xs shadow-md transition-colors flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {authLoading ? 'Signing in...' : 'Sign In to Portal'}
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleDashboardSignup} className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Chef / Manager Name"
+                  value={authFullName}
+                  onChange={(e) => setAuthFullName(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-[#112F21] focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                    Business (Opt.)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Catering Co."
+                    value={authBusiness}
+                    onChange={(e) => setAuthBusiness(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-[#112F21] focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                    Phone (Opt.)
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="0400 000 000"
+                    value={authPhone}
+                    onChange={(e) => setAuthPhone(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-[#112F21] focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                  Email Address *
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="name@business.com.au"
+                  value={authEmail}
+                  onChange={(e) => setAuthEmail(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-[#112F21] focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                  Password * (Min 6 chars)
+                </label>
+                <input
+                  type="password"
+                  required
+                  minLength={6}
+                  placeholder="••••••••"
+                  value={authPassword}
+                  onChange={(e) => setAuthPassword(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-[#112F21] focus:outline-none"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={authLoading}
+                className="w-full bg-[#ED8533] hover:bg-[#d87222] text-white py-3 rounded-xl font-bold text-xs shadow-md transition-colors flex items-center justify-center gap-2 cursor-pointer mt-2"
+              >
+                {authLoading ? 'Creating account...' : 'Create Account & Enter'}
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </form>
+          )}
+
+          {/* Quick Demo button */}
+          <div className="pt-3 border-t border-gray-100 text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setAuthTab('login');
+                setAuthEmail('demo@dailydrop.today');
+                setAuthPassword('kitchen123');
+              }}
+              className="text-xs text-emerald-800 font-bold hover:underline cursor-pointer"
+            >
+              Quick Test: Fill Demo Account (demo@dailydrop.today / kitchen123)
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F4F6F8] flex text-[#1C252E] font-sans">
@@ -390,6 +749,13 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
         {/* Sidebar Footer Controls */}
         <div className="p-4 border-t border-[#1b4330] space-y-2 text-xs">
           <button
+            onClick={handleDashboardLogout}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-red-300 hover:bg-red-950/40 hover:text-red-200 transition-all text-left cursor-pointer font-bold"
+          >
+            <LogOut className="w-4 h-4 text-red-400" />
+            <span>Sign Out</span>
+          </button>
+          <button
             onClick={onGoToAdminPortal}
             className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-[#B4D5C2] hover:bg-[#163c2b] hover:text-white transition-all text-left cursor-pointer"
           >
@@ -412,7 +778,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
         <header className="bg-white border-b border-gray-200 px-8 py-5 flex items-center justify-between sticky top-0 z-20">
           <div>
             <h2 className="text-xl font-bold text-gray-900">
-              {activeNav === 'dashboard' && 'Welcome back, Michael!'}
+              {activeNav === 'dashboard' && `Welcome back, ${chefName}!`}
               {activeNav === 'bookings' && 'My Kitchen Bookings'}
               {activeNav === 'payments' && 'Payments & Invoices'}
               {activeNav === 'recurring' && 'Recurring Bookings & Production Schedules'}
@@ -446,18 +812,47 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
               className="flex items-center gap-3 pl-2 border-l border-gray-200 cursor-pointer hover:opacity-80 transition-opacity"
             >
               <div className="w-9 h-9 rounded-full bg-[#1C4632] text-white flex items-center justify-center font-bold text-xs shadow-sm">
-                MD
+                {chefName.substring(0, 2).toUpperCase()}
               </div>
               <div className="hidden sm:block text-left">
                 <div className="text-xs font-bold text-gray-800">{chefName}</div>
-                <div className="text-[11px] text-gray-400">Tenant Chef</div>
+                <div className="text-[11px] text-gray-400">{currentUser?.email || 'Commercial Tenant'}</div>
               </div>
             </div>
+
+            <button
+              onClick={handleDashboardLogout}
+              className="p-2 text-gray-400 hover:text-red-600 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer"
+              title="Sign Out of Customer Account"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </header>
 
         {/* Dynamic Body Content based on activeNav */}
         <main className="p-8 space-y-8 flex-1 max-w-[1400px]">
+          {paymentSuccessToast && (
+            <div className="p-4 rounded-2xl bg-emerald-600 text-white font-bold text-sm shadow-md flex items-center justify-between animate-in slide-in-from-top">
+              <span>{paymentSuccessToast}</span>
+              <button onClick={() => setPaymentSuccessToast(null)} className="text-white hover:opacity-80 cursor-pointer">✕</button>
+            </div>
+          )}
+
+          {/* Payment Warning Notice */}
+          {combinedBookings.some((b) => b.payment_status === 'unpaid') && (
+            <div className="p-4 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-950 flex items-start gap-3 shadow-xs">
+              <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h4 className="font-extrabold text-xs uppercase tracking-wide text-amber-900">
+                  ⚠️ Action Required: Payment to Officially Book Slots
+                </h4>
+                <p className="text-xs text-amber-900/90 mt-0.5 leading-relaxed">
+                  You have commercial kitchen slots on temporary hold. <strong>Please note: You need to pay first. After payment is received and verified, your slot will be officially booked</strong> and your 6-digit electronic keypad entry PIN will be activated.
+                </p>
+              </div>
+            </div>
+          )}
           
           {/* ========================================================== */}
           {/* TAB 1: DASHBOARD VIEW (Original Dashboard matching screenshot) */}
@@ -563,58 +958,69 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
                       <div className="sm:col-span-7 p-5 flex flex-col justify-between">
                         <div>
                           <div className="flex items-center justify-between text-xs mb-1">
-                            <span className="font-mono text-gray-400 font-bold">Ref: {nextBooking.reference_code}</span>
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-50 text-amber-700 border border-amber-200">
-                              {paidInvoices.includes('INV-001') ? 'Paid' : 'Unpaid'}
+                            <span className="font-mono text-gray-400 font-bold">Ref: {primaryBooking.reference_code}</span>
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
+                              primaryBooking.payment_status === 'paid' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+                            }`}>
+                              {primaryBooking.payment_status === 'paid' ? 'Paid' : 'Unpaid (Action Req)'}
                             </span>
                           </div>
 
                           <h4 className="font-bold text-base text-gray-900 leading-tight">
-                            {nextBooking.intended_use}
+                            {primaryBooking.intended_use}
                           </h4>
 
                           <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1">
                             <MapPin className="w-3.5 h-3.5 text-gray-400" />
-                            <span>{nextBooking.location}</span>
+                            <span>{primaryBooking.location || 'Unit 1, 1 Lichfield St, Victoria Park'}</span>
                           </div>
 
                           <div className="mt-4 space-y-2 text-xs">
                             <div className="flex items-center gap-2 text-gray-700 font-medium">
                               <Calendar className="w-3.5 h-3.5 text-emerald-700" />
-                              <span>Wed, 21 Oct 2026</span>
+                              <span>{primaryBooking.booking_date}</span>
                             </div>
                             <div className="flex items-center gap-2 text-gray-600">
                               <Clock className="w-3.5 h-3.5 text-emerald-700" />
-                              <span>6:30 PM – 10:30 PM ({nextBooking.duration_hours} hours)</span>
+                              <span>{primaryBooking.start_time} – {primaryBooking.end_time} ({primaryBooking.duration_hours || primaryBooking.duration})</span>
                             </div>
                             <div className="flex items-center gap-2 text-gray-600">
                               <Users className="w-3.5 h-3.5 text-emerald-700" />
-                              <span>{nextBooking.team_size} Person(s)</span>
+                              <span>{primaryBooking.team_size || 2} Person(s)</span>
                             </div>
                             <div className="flex items-center gap-2 text-gray-600">
                               <Flame className="w-3.5 h-3.5 text-[#ED8533]" />
-                              <span className="truncate">{nextBooking.equipment_requirements}</span>
+                              <span className="truncate">{primaryBooking.equipment_requirements || primaryBooking.equipment}</span>
                             </div>
                           </div>
                         </div>
 
-                        <div className="mt-5 pt-4 border-t border-gray-100 flex items-center gap-3">
+                        <div className="mt-5 pt-4 border-t border-gray-100 flex flex-wrap items-center gap-2.5">
+                          {primaryBooking.payment_status !== 'paid' && (
+                            <button
+                              onClick={() => handleOpenPaymentModal(primaryBooking)}
+                              className="bg-[#ED8533] hover:bg-[#d87222] text-white py-2 px-3.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+                            >
+                              <CreditCard className="w-3.5 h-3.5" />
+                              <span>Pay Slot (${(primaryBooking.amount || 167.2).toFixed(2)})</span>
+                            </button>
+                          )}
                           <button
                             onClick={() => {
-                              setSelectedBookingDetails(nextBooking);
+                              setSelectedBookingDetails(primaryBooking);
                               setShowDetailsModal(true);
                             }}
                             className="flex-1 bg-[#112F21] hover:bg-[#1a4731] text-white py-2 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer text-center"
                           >
-                            View Full Details
+                            View Details
                           </button>
                           <button
-                            onClick={() => downloadCalendarFile(nextBooking)}
+                            onClick={() => downloadCalendarFile(primaryBooking)}
                             className="px-3 py-2 border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
                             title="Add to iCal / Google Calendar"
                           >
                             <Calendar className="w-3.5 h-3.5 text-gray-500" />
-                            <span>Add to Calendar</span>
+                            <span>Calendar</span>
                           </button>
                         </div>
                       </div>
@@ -917,6 +1323,15 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
                               ${b.amount.toFixed(2)} AUD
                             </td>
                             <td className="px-6 py-4 text-right space-x-2">
+                              {b.payment_status !== 'paid' && (
+                                <button
+                                  onClick={() => handleOpenPaymentModal(b)}
+                                  className="px-2.5 py-1.5 rounded-lg bg-[#ED8533] hover:bg-[#d87222] text-white text-xs font-bold transition-colors cursor-pointer inline-flex items-center gap-1 shadow-2xs"
+                                >
+                                  <CreditCard className="w-3 h-3" />
+                                  <span>Pay Slot</span>
+                                </button>
+                              )}
                               <button
                                 onClick={() => {
                                   setSelectedBookingDetails(b);
@@ -1608,6 +2023,86 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Payment Instruction & Settlement Modal */}
+      {showPaymentModal && paymentBooking && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-gray-200 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-5 h-5 text-[#ED8533]" />
+                <h3 className="font-bold text-base text-gray-900">Payment Required to Book Slot</h3>
+              </div>
+              <button
+                onClick={() => setShowPaymentModal(false)}
+                className="text-gray-400 hover:text-gray-600 font-bold text-lg p-1 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-950 text-xs leading-relaxed">
+              <p className="font-extrabold text-amber-900 mb-0.5">⚠️ SLOT AWAITING PAYMENT</p>
+              <p>
+                Your requested slot is on temporary hold. <strong>You need to pay before the slot is officially booked.</strong> After payment is received and confirmed, your reservation will be finalized and your door access PIN code will be activated.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 space-y-2 text-xs">
+              <div className="flex justify-between py-1 border-b border-gray-200/60">
+                <span className="text-gray-500">Booking Reference:</span>
+                <span className="font-mono font-bold text-emerald-800">{paymentBooking.reference_code}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-gray-200/60">
+                <span className="text-gray-500">Session Date & Time:</span>
+                <span className="font-semibold text-gray-800">{paymentBooking.date_time}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-gray-200/60">
+                <span className="text-gray-500">Total Rental Amount:</span>
+                <span className="font-black text-sm text-[#112F21]">${(paymentBooking.amount || 167.2).toFixed(2)} AUD</span>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-emerald-50/70 border border-emerald-200 space-y-2 text-xs">
+              <div className="font-bold text-emerald-950">Bank Transfer / PayID Payment Details:</div>
+              <div className="text-gray-700"><strong>Bank:</strong> Commonwealth Bank of Australia</div>
+              <div className="text-gray-700"><strong>Account Name:</strong> Daily Drop Commercial Kitchens Pty Ltd</div>
+              <div className="text-gray-700"><strong>BSB:</strong> 066-123</div>
+              <div className="text-gray-700"><strong>Account Number:</strong> 1234 5678</div>
+              <div className="text-gray-700">
+                <strong>Reference:</strong>{' '}
+                <span className="font-mono font-bold bg-white px-2 py-0.5 rounded border border-emerald-300 text-emerald-900">
+                  {paymentBooking.reference_code}
+                </span>
+              </div>
+              <div className="text-gray-700"><strong>PayID:</strong> payments@dailydrop.today</div>
+            </div>
+
+            <div className="pt-2 flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(
+                    `Bank: Commonwealth Bank\nAccount: Daily Drop Commercial Kitchens\nBSB: 066-123\nAccount: 1234 5678\nRef: ${paymentBooking.reference_code}\nPayID: payments@dailydrop.today\nAmount: $${(paymentBooking.amount || 167.2).toFixed(2)}`
+                  );
+                  setPaymentCopied(true);
+                  setTimeout(() => setPaymentCopied(false), 2000);
+                }}
+                className="flex-1 py-2.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-bold text-xs cursor-pointer"
+              >
+                {paymentCopied ? 'Copied Details!' : 'Copy Bank Details'}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmBookingPayment}
+                className="flex-1 py-2.5 rounded-xl bg-[#ED8533] hover:bg-[#d87222] text-white font-bold text-xs cursor-pointer shadow-sm"
+              >
+                I Have Paid / Confirm Slot
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -19,6 +19,7 @@ from ..booking_service import (
     parse_time_to_minutes,
     minutes_to_time_str
 )
+from ..email_service import send_booking_confirmation_email
 
 router = APIRouter(prefix="/api", tags=["Public"])
 
@@ -211,6 +212,22 @@ def create_booking_request(booking_in: BookingCreate, db: Session = Depends(get_
     db.add(booking)
     db.commit()
     db.refresh(booking)
+
+    # Dispatch confirmation email with payment instructions
+    try:
+        send_booking_confirmation_email({
+            "reference_code": booking.reference_code,
+            "email": booking.email,
+            "full_name": booking.full_name,
+            "booking_date": booking.booking_date,
+            "start_time": booking.start_time,
+            "end_time": booking.end_time,
+            "duration_hours": booking.duration_hours,
+            "total_price": booking.total_price
+        })
+    except Exception as email_err:
+        print(f"Warning: Could not send confirmation email: {email_err}")
+
     return booking
 
 @router.get("/bookings/{reference_code}", response_model=BookingResponse)

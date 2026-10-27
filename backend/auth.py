@@ -8,7 +8,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from .database import get_db
-from .models import AdminUser
+from .models import AdminUser, User
 
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "daily_drop_commercial_kitchen_super_secret_jwt_key_2026_xyz_safe")
 ALGORITHM = "HS256"
@@ -61,3 +61,31 @@ def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(securi
             headers={"WWW-Authenticate": "Bearer"},
         )
     return admin
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db)) -> User:
+    token = credentials.credentials
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate user credentials",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+    except jwt.PyJWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    user = db.query(User).filter(User.email == email.lower()).first()
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User account not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return user
+

@@ -8,17 +8,20 @@ import {
   BlockedSlot,
   EnquiryInput,
   Enquiry,
-  DashboardStats
+  DashboardStats,
+  User,
+  UserAuthResponse
 } from '../types';
 
-const API_BASE = '/api';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/+$/, '');
+
 
 // Get configured Google Sheet Webhook URL (from .env or saved in Admin Settings)
 export const getGoogleSheetUrl = (): string => {
   return (
     localStorage.getItem('dd_sheet_webhook_url') ||
     import.meta.env.VITE_GOOGLE_SHEET_WEBHOOK_URL ||
-    'https://script.google.com/macros/s/AKfycbxwTzH4ENrycbllJN8ZY_WvH7RbbscjbddN5rAsLDl9rxNrPZSDOZCx0xTqy2PmlImROw/exec'
+    'https://script.google.com/macros/s/AKfycbxMLaBfSpZ5S8vdpGyO_c9MoSNKYqF4sokgCOjSCK_WMliuh2zyRtK71KMA69BViAbsyg/exec'
   );
 };
 
@@ -31,6 +34,42 @@ const LS_BOOKINGS = 'dd_local_bookings';
 const LS_ENQUIRIES = 'dd_local_enquiries';
 const LS_BLOCKED = 'dd_local_blocked_slots';
 const LS_CONFIG = 'dd_local_config';
+const LS_USERS = 'dd_local_users';
+const LS_CURRENT_USER = 'dd_current_user';
+const LS_USER_TOKEN = 'dd_user_token';
+
+interface StoredUserAccount extends User {
+  password: string;
+}
+
+const DEFAULT_USERS: StoredUserAccount[] = [
+  {
+    id: 1,
+    email: 'demo@dailydrop.today',
+    password: 'kitchen123',
+    full_name: 'Michael Davies',
+    business_name: 'Perth Catering Co.',
+    phone: '0412 345 678',
+    created_at: new Date().toISOString()
+  }
+];
+
+const getStoredUsers = (): StoredUserAccount[] => {
+  try {
+    const raw = localStorage.getItem(LS_USERS);
+    if (!raw) {
+      localStorage.setItem(LS_USERS, JSON.stringify(DEFAULT_USERS));
+      return DEFAULT_USERS;
+    }
+    return JSON.parse(raw);
+  } catch {
+    return DEFAULT_USERS;
+  }
+};
+
+const saveStoredUsers = (users: StoredUserAccount[]) => {
+  localStorage.setItem(LS_USERS, JSON.stringify(users));
+};
 
 export const normalizeDate = (val?: string | Date): string => {
   if (!val) return '';
@@ -789,8 +828,9 @@ export const api = {
     id: number,
     data: { status?: string; payment_status?: string; admin_notes?: string; reference_code?: string }
   ): Promise<Booking> {
+    const targetIdentifier = data.reference_code || id;
     try {
-      const res = await fetch(`${API_BASE}/admin/bookings/${id}/status`, {
+      const res = await fetch(`${API_BASE}/admin/bookings/${targetIdentifier}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -798,8 +838,43 @@ export const api = {
         },
         body: JSON.stringify(data),
       });
-      if (res.ok) return await res.json();
-    } catch {}
+      if (res.ok) {
+        const updated = await res.json();
+        const bookings = getStoredBookings();
+        const idx = bookings.findIndex(
+          (b) => b.id === id || (data.reference_code && b.reference_code === data.reference_code)
+        );
+        if (idx !== -1) {
+          bookings[idx] = { ...bookings[idx], ...updated };
+          saveStoredBookings(bookings);
+        } else {
+          saveStoredBookings([updated, ...bookings]);
+        }
+
+        // Also sync live to Google Sheet Webhook if configured
+        const sheetUrl = getGoogleSheetUrl();
+        if (sheetUrl) {
+          postToGoogleSheet({
+            action: 'update_booking_status',
+            booking_id: id,
+            reference_code: data.reference_code || updated.reference_code,
+            status: data.status,
+            payment_status: data.payment_status,
+            admin_notes: data.admin_notes,
+          }).catch(() => {});
+        }
+        return updated;
+      } else {
+        const errJson = await res.json().catch(() => null);
+        if (errJson && errJson.detail) {
+          throw new Error(errJson.detail);
+        }
+      }
+    } catch (err: any) {
+      if (err.message && !err.message.includes('Failed to fetch') && !err.message.includes('NetworkError')) {
+        throw err;
+      }
+    }
 
     // Send status update to Google Sheets Webhook
     const sheetUrl = getGoogleSheetUrl();
@@ -855,14 +930,27 @@ export const api = {
     return created;
   },
 
-  async deleteBooking(token: string, id: number): Promise<void> {
+  async deleteBooking(token: string, id: number, referenceCode?: string): Promise<void> {
+    const targetIdentifier = referenceCode || id;
     try {
-      await fetch(`${API_BASE}/admin/bookings/${id}`, {
+      await fetch(`${API_BASE}/admin/bookings/${targetIdentifier}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
     } catch {}
-    const bookings = getStoredBookings().filter((b) => b.id !== id);
+
+    const sheetUrl = getGoogleSheetUrl();
+    if (sheetUrl) {
+      postToGoogleSheet({
+        action: 'delete_booking',
+        booking_id: id,
+        reference_code: referenceCode,
+      }).catch(() => {});
+    }
+
+    const bookings = getStoredBookings().filter(
+      (b) => b.id !== id && (!referenceCode || b.reference_code !== referenceCode)
+    );
     saveStoredBookings(bookings);
   },
 
@@ -977,5 +1065,179 @@ export const api = {
       enqs[idx].status = status;
       saveStoredEnquiries(enqs);
     }
+  },
+
+  // ==========================================
+  // CUSTOMER / USER AUTHENTICATION
+  // ==========================================
+  async userSignUp(data: {
+    email: string;
+    password: string;
+    full_name: string;
+    business_name?: string;
+    phone?: string;
+  }): Promise<UserAuthResponse> {
+    const cleanEmail = data.email.trim().toLowerCase();
+
+    // 1. Try Backend API
+    try {
+      const res = await fetch(`${API_BASE}/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: cleanEmail,
+          password: data.password,
+          full_name: data.full_name.trim(),
+          business_name: data.business_name?.trim() || undefined,
+          phone: data.phone?.trim() || undefined,
+        }),
+      });
+      if (res.ok) {
+        const authData: UserAuthResponse = await res.json();
+        localStorage.setItem(LS_USER_TOKEN, authData.access_token);
+        localStorage.setItem(LS_CURRENT_USER, JSON.stringify(authData.user));
+        return authData;
+      } else {
+        const errJson = await res.json().catch(() => null);
+        if (errJson?.detail) {
+          throw new Error(errJson.detail);
+        }
+      }
+    } catch (err: any) {
+      if (err.message && !err.message.includes('Failed to fetch') && !err.message.includes('NetworkError')) {
+        throw err;
+      }
+    }
+
+    // 2. Client-side fallback registration
+    const users = getStoredUsers();
+    const existing = users.find((u) => u.email.toLowerCase() === cleanEmail);
+    if (existing) {
+      throw new Error('An account with this email address already exists. Please log in.');
+    }
+
+    const newUser: StoredUserAccount = {
+      id: Date.now(),
+      email: cleanEmail,
+      password: data.password,
+      full_name: data.full_name.trim(),
+      business_name: data.business_name?.trim() || '',
+      phone: data.phone?.trim() || '',
+      created_at: new Date().toISOString(),
+    };
+
+    saveStoredUsers([newUser, ...users]);
+
+    const { password: _, ...userWithoutPass } = newUser;
+    const mockToken = `dd_usr_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const authData: UserAuthResponse = {
+      access_token: mockToken,
+      token_type: 'bearer',
+      user: userWithoutPass,
+    };
+
+    localStorage.setItem(LS_USER_TOKEN, mockToken);
+    localStorage.setItem(LS_CURRENT_USER, JSON.stringify(userWithoutPass));
+    return authData;
+  },
+
+  async userLogin(email: string, password: string): Promise<UserAuthResponse> {
+    const cleanEmail = email.trim().toLowerCase();
+
+    // 1. Try Backend API
+    try {
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail, password }),
+      });
+      if (res.ok) {
+        const authData: UserAuthResponse = await res.json();
+        localStorage.setItem(LS_USER_TOKEN, authData.access_token);
+        localStorage.setItem(LS_CURRENT_USER, JSON.stringify(authData.user));
+        return authData;
+      } else {
+        const errJson = await res.json().catch(() => null);
+        if (errJson?.detail) {
+          throw new Error(errJson.detail);
+        }
+      }
+    } catch (err: any) {
+      if (err.message && !err.message.includes('Failed to fetch') && !err.message.includes('NetworkError')) {
+        throw err;
+      }
+    }
+
+    // 2. Client-side fallback login
+    const users = getStoredUsers();
+    const matched = users.find((u) => u.email.toLowerCase() === cleanEmail);
+    if (!matched || matched.password !== password) {
+      throw new Error('Invalid email or password. Please verify your details.');
+    }
+
+    const { password: _, ...userWithoutPass } = matched;
+    const mockToken = `dd_usr_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const authData: UserAuthResponse = {
+      access_token: mockToken,
+      token_type: 'bearer',
+      user: userWithoutPass,
+    };
+
+    localStorage.setItem(LS_USER_TOKEN, mockToken);
+    localStorage.setItem(LS_CURRENT_USER, JSON.stringify(userWithoutPass));
+    return authData;
+  },
+
+  getCurrentUser(): User | null {
+    try {
+      const raw = localStorage.getItem(LS_CURRENT_USER);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return null;
+  },
+
+  getUserToken(): string | null {
+    return localStorage.getItem(LS_USER_TOKEN);
+  },
+
+  userLogout(): void {
+    localStorage.removeItem(LS_USER_TOKEN);
+    localStorage.removeItem(LS_CURRENT_USER);
+  },
+
+  async getUserBookings(email?: string): Promise<Booking[]> {
+    const targetEmail = (email || this.getCurrentUser()?.email || '').trim().toLowerCase();
+    if (!targetEmail) return [];
+
+    let apiBookings: Booking[] = [];
+    const token = this.getUserToken();
+
+    try {
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const res = await fetch(`${API_BASE}/auth/bookings-by-email?email=${encodeURIComponent(targetEmail)}`, {
+        headers,
+      });
+      if (res.ok) {
+        apiBookings = await res.json();
+      }
+    } catch {}
+
+    // Merge with local bookings
+    const local = getStoredBookings().filter(
+      (b) => b.email && b.email.trim().toLowerCase() === targetEmail
+    );
+
+    const mergedMap = new Map<string, Booking>();
+    apiBookings.forEach((b) => mergedMap.set(b.reference_code, b));
+    local.forEach((b) => {
+      if (!mergedMap.has(b.reference_code)) {
+        mergedMap.set(b.reference_code, b);
+      }
+    });
+
+    return Array.from(mergedMap.values()).sort(
+      (a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime()
+    );
   },
 };

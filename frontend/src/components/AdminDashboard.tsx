@@ -130,6 +130,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [actionNotes, setActionNotes] = useState('');
   const [updatingBooking, setUpdatingBooking] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<'confirm' | 'approve' | 'paid' | 'reject' | 'delete' | 'notes' | null>(null);
+  const [notesSaved, setNotesSaved] = useState(false);
+  const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  const showToast = (text: string, type: 'success' | 'error' = 'success') => {
+    setToastMessage({ text, type });
+    setTimeout(() => setToastMessage(null), 4500);
+  };
+
+  const openBookingModal = (b: Booking) => {
+    setSelectedBooking(b);
+    setActionNotes(b.admin_notes || '');
+    setBookingError(null);
+    setNotesSaved(false);
+    setActionLoading(null);
+  };
 
   // Approval payment link modal states
   const [showPaymentLinkPrompt, setShowPaymentLinkPrompt] = useState(false);
@@ -213,21 +229,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     bookingId: number,
     newStatus: string,
     newPayment?: string,
-    overrideNotes?: string
+    overrideNotes?: string,
+    actionType?: 'confirm' | 'approve' | 'paid' | 'reject'
   ) => {
     if (!token) return;
     setUpdatingBooking(true);
+    setActionLoading(actionType || null);
     setBookingError(null);
     try {
+      const refCode = selectedBooking?.reference_code;
       const updated = await api.updateBookingStatus(token, bookingId, {
         status: newStatus,
         payment_status: newPayment || selectedBooking?.payment_status || 'unpaid',
         admin_notes: (overrideNotes !== undefined ? overrideNotes : actionNotes.trim()) || undefined,
-        reference_code: selectedBooking?.reference_code,
+        reference_code: refCode,
       });
       setBookings((prev) =>
         prev.map((b) =>
-          b.id === updated.id || (b.reference_code && b.reference_code === updated.reference_code)
+          b.id === updated.id || (refCode && b.reference_code === refCode)
             ? {
                 ...b,
                 ...updated,
@@ -240,6 +259,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setSelectedBooking(null);
       setActionNotes('');
       setShowPaymentLinkPrompt(false);
+
+      let msg = `Booking ${refCode || ''} updated successfully.`;
+      if (newStatus === 'confirmed') msg = `✓ Booking ${refCode || ''} confirmed! Kitchen station reserved in real time.`;
+      else if (newStatus === 'approved') msg = `• Booking ${refCode || ''} approved! Shift allocated for tenant.`;
+      else if (newPayment === 'paid') msg = `$ Payment recorded as PAID for ${refCode || ''}. Revenue updated.`;
+      else if (newStatus === 'rejected') msg = `✕ Booking ${refCode || ''} rejected. Shift slot freed for new bookings.`;
+      showToast(msg, 'success');
+
       try {
         const s = await api.getDashboardStats(token);
         setStats(s);
@@ -248,17 +275,63 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setBookingError(err.message || 'Failed to update booking status');
     } finally {
       setUpdatingBooking(false);
+      setActionLoading(null);
     }
   };
 
-  const handleDeleteBooking = async (id: number) => {
-    if (!token || !confirm('Are you sure you want to permanently delete this reservation?')) return;
+  const handleSaveNotesOnly = async () => {
+    if (!token || !selectedBooking) return;
+    setActionLoading('notes');
+    setBookingError(null);
+    setNotesSaved(false);
     try {
-      await api.deleteBooking(token, id);
-      setBookings((prev) => prev.filter((b) => b.id !== id));
+      const refCode = selectedBooking.reference_code;
+      const updated = await api.updateBookingStatus(token, selectedBooking.id, {
+        status: selectedBooking.status,
+        payment_status: selectedBooking.payment_status,
+        admin_notes: actionNotes.trim(),
+        reference_code: refCode,
+      });
+      setSelectedBooking((prev) => prev ? { ...prev, admin_notes: actionNotes.trim() } : null);
+      setBookings((prev) =>
+        prev.map((b) =>
+          b.id === selectedBooking.id || (refCode && b.reference_code === refCode)
+            ? { ...b, admin_notes: actionNotes.trim() }
+            : b
+        )
+      );
+      setNotesSaved(true);
+      setTimeout(() => setNotesSaved(false), 3000);
+      showToast(`Notes saved for ${refCode}`, 'success');
+    } catch (err: any) {
+      setBookingError(err.message || 'Failed to save notes');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDeleteBooking = async (id: number, refCode?: string) => {
+    if (!token) return;
+    const identifier = refCode || `ID ${id}`;
+    if (!window.confirm(`Are you sure you want to permanently delete reservation ${identifier}? This will free up the kitchen slot in real time.`)) {
+      return;
+    }
+    setActionLoading('delete');
+    setUpdatingBooking(true);
+    try {
+      await api.deleteBooking(token, id, refCode);
+      setBookings((prev) => prev.filter((b) => b.id !== id && (!refCode || b.reference_code !== refCode)));
       setSelectedBooking(null);
+      showToast(`Booking ${identifier} deleted successfully. Kitchen schedule updated.`, 'success');
+      try {
+        const s = await api.getDashboardStats(token);
+        setStats(s);
+      } catch {}
     } catch (err: any) {
       alert(err.message || 'Failed to delete booking');
+    } finally {
+      setUpdatingBooking(false);
+      setActionLoading(null);
     }
   };
 
@@ -866,19 +939,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </div>
                       <div className="col-span-9 flex gap-1 h-9 items-center">
                         <div
-                          onClick={() => {
-                            setSelectedBooking(bookings[3] || bookings[0]);
-                            setActionNotes('');
-                          }}
+                          onClick={() => openBookingModal(bookings[3] || bookings[0])}
                           className="bg-emerald-100/80 hover:bg-emerald-200 text-emerald-900 border border-emerald-300/70 rounded-lg px-2.5 py-1 text-[11px] font-bold w-[45%] truncate cursor-pointer transition-colors"
                         >
                           ABC Catering · 6:00 AM – 2:00 PM
                         </div>
                         <div
-                          onClick={() => {
-                            setSelectedBooking(bookings[1] || bookings[0]);
-                            setActionNotes('');
-                          }}
+                          onClick={() => openBookingModal(bookings[1] || bookings[0])}
                           className="bg-blue-100/80 hover:bg-blue-200 text-blue-900 border border-blue-300/70 rounded-lg px-2.5 py-1 text-[11px] font-bold w-[55%] truncate cursor-pointer transition-colors"
                         >
                           Rohit · 2:00 PM – 10:00 PM
@@ -895,10 +962,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <div className="col-span-9 flex gap-1 h-9 items-center">
                         <div className="w-[20%]"></div>
                         <div
-                          onClick={() => {
-                            setSelectedBooking(bookings[0]);
-                            setActionNotes('');
-                          }}
+                          onClick={() => openBookingModal(bookings[0])}
                           className="bg-amber-100/90 hover:bg-amber-200 text-amber-900 border border-amber-300/70 rounded-lg px-2.5 py-1 text-[11px] font-bold w-[65%] truncate cursor-pointer transition-colors"
                         >
                           Chef Michael Davies · 10:00 AM – 6:00 PM
@@ -913,10 +977,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <span>Combi Oven</span>
                       </div>
                       <div className="col-span-9 flex gap-1 h-9 items-center">
-                        <div className="bg-emerald-100/80 text-emerald-900 border border-emerald-300/70 rounded-lg px-2.5 py-1 text-[11px] font-bold w-[35%] truncate cursor-pointer">
+                        <div 
+                          onClick={() => openBookingModal(bookings[3] || bookings[0])}
+                          className="bg-emerald-100/80 hover:bg-emerald-200 text-emerald-900 border border-emerald-300/70 rounded-lg px-2.5 py-1 text-[11px] font-bold w-[35%] truncate cursor-pointer"
+                        >
                           ABC Catering · 6:00 AM – 12:00 PM
                         </div>
-                        <div className="bg-blue-100/80 text-blue-900 border border-blue-300/70 rounded-lg px-2.5 py-1 text-[11px] font-bold w-[45%] truncate cursor-pointer">
+                        <div 
+                          onClick={() => openBookingModal(bookings[4] || bookings[0])}
+                          className="bg-blue-100/80 hover:bg-blue-200 text-blue-900 border border-blue-300/70 rounded-lg px-2.5 py-1 text-[11px] font-bold w-[45%] truncate cursor-pointer"
+                        >
                           Cloud Kitchen Co. · 12:00 PM – 6:00 PM
                         </div>
                       </div>
@@ -931,11 +1001,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <div className="col-span-9 flex gap-1 h-9 items-center">
                         <div className="w-[20%]"></div>
                         <div
-                          onClick={() => {
-                            setSelectedBooking(bookings[0]);
-                            setActionNotes('');
-                          }}
-                          className="bg-amber-100/90 text-amber-900 border border-amber-300/70 rounded-lg px-2.5 py-1 text-[11px] font-bold w-[65%] truncate cursor-pointer"
+                          onClick={() => openBookingModal(bookings[0])}
+                          className="bg-amber-100/90 text-amber-900 border border-amber-300/70 rounded-lg px-2.5 py-1 text-[11px] font-bold w-[65%] truncate cursor-pointer hover:bg-amber-200 transition-colors"
                         >
                           Chef Michael Davies · 10:00 AM – 6:00 PM
                         </div>
@@ -951,11 +1018,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <div className="col-span-9 flex gap-1 h-9 items-center">
                         <div className="w-[45%]"></div>
                         <div
-                          onClick={() => {
-                            setSelectedBooking(bookings[1] || bookings[0]);
-                            setActionNotes('');
-                          }}
-                          className="bg-blue-100/80 text-blue-900 border border-blue-300/70 rounded-lg px-2.5 py-1 text-[11px] font-bold w-[55%] truncate cursor-pointer"
+                          onClick={() => openBookingModal(bookings[1] || bookings[0])}
+                          className="bg-blue-100/80 text-blue-900 border border-blue-300/70 rounded-lg px-2.5 py-1 text-[11px] font-bold w-[55%] truncate cursor-pointer hover:bg-blue-200 transition-colors"
                         >
                           Rohit · 2:00 PM – 10:00 PM
                         </div>
@@ -1029,8 +1093,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <button
                           onClick={() => {
                             const found = bookings.find((b) => b.reference_code === 'DD-BK-77953') || bookings[1];
-                            setSelectedBooking(found);
-                            setActionNotes('');
+                            if (found) openBookingModal(found);
                           }}
                           className="bg-white hover:bg-gray-50 text-gray-800 border border-gray-200 px-3 py-1.5 rounded-lg text-xs font-bold shadow-2xs transition-colors cursor-pointer"
                         >
@@ -1057,8 +1120,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <button
                           onClick={() => {
                             const found = bookings.find((b) => b.reference_code === 'DD-BK-001') || bookings[0];
-                            setSelectedBooking(found);
-                            setActionNotes('');
+                            if (found) openBookingModal(found);
                           }}
                           className="bg-white hover:bg-gray-50 text-gray-800 border border-gray-200 px-3 py-1.5 rounded-lg text-xs font-bold shadow-2xs transition-colors cursor-pointer"
                         >
@@ -1124,11 +1186,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             {b.payment_status}
                           </span>
                           <button
-                            onClick={() => {
-                              setSelectedBooking(b);
-                              setActionNotes(b.admin_notes || '');
-                            }}
-                            className="bg-[#112F21] hover:bg-[#1a4731] text-white px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer"
+                            onClick={() => openBookingModal(b)}
+                            className="bg-[#112F21] hover:bg-[#1a4731] text-white px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer transition-colors"
                           >
                             Manage
                           </button>
@@ -1483,11 +1542,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           {/* 10. Actions */}
                           <td className="px-5 py-4 text-right whitespace-nowrap">
                             <button
-                              onClick={() => {
-                                setSelectedBooking(b);
-                                setActionNotes(b.admin_notes || '');
-                                setShowPaymentLinkPrompt(false);
-                              }}
+                              onClick={() => openBookingModal(b)}
                               className="px-3.5 py-1.5 rounded-xl bg-[#112F21] hover:bg-[#1a4731] text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
                             >
                               Manage
@@ -1532,11 +1587,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 {bookings.map((b) => (
                   <div
                     key={b.reference_code}
-                    onClick={() => {
-                      setSelectedBooking(b);
-                      setActionNotes(b.admin_notes || '');
-                    }}
-                    className="p-4 rounded-xl border border-gray-200 hover:border-emerald-600 transition-all cursor-pointer bg-gray-50/50 space-y-2"
+                    onClick={() => openBookingModal(b)}
+                    className="p-4 rounded-xl border border-gray-200 hover:border-emerald-600 transition-all cursor-pointer bg-gray-50/50 space-y-2 hover:shadow-md"
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-mono font-bold text-xs text-emerald-800">{b.reference_code}</span>
@@ -1603,11 +1655,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         {b.payment_status}
                       </span>
                       <button
-                        onClick={() => {
-                          setSelectedBooking(b);
-                          setActionNotes(b.admin_notes || '');
-                        }}
-                        className="px-3 py-1 rounded-lg border border-gray-200 text-gray-700 font-bold hover:bg-gray-50"
+                        onClick={() => openBookingModal(b)}
+                        className="px-3 py-1 rounded-lg border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 cursor-pointer"
                       >
                         Details
                       </button>
@@ -1885,7 +1934,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           BOOKING ACTION MODAL / DRAWER
          ======================================================== */}
       {selectedBooking && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+        <div 
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSelectedBooking(null);
+          }}
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in"
+        >
           <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-gray-200 space-y-6 max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-4 border-b border-gray-100">
@@ -1896,31 +1950,62 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
               <button
                 onClick={() => setSelectedBooking(null)}
-                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 flex items-center justify-center font-bold"
+                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 flex items-center justify-center font-bold cursor-pointer transition-colors"
+                title="Close modal"
               >
                 ✕
               </button>
             </div>
 
+            {/* Error Message Alert */}
+            {bookingError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 p-3.5 rounded-2xl text-xs flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+                  <span className="font-medium">{bookingError}</span>
+                </div>
+                <button 
+                  onClick={() => setBookingError(null)}
+                  className="text-red-500 hover:text-red-700 font-bold px-1"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
             {/* Reservation Highlights */}
-            <div className="grid grid-cols-2 gap-3 bg-gray-50 p-4 rounded-2xl text-xs">
+            <div className="grid grid-cols-2 gap-3 bg-gray-50 p-4 rounded-2xl text-xs border border-gray-100">
               <div>
-                <span className="text-gray-400 block text-[11px]">Booking Date</span>
+                <span className="text-gray-400 block text-[11px] font-medium">Booking Date</span>
                 <span className="font-bold text-gray-900">{formatDisplayDate(selectedBooking.booking_date)}</span>
               </div>
               <div>
-                <span className="text-gray-400 block text-[11px]">Time Window</span>
+                <span className="text-gray-400 block text-[11px] font-medium">Time Window</span>
                 <span className="font-bold text-gray-900">
                   {formatDisplayTime(selectedBooking.start_time)} – {formatDisplayTime(selectedBooking.end_time || calculateEndTime(selectedBooking.start_time, selectedBooking.duration_hours))}
                 </span>
               </div>
               <div>
-                <span className="text-gray-400 block text-[11px]">Total Fee</span>
+                <span className="text-gray-400 block text-[11px] font-medium">Total Fee</span>
                 <span className="font-mono font-bold text-gray-900">${Number(selectedBooking.total_price || selectedBooking.total_cost || 0).toFixed(2)} AUD</span>
               </div>
               <div>
-                <span className="text-gray-400 block text-[11px]">Current Status</span>
-                <span className="font-bold text-emerald-800 uppercase">{selectedBooking.status} ({selectedBooking.payment_status})</span>
+                <span className="text-gray-400 block text-[11px] font-medium">Current Status</span>
+                <div className="font-bold uppercase inline-flex items-center gap-1.5 mt-0.5 flex-wrap">
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                    selectedBooking.status === 'confirmed' ? 'bg-emerald-100 text-emerald-800' :
+                    selectedBooking.status === 'approved' ? 'bg-blue-100 text-blue-800' :
+                    selectedBooking.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                    'bg-amber-100 text-amber-800'
+                  }`}>
+                    {selectedBooking.status}
+                  </span>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                    selectedBooking.payment_status === 'paid' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                  }`}>
+                    {selectedBooking.payment_status}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -1929,49 +2014,100 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <label className="block text-xs font-bold text-gray-700">Quick Decision Actions</label>
               <div className="grid grid-cols-3 gap-2">
                 <button
-                  onClick={() => handleUpdateStatus(selectedBooking.id, 'confirmed')}
+                  onClick={() => handleUpdateStatus(selectedBooking.id, 'confirmed', undefined, undefined, 'confirm')}
                   disabled={updatingBooking}
-                  className="bg-emerald-700 hover:bg-emerald-800 text-white py-2 rounded-xl text-xs font-bold cursor-pointer"
+                  className={`py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    selectedBooking.status === 'confirmed'
+                      ? 'bg-emerald-800 text-white ring-2 ring-emerald-500 shadow-sm'
+                      : 'bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs'
+                  } disabled:opacity-60`}
                 >
-                  ✓ Confirm
+                  {actionLoading === 'confirm' ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <span>✓</span>
+                  )}
+                  <span>{selectedBooking.status === 'confirmed' ? 'Confirmed' : 'Confirm'}</span>
                 </button>
+
                 <button
-                  onClick={() => handleUpdateStatus(selectedBooking.id, 'approved')}
+                  onClick={() => handleUpdateStatus(selectedBooking.id, 'approved', undefined, undefined, 'approve')}
                   disabled={updatingBooking}
-                  className="bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl text-xs font-bold cursor-pointer"
+                  className={`py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    selectedBooking.status === 'approved'
+                      ? 'bg-blue-700 text-white ring-2 ring-blue-400 shadow-sm'
+                      : 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs'
+                  } disabled:opacity-60`}
                 >
-                  ● Approve
+                  {actionLoading === 'approve' ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <span>●</span>
+                  )}
+                  <span>{selectedBooking.status === 'approved' ? 'Approved' : 'Approve'}</span>
                 </button>
+
                 <button
-                  onClick={() => handleUpdateStatus(selectedBooking.id, selectedBooking.status, 'paid')}
+                  onClick={() => handleUpdateStatus(selectedBooking.id, selectedBooking.status, 'paid', undefined, 'paid')}
                   disabled={updatingBooking}
-                  className="bg-emerald-100 hover:bg-emerald-200 text-emerald-900 py-2 rounded-xl text-xs font-bold cursor-pointer"
+                  className={`py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    selectedBooking.payment_status === 'paid'
+                      ? 'bg-emerald-200 text-emerald-950 ring-2 ring-emerald-400 font-extrabold'
+                      : 'bg-emerald-100 hover:bg-emerald-200 text-emerald-900'
+                  } disabled:opacity-60`}
                 >
-                  $ Mark Paid
+                  {actionLoading === 'paid' ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <span>$</span>
+                  )}
+                  <span>{selectedBooking.payment_status === 'paid' ? 'Paid ✓' : 'Mark Paid'}</span>
                 </button>
               </div>
 
               <div className="grid grid-cols-2 gap-2 pt-1">
                 <button
-                  onClick={() => handleUpdateStatus(selectedBooking.id, 'rejected')}
+                  onClick={() => handleUpdateStatus(selectedBooking.id, 'rejected', undefined, undefined, 'reject')}
                   disabled={updatingBooking}
-                  className="border border-red-200 hover:bg-red-50 text-red-700 py-2 rounded-xl text-xs font-bold cursor-pointer"
+                  className={`py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer border ${
+                    selectedBooking.status === 'rejected'
+                      ? 'border-red-500 bg-red-100 text-red-900 ring-2 ring-red-300'
+                      : 'border-red-200 hover:bg-red-50 text-red-700'
+                  } disabled:opacity-60`}
                 >
-                  ✕ Reject
+                  {actionLoading === 'reject' ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <span>✕</span>
+                  )}
+                  <span>{selectedBooking.status === 'rejected' ? 'Rejected' : 'Reject'}</span>
                 </button>
+
                 <button
-                  onClick={() => handleDeleteBooking(selectedBooking.id)}
+                  onClick={() => handleDeleteBooking(selectedBooking.id, selectedBooking.reference_code)}
                   disabled={updatingBooking}
-                  className="border border-gray-200 hover:bg-gray-100 text-gray-600 py-2 rounded-xl text-xs font-bold cursor-pointer"
+                  className="border border-gray-200 hover:bg-gray-100 hover:text-red-700 text-gray-600 py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-60"
                 >
-                  Delete Booking
+                  {actionLoading === 'delete' ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-red-600" />
+                  ) : (
+                    <Trash2 className="w-3.5 h-3.5 text-gray-500" />
+                  )}
+                  <span>Delete Booking</span>
                 </button>
               </div>
             </div>
 
             {/* Admin Notes */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-gray-700">Admin Operational Notes</label>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-gray-700">Admin Operational Notes</label>
+                {notesSaved && (
+                  <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                    <Check className="w-3 h-3 text-emerald-600" /> Saved!
+                  </span>
+                )}
+              </div>
               <textarea
                 value={actionNotes}
                 onChange={(e) => setActionNotes(e.target.value)}
@@ -1979,14 +2115,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 className="w-full p-3 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-[#112F21] focus:outline-none"
                 rows={3}
               />
-              <button
-                onClick={() => handleUpdateStatus(selectedBooking.id, selectedBooking.status, selectedBooking.payment_status, actionNotes)}
-                className="text-xs font-bold text-emerald-800 hover:text-emerald-900 cursor-pointer"
-              >
-                Save Notes
-              </button>
+              <div className="flex items-center justify-between pt-0.5">
+                <button
+                  onClick={handleSaveNotesOnly}
+                  disabled={actionLoading === 'notes'}
+                  className="bg-[#112F21] hover:bg-[#1a4731] text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer transition-colors disabled:opacity-60"
+                >
+                  {actionLoading === 'notes' ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-[#ED8533]" />
+                  ) : (
+                    <Check className="w-3.5 h-3.5 text-[#ED8533]" />
+                  )}
+                  <span>Save Notes</span>
+                </button>
+                <span className="text-[11px] text-gray-400">Syncs immediately in real-time</span>
+              </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Real-Time Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-[#112F21] text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 text-xs font-semibold border border-emerald-600 animate-in slide-in-from-bottom-5">
+          <CheckCircle className="w-4 h-4 text-[#ED8533] shrink-0" />
+          <span>{toastMessage.text}</span>
+          <button onClick={() => setToastMessage(null)} className="ml-2 text-gray-400 hover:text-white cursor-pointer font-bold">✕</button>
         </div>
       )}
     </div>

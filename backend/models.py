@@ -78,3 +78,17 @@ class AdminUser(Base):
     password_hash = Column(String(255), nullable=False)
     salt = Column(String(100), nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(150), unique=True, index=True, nullable=False)
+    password_hash = Column(String(255), nullable=False)
+    salt = Column(String(100), nullable=False)
+    full_name = Column(String(150), nullable=False)
+    business_name = Column(String(150), nullable=True)
+    phone = Column(String(50), nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+

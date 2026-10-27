@@ -4,6 +4,7 @@ from .database import engine, Base
 from .seed import init_db
 from .routes.public import router as public_router
 from .routes.admin import router as admin_router
+from .routes.auth_routes import router as auth_router
 
 app = FastAPI(
     title="Daily Drop Commercial Kitchen Rental API",
@@ -26,6 +27,7 @@ def on_startup():
 
 app.include_router(public_router)
 app.include_router(admin_router)
+app.include_router(auth_router)
 
 @app.get("/api/health")
 def health_check():

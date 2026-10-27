@@ -14,7 +14,9 @@ import {
   Lock,
   ArrowRight,
   ArrowLeft,
-  Check
+  Check,
+  Mail,
+  CreditCard
 } from 'lucide-react';
 import { KitchenConfig, AvailabilityData, Booking, BookingCreateInput } from '../types';
 import { api } from '../services/api';
@@ -39,8 +41,8 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
   const today = new Date();
   const minDateStr = today.toISOString().split('T')[0];
 
-  // Multi-stage stepper state (1: Date & Time, 2: Equipment & Use, 3: Contact & Submit)
-  const [currentStage, setCurrentStage] = useState<1 | 2 | 3>(1);
+  // 2-Stage Stepper: 1: Date & Time Slot, 2: Reservation & Contact Details
+  const [currentStage, setCurrentStage] = useState<1 | 2>(1);
 
   // Selection states
   const [date, setDate] = useState<string>(initialDate || minDateStr);
@@ -54,10 +56,6 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
   const [phone, setPhone] = useState('');
   const [intendedUse, setIntendedUse] = useState('Cloud Kitchen Delivery Prep');
   const [teamSize, setTeamSize] = useState(2);
-  const [selectedEquipment, setSelectedEquipment] = useState<string[]>([
-    '6-Burner Gas Range',
-    'Stainless Food Prep Table',
-  ]);
   const [notes, setNotes] = useState('');
 
   // Availability checking state
@@ -69,7 +67,18 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Synchronize when initial props change (e.g. from hero or pricing card click)
+  // Pre-fill user details if logged in
+  useEffect(() => {
+    const user = api.getCurrentUser();
+    if (user) {
+      if (user.full_name && !fullName) setFullName(user.full_name);
+      if (user.business_name && !businessName) setBusinessName(user.business_name);
+      if (user.email && !email) setEmail(user.email);
+      if (user.phone && !phone) setPhone(user.phone);
+    }
+  }, []);
+
+  // Synchronize when initial props change
   useEffect(() => {
     if (initialDate) setDate(initialDate);
     if (initialTime) setStartTime(initialTime);
@@ -128,13 +137,12 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
   const isNextDay = Math.floor(endMinutesTotal / 60) >= 24;
   const endTimeFormatted = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}${isNextDay ? ' (+1 day)' : ''}`;
 
-  // Check if current slot conflicts with availability (Kitchen is 24/7)
+  // Check if current slot conflicts with availability
   const checkConflict = (): { hasConflict: boolean; reason?: string } => {
     if (!availability) return { hasConflict: false };
     const reqStart = startH * 60 + startM;
     const reqEnd = endMinutesTotal;
 
-    // Check booked / blocked slots on this date
     for (const slot of availability.slots) {
       const [sh, sm] = slot.start_time.split(':').map(Number);
       const [eh, em] = slot.end_time.split(':').map(Number);
@@ -153,13 +161,6 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
   };
 
   const slotConflict = checkConflict();
-
-  // Handle Equipment Checkbox toggle
-  const toggleEquipment = (eq: string) => {
-    setSelectedEquipment((prev) =>
-      prev.includes(eq) ? prev.filter((item) => item !== eq) : [...prev, eq]
-    );
-  };
 
   // Submit Booking Request
   const handleSubmitBooking = async (e: React.FormEvent) => {
@@ -183,7 +184,8 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
         duration_hours: duration,
         intended_use: intendedUse,
         team_size: teamSize,
-        equipment_requirements: selectedEquipment.join(', '),
+        // All-Inclusive Facility: users rent the whole kitchen space, no individual items selection
+        equipment_requirements: 'All-Inclusive Commercial Kitchen Facility',
         additional_notes: notes.trim() || undefined,
       };
 
@@ -196,18 +198,6 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
     }
   };
 
-  const equipmentOptions = [
-    '6-Burner Gas Range',
-    'Rational Combi Oven',
-    '2x 20L Commercial Deep Fryers',
-    'Stainless Food Prep Table',
-    '30L Planetary Mixer',
-    'Commercial Bread Slicer',
-    'Walk-in Cool Room Space',
-    'Upright & Bench Freezer Space',
-    'Pass-Through Commercial Dishwasher',
-  ];
-
   return (
     <section id="booking-section" className="py-10 lg:py-14 bg-white relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -219,27 +209,26 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
             <span>Dedicated Rental Booking System</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-brand-dark tracking-tight">
-            Book Your Kitchen
+            Book Your Commercial Kitchen
           </h2>
           <p className="text-base sm:text-lg text-brand-muted mt-3">
-            Choose your date and time slot, configure equipment needs, view transparent pricing, 
-            and submit your booking request directly to the Daily Drop kitchen team.
+            Select your hourly slot, enter your business details, and reserve your fully equipped kitchen space. All commercial equipment is included with every shift!
           </p>
         </div>
 
         {/* Main Grid: Left Side Controls & Form, Right Side Pricing Breakdown & Live Schedule */}
         <form onSubmit={handleSubmitBooking} className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
           
-          {/* Left Column (7 cols): 3-Stage Booking Form */}
+          {/* Left Column (7 cols): Streamlined 2-Stage Booking Form */}
           <div className="lg:col-span-7 space-y-6">
             
-            {/* Interactive 3-Stage Progress Indicator */}
-            <div className="bg-brand-cream/70 rounded-2xl p-2.5 sm:p-3 border border-brand-mint-border flex items-center justify-between gap-1 sm:gap-2 shadow-xs">
+            {/* Interactive 2-Stage Progress Indicator */}
+            <div className="bg-brand-cream/70 rounded-2xl p-2.5 sm:p-3 border border-brand-mint-border flex items-center justify-between gap-2 shadow-xs">
               {/* Step 1 Pill */}
               <button
                 type="button"
                 onClick={() => setCurrentStage(1)}
-                className={`flex-1 flex items-center justify-center sm:justify-start space-x-2 py-2 px-2.5 sm:px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`flex-1 flex items-center justify-center space-x-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                   currentStage === 1
                     ? 'bg-brand-forest text-white shadow-sm'
                     : 'text-brand-dark hover:bg-brand-mint/60'
@@ -250,10 +239,10 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                 }`}>
                   1
                 </span>
-                <span className="truncate">Date & Time</span>
+                <span className="truncate">1. Select Date & Time Slot</span>
               </button>
 
-              <div className="w-3 sm:w-4 h-0.5 bg-brand-mint-border shrink-0" />
+              <div className="w-6 h-0.5 bg-brand-mint-border shrink-0" />
 
               {/* Step 2 Pill */}
               <button
@@ -261,7 +250,7 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                 onClick={() => {
                   if (!slotConflict.hasConflict) setCurrentStage(2);
                 }}
-                className={`flex-1 flex items-center justify-center sm:justify-start space-x-2 py-2 px-2.5 sm:px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`flex-1 flex items-center justify-center space-x-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                   currentStage === 2
                     ? 'bg-brand-forest text-white shadow-sm'
                     : 'text-brand-dark hover:bg-brand-mint/60'
@@ -272,29 +261,7 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                 }`}>
                   2
                 </span>
-                <span className="truncate">Equipment</span>
-              </button>
-
-              <div className="w-3 sm:w-4 h-0.5 bg-brand-mint-border shrink-0" />
-
-              {/* Step 3 Pill */}
-              <button
-                type="button"
-                onClick={() => {
-                  if (!slotConflict.hasConflict) setCurrentStage(3);
-                }}
-                className={`flex-1 flex items-center justify-center sm:justify-start space-x-2 py-2 px-2.5 sm:px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  currentStage === 3
-                    ? 'bg-brand-forest text-white shadow-sm'
-                    : 'text-brand-dark hover:bg-brand-mint/60'
-                }`}
-              >
-                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-black shrink-0 ${
-                  currentStage === 3 ? 'bg-white text-brand-forest' : 'bg-brand-forest/20 text-brand-forest'
-                }`}>
-                  3
-                </span>
-                <span className="truncate">Details & Submit</span>
+                <span className="truncate">2. Applicant & Booking Details</span>
               </button>
             </div>
 
@@ -308,7 +275,7 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                     </span>
                     <h3 className="text-lg font-extrabold text-brand-dark">Select Date & Time Slot</h3>
                   </div>
-                  <span className="text-xs text-brand-muted font-semibold hidden sm:inline">Stage 1 of 3</span>
+                  <span className="text-xs text-brand-muted font-semibold hidden sm:inline">Step 1 of 2</span>
                 </div>
 
                 <div className="space-y-4">
@@ -375,7 +342,7 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                     </div>
                   </div>
 
-                  {/* 24-HOUR VISUAL TIMELINE BAR (RED = Booked, GREEN = Available) */}
+                  {/* 24-HOUR VISUAL TIMELINE BAR */}
                   <AvailabilityTimelineBar
                     date={date}
                     slots={availability?.slots || []}
@@ -396,7 +363,7 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                       <select
                         value={startTime}
                         onChange={(e) => setStartTime(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none cursor-pointer"
                       >
                         <option value="00:00">12:00 AM (Midnight Shift)</option>
                         <option value="02:00">02:00 AM (Overnight Batch)</option>
@@ -426,7 +393,7 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                       <select
                         value={duration}
                         onChange={(e) => setDuration(Number(e.target.value))}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none cursor-pointer"
                       >
                         <option value={2}>2 Hours (Test Prep Shift — $100 + GST)</option>
                         <option value={4}>4 Hours (Standard Base — $152 + GST)</option>
@@ -457,7 +424,7 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                     <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center space-x-2">
                       <CheckCircle className="w-4 h-4 shrink-0 text-emerald-600" />
                       <span className="font-medium">
-                        Time slot is currently available! Click below to choose equipment.
+                        Time slot is available! Click next to enter your booking details.
                       </span>
                     </div>
                   )}
@@ -469,20 +436,20 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                     type="button"
                     disabled={slotConflict.hasConflict || loadingAvailability}
                     onClick={() => setCurrentStage(2)}
-                    className={`w-full sm:w-auto px-6 py-3.5 rounded-xl font-bold text-sm flex items-center justify-center space-x-2 transition-all shadow-md ${
+                    className={`w-full sm:w-auto px-6 py-3.5 rounded-xl font-bold text-sm flex items-center justify-center space-x-2 transition-all shadow-md cursor-pointer ${
                       slotConflict.hasConflict || loadingAvailability
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-brand-orange hover:bg-brand-orange-hover text-white hover:shadow-glow-orange transform hover:-translate-y-0.5 cursor-pointer'
+                        : 'bg-brand-orange hover:bg-brand-orange-hover text-white hover:shadow-glow-orange transform hover:-translate-y-0.5'
                     }`}
                   >
-                    <span>Next: Kitchen & Equipment</span>
+                    <span>Next: Booking Details</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
               </div>
             )}
 
-            {/* STAGE 2: Kitchen Use & Equipment Checklist */}
+            {/* STAGE 2: Applicant & Booking Details (No individual items selection required) */}
             {currentStage === 2 && (
               <div className="p-6 sm:p-7 rounded-2xl bg-brand-cream/60 border border-brand-mint-border shadow-soft-sm space-y-5 animate-in fade-in duration-200">
                 <div className="flex items-center justify-between pb-3 border-b border-brand-mint-border">
@@ -490,114 +457,28 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                     <span className="w-7 h-7 rounded-full bg-brand-forest text-white font-bold text-xs flex items-center justify-center">
                       2
                     </span>
-                    <h3 className="text-lg font-extrabold text-brand-dark">Kitchen Use & Equipment Checklist</h3>
+                    <h3 className="text-lg font-extrabold text-brand-dark">Applicant & Booking Details</h3>
                   </div>
-                  <span className="text-xs text-brand-muted font-semibold hidden sm:inline">Stage 2 of 3</span>
+                  <span className="text-xs text-brand-muted font-semibold hidden sm:inline">Step 2 of 2</span>
+                </div>
+
+                {/* All-Inclusive Facility Feature Card (Explains that all items are included, no individual picking needed) */}
+                <div className="p-4 rounded-xl bg-brand-mint/60 border border-brand-forest/20 text-brand-forest">
+                  <div className="flex items-start space-x-2.5">
+                    <Sparkles className="w-5 h-5 text-brand-forest shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-bold text-xs uppercase tracking-wider text-brand-forest">
+                        All-Inclusive Commercial Facility Access
+                      </h4>
+                      <p className="text-xs text-brand-dark/90 mt-1 leading-relaxed">
+                        Your hourly rental includes full access to our commercial cookline: <strong>6-burner gas ranges, Moffat convection ovens, commercial deep fryers, 20L planetary mixer, bread slicer, stainless steel prep benches, walk-in cool room & freezer space</strong>, and high-speed sanitation stations. No separate item fees or checklist selection required!
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-2">
-                        Intended Kitchen Use
-                      </label>
-                      <select
-                        value={intendedUse}
-                        onChange={(e) => setIntendedUse(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
-                      >
-                        <option value="Cloud Kitchen Delivery Prep">Cloud Kitchen Delivery Prep</option>
-                        <option value="Event Catering Batch Production">Event Catering Batch Production</option>
-                        <option value="Bakery & Pastry Production">Bakery & Pastry Production</option>
-                        <option value="Recipe Testing & R&D">Recipe Testing & R&D</option>
-                        <option value="Sauce Bottling & Packaging">Sauce Bottling & Packaging</option>
-                        <option value="Pop-up / Food Truck Prep">Pop-up / Food Truck Prep</option>
-                        <option value="Private Cooking Masterclass">Private Cooking Masterclass</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-2">
-                        Number of People in Team (Max 8)
-                      </label>
-                      <input
-                        type="number"
-                        min={1}
-                        max={8}
-                        value={teamSize}
-                        onChange={(e) => setTeamSize(Number(e.target.value))}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Equipment Checkboxes */}
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-2">
-                      Key Equipment Required
-                    </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      {equipmentOptions.map((eq) => {
-                        const checked = selectedEquipment.includes(eq);
-                        return (
-                          <label
-                            key={eq}
-                            className={`flex items-center space-x-2.5 p-3 rounded-xl border text-xs cursor-pointer transition-all ${
-                              checked
-                                ? 'bg-brand-mint/60 border-brand-forest/40 text-brand-forest font-semibold'
-                                : 'bg-white border-gray-200 text-brand-dark hover:border-gray-300'
-                            }`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => toggleEquipment(eq)}
-                              className="rounded text-brand-forest focus:ring-brand-forest h-4 w-4"
-                            />
-                            <span>{eq}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Stage 2 Actions: Back & Next */}
-                <div className="pt-4 border-t border-brand-mint-border flex items-center justify-between gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStage(1)}
-                    className="px-5 py-3 rounded-xl font-bold text-xs sm:text-sm bg-white border border-gray-300 text-brand-dark hover:bg-gray-50 flex items-center space-x-1.5 transition-all cursor-pointer"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                    <span>Back to Date</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStage(3)}
-                    className="px-6 py-3.5 rounded-xl font-bold text-xs sm:text-sm bg-brand-orange hover:bg-brand-orange-hover text-white shadow-md hover:shadow-glow-orange flex items-center space-x-2 transition-all transform hover:-translate-y-0.5 cursor-pointer"
-                  >
-                    <span>Next: Contact Details</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* STAGE 3: Contact & Business Information + Submit */}
-            {currentStage === 3 && (
-              <div className="p-6 sm:p-7 rounded-2xl bg-brand-cream/60 border border-brand-mint-border shadow-soft-sm space-y-5 animate-in fade-in duration-200">
-                <div className="flex items-center justify-between pb-3 border-b border-brand-mint-border">
-                  <div className="flex items-center space-x-3">
-                    <span className="w-7 h-7 rounded-full bg-brand-forest text-white font-bold text-xs flex items-center justify-center">
-                      3
-                    </span>
-                    <h3 className="text-lg font-extrabold text-brand-dark">Applicant & Business Information</h3>
-                  </div>
-                  <span className="text-xs text-brand-muted font-semibold hidden sm:inline">Stage 3 of 3</span>
-                </div>
-
-                <div className="space-y-4">
+                  {/* Name & Business */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1.5">
@@ -619,7 +500,7 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                       </label>
                       <input
                         type="text"
-                        placeholder="e.g. Sedap Place / Gulati Kitchen"
+                        placeholder="e.g. Perth Catering Co."
                         value={businessName}
                         onChange={(e) => setBusinessName(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
@@ -627,6 +508,7 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                     </div>
                   </div>
 
+                  {/* Email & Phone */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1.5">
@@ -640,6 +522,9 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                         onChange={(e) => setEmail(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
                       />
+                      <span className="text-[11px] text-brand-muted mt-1 block">
+                        Confirmation email & payment instructions will be sent here
+                      </span>
                     </div>
 
                     <div>
@@ -657,17 +542,65 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                     </div>
                   </div>
 
+                  {/* Intended Use & Team Size */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1.5">
+                        Intended Kitchen Use
+                      </label>
+                      <select
+                        value={intendedUse}
+                        onChange={(e) => setIntendedUse(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none cursor-pointer"
+                      >
+                        <option value="Cloud Kitchen Delivery Prep">Cloud Kitchen Delivery Prep</option>
+                        <option value="Event Catering Batch Production">Event Catering Batch Production</option>
+                        <option value="Bakery & Pastry Production">Bakery & Pastry Production</option>
+                        <option value="Recipe Testing & R&D">Recipe Testing & R&D</option>
+                        <option value="Sauce Bottling & Packaging">Sauce Bottling & Packaging</option>
+                        <option value="Pop-up / Food Truck Prep">Pop-up / Food Truck Prep</option>
+                        <option value="Private Cooking Masterclass">Private Cooking Masterclass</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1.5">
+                        Number of People in Team (Max 8)
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={8}
+                        value={teamSize}
+                        onChange={(e) => setTeamSize(Number(e.target.value))}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Notes */}
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1.5">
-                      Additional Notes or Special Requirements
+                      Special Storage or Shift Notes (Optional)
                     </label>
                     <textarea
-                      rows={3}
-                      placeholder="Describe specific storage requirements, allergen considerations, deliveries, or schedule notes..."
+                      rows={2}
+                      placeholder="Describe specific refrigeration needs, allergen considerations, deliveries, or schedule notes..."
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-brand-dark font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
                     />
+                  </div>
+
+                  {/* Payment notice before submit */}
+                  <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start space-x-2.5">
+                    <CreditCard className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold">Payment Required After Submitting</p>
+                      <p className="mt-0.5 text-amber-800">
+                        After submitting, an instant confirmation email with bank details will be sent to you. Your slot will be officially booked once payment is received.
+                      </p>
+                    </div>
                   </div>
                 </div>
 
@@ -679,24 +612,24 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                   </div>
                 )}
 
-                {/* Stage 3 Actions: Back & Submit */}
+                {/* Stage 2 Actions: Back & Submit */}
                 <div className="pt-4 border-t border-brand-mint-border space-y-4">
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
                     <button
                       type="button"
-                      onClick={() => setCurrentStage(2)}
+                      onClick={() => setCurrentStage(1)}
                       className="w-full sm:w-auto px-5 py-3.5 rounded-xl font-bold text-xs sm:text-sm bg-white border border-gray-300 text-brand-dark hover:bg-gray-50 flex items-center justify-center space-x-1.5 transition-all cursor-pointer"
                     >
                       <ArrowLeft className="w-4 h-4" />
-                      <span>Back to Equipment</span>
+                      <span>Back to Date & Time</span>
                     </button>
                     <button
                       type="submit"
                       disabled={isSubmitting || slotConflict.hasConflict}
-                      className={`w-full sm:flex-1 py-4 px-6 rounded-xl font-black text-sm sm:text-base transition-all duration-200 flex items-center justify-center space-x-2.5 shadow-md ${
+                      className={`w-full sm:flex-1 py-4 px-6 rounded-xl font-black text-sm sm:text-base transition-all duration-200 flex items-center justify-center space-x-2.5 shadow-md cursor-pointer ${
                         slotConflict.hasConflict
                           ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                          : 'bg-brand-orange hover:bg-brand-orange-hover text-white hover:shadow-glow-orange transform hover:-translate-y-0.5 cursor-pointer'
+                          : 'bg-brand-orange hover:bg-brand-orange-hover text-white hover:shadow-glow-orange transform hover:-translate-y-0.5'
                       }`}
                     >
                       {isSubmitting ? (
@@ -715,7 +648,7 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
 
                   <p className="text-xs text-center text-brand-muted leading-relaxed">
                     By submitting this request, you agree to Daily Drop's Commercial Kitchen Rental Terms 
-                    and food safety hygiene regulations. Our kitchen manager will contact you promptly.
+                    and food safety hygiene regulations.
                   </p>
                 </div>
               </div>
@@ -731,7 +664,7 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
               <div className="flex items-center justify-between pb-4 border-b border-gray-100">
                 <h4 className="text-lg font-extrabold text-brand-dark">Rental Price Breakdown</h4>
                 <span className="text-xs px-2.5 py-1 rounded-full bg-brand-mint text-brand-forest font-bold">
-                  Configured Rate
+                  All-Inclusive Shift
                 </span>
               </div>
 
@@ -754,6 +687,11 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                 </div>
 
                 <div className="flex justify-between items-center text-brand-muted">
+                  <span>Kitchen Equipment:</span>
+                  <span className="font-semibold text-emerald-700">All Appliances Included ($0)</span>
+                </div>
+
+                <div className="flex justify-between items-center text-brand-muted">
                   <span>Shift Rate (excl. GST):</span>
                   <span className="font-semibold text-brand-dark">${baseRentalCost.toFixed(2)} AUD</span>
                 </div>
@@ -763,21 +701,13 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                   <span className="font-semibold text-brand-dark">${gstAmount.toFixed(2)} AUD</span>
                 </div>
 
-                <div className="flex justify-between items-center text-brand-muted">
-                  <span>Post-shift Clean-down:</span>
-                  <span className="font-semibold text-emerald-700">Included ($0.00)*</span>
-                </div>
-
                 <div className="pt-4 border-t border-gray-100 flex justify-between items-baseline">
                   <div>
-                    <span className="text-base font-bold text-brand-dark">Total Estimated Cost:</span>
+                    <span className="text-base font-bold text-brand-dark">Total Due:</span>
                     <p className="text-[11px] text-brand-muted">Includes power, gas, utilities & GST</p>
                   </div>
                   <span className="text-2xl font-black text-brand-forest">${totalRentalCost.toFixed(2)} AUD</span>
                 </div>
-                <p className="text-[10px] text-brand-muted italic">
-                  *Tenants are responsible for basic station wash-down. Additional fees apply if the kitchen is left uncleaned.
-                </p>
               </div>
 
               {/* Security Deposit Note */}
@@ -787,7 +717,7 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                   <span>Refundable Security Bond: ${securityDeposit.toFixed(2)} AUD</span>
                 </div>
                 <p className="text-[11px] text-brand-muted leading-relaxed">
-                  A standard refundable security bond of $750 AUD is authorised prior to key handover. Released within 24 hours of shift completion following facility inspection for cleanliness and equipment integrity.
+                  A standard refundable security bond of $750 AUD is authorised prior to shift start. Released within 24 hours following facility inspection for cleanliness and equipment integrity.
                 </p>
               </div>
 
@@ -825,12 +755,12 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                   </div>
                 ) : (
                   <div className="p-3 rounded-lg bg-emerald-50/70 border border-emerald-100 text-xs text-emerald-800 text-center">
-                    The kitchen is open 24 hours. All hours are currently open on this date.
+                    The kitchen operates 24/7. All hours are currently open on this date.
                   </div>
                 )}
               </div>
 
-              {/* Need assistance contact */}
+              {/* Assistance contact */}
               <div className="mt-6 p-4 rounded-xl bg-gray-50 border border-gray-100 text-center">
                 <p className="text-xs text-brand-muted">
                   Need a recurring weekly slot or custom hours?

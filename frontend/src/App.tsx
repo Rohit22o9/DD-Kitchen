@@ -16,7 +16,8 @@ import { Contact } from './components/Contact';
 import { Footer } from './components/Footer';
 import { AdminDashboard } from './components/AdminDashboard';
 import { CustomerDashboard } from './components/CustomerDashboard';
-import { KitchenConfig, Booking } from './types';
+import { UserAuthModal } from './components/UserAuthModal';
+import { KitchenConfig, Booking, User } from './types';
 import { api } from './services/api';
 import { Calendar, ArrowUp } from 'lucide-react';
 
@@ -25,6 +26,11 @@ export function App() {
   const [viewMode, setViewMode] = useState<'site' | 'admin' | 'customer'>('site');
   const [latestBooking, setLatestBooking] = useState<Booking | null>(null);
   const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
+
+  // User auth state
+  const [currentUser, setCurrentUser] = useState<User | null>(() => api.getCurrentUser());
+  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
+  const [authModalTab, setAuthModalTab] = useState<'login' | 'signup'>('login');
 
   // Prefill states for booking engine
   const [bookingDate, setBookingDate] = useState<string | undefined>(undefined);
@@ -104,6 +110,7 @@ export function App() {
         onBackToSite={() => setViewMode('site')}
         onGoToAdminPortal={() => setViewMode('admin')}
         onBookClick={() => scrollToBooking()}
+        onUserAuthChange={(user) => setCurrentUser(user)}
       />
     );
   }
@@ -118,6 +125,15 @@ export function App() {
         onBookClick={() => scrollToBooking()}
         onAdminClick={() => setViewMode('admin')}
         onCustomerClick={() => setViewMode('customer')}
+        onLoginClick={() => {
+          setAuthModalTab('login');
+          setShowAuthModal(true);
+        }}
+        currentUser={currentUser}
+        onLogout={() => {
+          api.userLogout();
+          setCurrentUser(null);
+        }}
         isAdminLoggedIn={Boolean(localStorage.getItem('dd_admin_token'))}
       />
 
@@ -191,8 +207,20 @@ export function App() {
         <BookingConfirmationModal
           booking={latestBooking}
           onClose={() => setShowConfirmation(false)}
+          onGoToPortal={() => setViewMode('customer')}
         />
       )}
+
+      {/* Customer User Sign In / Sign Up Modal */}
+      <UserAuthModal
+        isOpen={showAuthModal}
+        initialTab={authModalTab}
+        onClose={() => setShowAuthModal(false)}
+        onAuthSuccess={(user) => {
+          setCurrentUser(user);
+          setShowAuthModal(false);
+        }}
+      />
 
       {/* Mobile Sticky Booking Bar */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 p-3 bg-white/95 backdrop-blur-md border-t border-brand-mint-border z-40 flex items-center justify-between shadow-2xl">
