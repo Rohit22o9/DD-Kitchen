@@ -119,8 +119,57 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [loadingBookings, setLoadingBookings] = useState(false);
 
-  // Table View Density & Navigation States (Supports 1-Page Compressed View & Smooth Bottom Scrolling)
-  const [tableDensity, setTableDensity] = useState<'compact' | 'comfortable'>('compact');
+  // Live Perth Clock (AWST · UTC+8)
+  const [perthTimeStr, setPerthTimeStr] = useState('');
+  const [perthDateStr, setPerthDateStr] = useState('');
+  const [perthGreeting, setPerthGreeting] = useState('Good day');
+
+  useEffect(() => {
+    const updatePerthClock = () => {
+      const now = new Date();
+      try {
+        const timeFormatter = new Intl.DateTimeFormat('en-AU', {
+          timeZone: 'Australia/Perth',
+          hour: 'numeric',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true
+        });
+        setPerthTimeStr(timeFormatter.format(now));
+
+        const dateFormatter = new Intl.DateTimeFormat('en-AU', {
+          timeZone: 'Australia/Perth',
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        });
+        setPerthDateStr(dateFormatter.format(now));
+
+        const hourFormatter = new Intl.DateTimeFormat('en-AU', {
+          timeZone: 'Australia/Perth',
+          hour: 'numeric',
+          hour12: false
+        });
+        const hour = parseInt(hourFormatter.format(now), 10);
+        if (hour >= 4 && hour < 12) {
+          setPerthGreeting('Good morning');
+        } else if (hour >= 12 && hour < 17) {
+          setPerthGreeting('Good afternoon');
+        } else {
+          setPerthGreeting('Good evening');
+        }
+      } catch (err) {
+        console.error('Clock error:', err);
+      }
+    };
+
+    updatePerthClock();
+    const interval = setInterval(updatePerthClock, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Table Navigation & Bottom Scrolling States
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const bookingsTableRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -142,7 +191,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const handleResize = () => checkTableScroll();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [bookings, tableDensity, isSidebarCollapsed, activeNav]);
+  }, [bookings, isSidebarCollapsed, activeNav]);
 
   const scrollTable = (direction: 'left' | 'right' | 'start' | 'end') => {
     const el = bookingsTableRef.current;
@@ -784,16 +833,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       {/* 2. Main Content Area */}
       <div className="flex-1 flex flex-col min-h-screen overflow-y-auto">
-        {/* Top Header Bar */}
-        <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between sticky top-0 z-20">
+        {/* Top Header Bar with Live Australia/Perth Date & Time */}
+        <header className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between sticky top-0 z-20">
           <div>
-            <h2 className="text-xl font-bold text-gray-900 leading-tight">Good morning, Admin</h2>
-            <div className="flex items-center gap-2 mt-0.5">
-              <p className="text-xs text-gray-500">
-                Sunday, 18 October 2026 | Victoria Park, WA
-              </p>
+            <h2 className="text-xl font-bold text-gray-900 leading-tight">
+              {perthGreeting}, Admin
+            </h2>
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-700">
+                <Clock className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                <span className="font-mono font-bold text-emerald-900">{perthTimeStr || 'AWST'}</span>
+                <span className="text-gray-300">•</span>
+                <span>{perthDateStr || 'Perth, WA'}</span>
+                <span className="text-gray-300">|</span>
+                <span className="text-gray-500 font-normal">Victoria Park, WA</span>
+              </div>
               <span className="px-2 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded text-[10px] font-bold">
-                Perth Time (AWST · UTC+8)
+                AWST (UTC+8)
               </span>
             </div>
           </div>
@@ -1513,39 +1569,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   />
                 </div>
 
-                {/* View Density Toggle: One-Page View vs Comfortable View */}
-                <div className="flex items-center bg-white p-1 rounded-xl border border-gray-200 shadow-2xs text-xs font-semibold">
-                  <button
-                    type="button"
-                    onClick={() => setTableDensity('compact')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                      tableDensity === 'compact'
-                        ? 'bg-[#112F21] text-white shadow-2xs font-bold'
-                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
-                    }`}
-                    title="Compress information to view all 10 columns in one page without horizontal scrolling"
-                  >
-                    <Minimize2 className="w-3.5 h-3.5" />
-                    <span>One-Page View</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setTableDensity('comfortable')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                      tableDensity === 'comfortable'
-                        ? 'bg-[#112F21] text-white shadow-2xs font-bold'
-                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
-                    }`}
-                    title="Spacious view with side scrolling"
-                  >
-                    <Maximize2 className="w-3.5 h-3.5" />
-                    <span>Comfortable</span>
-                  </button>
-                </div>
-
-                {/* Quick Scroll Navigation Arrows (Top) */}
-                <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-gray-200 shadow-2xs">
+                {/* Quick Side Scroll Navigation Arrows */}
+                <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-gray-200 shadow-2xs">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 pl-2">Side Scroll:</span>
                   <button
                     type="button"
                     onClick={() => scrollTable('left')}
@@ -1555,7 +1581,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 px-1">Scroll</span>
                   <button
                     type="button"
                     onClick={() => scrollTable('right')}
@@ -1569,7 +1594,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             </div>
 
-            {/* Bookings Table with 3 Separate Columns: Date, Start Time, End Time */}
+            {/* Bookings Table: Permanently Compressed (One-Page Fit + Bottom Scrolling) */}
             <div className="bg-white rounded-2xl border border-gray-200/90 overflow-hidden shadow-xs flex flex-col">
               {/* Scrollable Container with Custom High-Contrast Scrollbar */}
               <div 
@@ -1577,19 +1602,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 onScroll={checkTableScroll}
                 className="overflow-x-auto admin-table-scroll focus:outline-none"
               >
-                <table className={`w-full text-left text-xs ${tableDensity === 'compact' ? 'min-w-[960px] lg:w-full' : 'min-w-[1280px]'}`}>
-                  <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 font-bold uppercase tracking-wider sticky top-0 z-10">
+                <table className="w-full text-left text-xs min-w-[960px] lg:w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 font-bold uppercase tracking-wider sticky top-0 z-10 text-[11px]">
                     <tr>
-                      <th className={`${tableDensity === 'compact' ? 'px-3 py-3 text-[11px]' : 'px-5 py-3.5 text-xs'}`}>Reference</th>
-                      <th className={`${tableDensity === 'compact' ? 'px-3 py-3 text-[11px]' : 'px-5 py-3.5 text-xs'}`}>Applicant / Brand / ABN</th>
-                      <th className={`${tableDensity === 'compact' ? 'px-3 py-3 text-[11px]' : 'px-5 py-3.5 text-xs'}`}>Date</th>
-                      <th className={`${tableDensity === 'compact' ? 'px-3 py-3 text-[11px]' : 'px-5 py-3.5 text-xs'}`}>Start Time (AWST)</th>
-                      <th className={`${tableDensity === 'compact' ? 'px-3 py-3 text-[11px]' : 'px-5 py-3.5 text-xs'}`}>End Time (AWST)</th>
-                      <th className={`${tableDensity === 'compact' ? 'px-3 py-3 text-[11px]' : 'px-5 py-3.5 text-xs'}`}>Use & Team</th>
-                      <th className={`${tableDensity === 'compact' ? 'px-3 py-3 text-[11px]' : 'px-5 py-3.5 text-xs'}`}>Amount</th>
-                      <th className={`${tableDensity === 'compact' ? 'px-3 py-3 text-[11px]' : 'px-5 py-3.5 text-xs'}`}>Status</th>
-                      <th className={`${tableDensity === 'compact' ? 'px-3 py-3 text-[11px]' : 'px-5 py-3.5 text-xs'}`}>Payment</th>
-                      <th className={`${tableDensity === 'compact' ? 'px-3 py-3 text-[11px]' : 'px-5 py-3.5 text-xs'} text-right`}>Actions</th>
+                      <th className="px-3 py-3">Reference</th>
+                      <th className="px-3 py-3">Applicant / Brand / ABN</th>
+                      <th className="px-3 py-3">Date</th>
+                      <th className="px-3 py-3">Start Time (AWST)</th>
+                      <th className="px-3 py-3">End Time (AWST)</th>
+                      <th className="px-3 py-3">Use & Team</th>
+                      <th className="px-3 py-3">Amount</th>
+                      <th className="px-3 py-3">Status</th>
+                      <th className="px-3 py-3">Payment</th>
+                      <th className="px-3 py-3 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 font-medium">
@@ -1610,12 +1635,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       bookings.map((b) => (
                         <tr key={b.reference_code} className="hover:bg-gray-50/70 transition-colors">
                           {/* 1. Reference */}
-                          <td className={`${tableDensity === 'compact' ? 'px-3 py-2.5 text-[11px]' : 'px-5 py-4 text-xs'} font-mono font-bold text-emerald-800 whitespace-nowrap`}>
+                          <td className="px-3 py-2.5 font-mono font-bold text-emerald-800 whitespace-nowrap text-[11px]">
                             {b.reference_code}
                           </td>
 
                           {/* 2. Applicant / Brand */}
-                          <td className={`${tableDensity === 'compact' ? 'px-3 py-2.5' : 'px-5 py-4'}`}>
+                          <td className="px-3 py-2.5">
                             <div className="font-bold text-gray-900 leading-snug truncate max-w-[155px]" title={b.full_name}>
                               {b.full_name}
                             </div>
@@ -1635,7 +1660,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </td>
 
                           {/* 3. Date Column (Formatted properly in Perth time) */}
-                          <td className={`${tableDensity === 'compact' ? 'px-3 py-2.5' : 'px-5 py-4'} whitespace-nowrap`}>
+                          <td className="px-3 py-2.5 whitespace-nowrap">
                             <div className="font-bold text-gray-900 flex items-center gap-1.5 text-xs">
                               <Calendar className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
                               <span>{formatDisplayDate(b.booking_date)}</span>
@@ -1643,7 +1668,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </td>
 
                           {/* 4. Start Time Column (Formatted properly in Perth time) */}
-                          <td className={`${tableDensity === 'compact' ? 'px-3 py-2.5' : 'px-5 py-4'} whitespace-nowrap`}>
+                          <td className="px-3 py-2.5 whitespace-nowrap">
                             <div className="font-semibold text-gray-800 flex items-center gap-1.5 text-xs">
                               <Clock className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
                               <span>{formatDisplayTime(b.start_time)}</span>
@@ -1652,7 +1677,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </td>
 
                           {/* 5. End Time Column (Formatted properly in Perth time) */}
-                          <td className={`${tableDensity === 'compact' ? 'px-3 py-2.5' : 'px-5 py-4'} whitespace-nowrap`}>
+                          <td className="px-3 py-2.5 whitespace-nowrap">
                             <div className="font-semibold text-gray-800 flex items-center gap-1.5 text-xs">
                               <Clock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                               <span>{formatDisplayTime(b.end_time || calculateEndTime(b.start_time, b.duration_hours))}</span>
@@ -1663,7 +1688,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </td>
 
                           {/* 6. Use & Team */}
-                          <td className={`${tableDensity === 'compact' ? 'px-3 py-2.5' : 'px-5 py-4'}`}>
+                          <td className="px-3 py-2.5">
                             <div className="font-medium text-gray-900 truncate max-w-[125px]" title={b.intended_use}>
                               {b.intended_use}
                             </div>
@@ -1671,12 +1696,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </td>
 
                           {/* 7. Amount */}
-                          <td className={`${tableDensity === 'compact' ? 'px-3 py-2.5' : 'px-5 py-4'} font-mono font-bold text-gray-900 whitespace-nowrap text-xs`}>
+                          <td className="px-3 py-2.5 font-mono font-bold text-gray-900 whitespace-nowrap text-xs">
                             ${Number(b.total_price || b.total_cost || 0).toFixed(2)}
                           </td>
 
                           {/* 8. Status */}
-                          <td className={`${tableDensity === 'compact' ? 'px-3 py-2.5' : 'px-5 py-4'} whitespace-nowrap`}>
+                          <td className="px-3 py-2.5 whitespace-nowrap">
                             <span
                               className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                                 b.status === 'confirmed'
@@ -1695,7 +1720,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </td>
 
                           {/* 9. Payment */}
-                          <td className={`${tableDensity === 'compact' ? 'px-3 py-2.5' : 'px-5 py-4'} whitespace-nowrap`}>
+                          <td className="px-3 py-2.5 whitespace-nowrap">
                             <span
                               className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                                 b.payment_status === 'paid'
@@ -1710,7 +1735,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </td>
 
                           {/* 10. Actions */}
-                          <td className={`${tableDensity === 'compact' ? 'px-3 py-2.5' : 'px-5 py-4'} text-right whitespace-nowrap`}>
+                          <td className="px-3 py-2.5 text-right whitespace-nowrap">
                             <button
                               onClick={() => openBookingModal(b)}
                               className="px-3 py-1 rounded-xl bg-[#112F21] hover:bg-[#1a4731] text-white text-[11px] font-bold transition-all shadow-xs cursor-pointer"
@@ -1727,20 +1752,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               {/* STICKY BOTTOM SCROLLING & NAVIGATION BAR */}
               <div className="sticky bottom-0 z-20 bg-white/95 backdrop-blur-md border-t border-gray-200 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 shadow-sm">
-                {/* Left: Summary & Mode indicator */}
+                {/* Left: Summary */}
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-gray-700">
                     {bookings.length} {bookings.length === 1 ? 'Booking' : 'Bookings'}
                   </span>
-                  {tableDensity === 'compact' ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-md font-semibold border border-emerald-200">
-                      ✓ One-Page View Active (Fits without scrolling)
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-[11px] bg-blue-50 text-blue-800 px-2 py-0.5 rounded-md font-semibold border border-blue-200">
-                      ⇄ Side Scrolling Active
-                    </span>
-                  )}
+                  <span className="text-[11px] text-gray-400">• Commercial Kitchen Schedule</span>
                 </div>
 
                 {/* Center / Right: Interactive Bottom Scroll Controls */}
