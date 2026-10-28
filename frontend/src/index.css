@@ -37,6 +37,34 @@
   background: #9BB8A5;
 }
 
+/* High-contrast, easily visible table horizontal scrollbar */
+.admin-table-scroll {
+  scrollbar-width: auto;
+  scrollbar-color: #264329 #E5EBE7;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-table-scroll::-webkit-scrollbar {
+  height: 12px;
+  width: 10px;
+}
+
+.admin-table-scroll::-webkit-scrollbar-track {
+  background: #EAF2EC;
+  border-radius: 6px;
+  border: 1px solid #D6E3D9;
+}
+
+.admin-table-scroll::-webkit-scrollbar-thumb {
+  background: #2D6A4F;
+  border-radius: 6px;
+  border: 2px solid #EAF2EC;
+}
+
+.admin-table-scroll::-webkit-scrollbar-thumb:hover {
+  background: #112F21;
+}
+
 /* Glass & Card effects */
 .glass-nav {
   background: rgba(250, 252, 249, 0.92);

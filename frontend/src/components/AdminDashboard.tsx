@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Shield, 
   Calendar, 
@@ -40,7 +40,11 @@ import {
   Sliders,
   Sparkles,
   ChevronLeft,
-  Package
+  Package,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Minimize2,
+  Maximize2
 } from 'lucide-react';
 import { 
   Booking, 
@@ -102,6 +106,45 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [loadingBookings, setLoadingBookings] = useState(false);
+
+  // Table View Density & Navigation States (Supports 1-Page Compressed View & Smooth Bottom Scrolling)
+  const [tableDensity, setTableDensity] = useState<'compact' | 'comfortable'>('compact');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const bookingsTableRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  const checkTableScroll = () => {
+    const el = bookingsTableRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    const maxScroll = scrollWidth - clientWidth;
+    setCanScrollLeft(scrollLeft > 5);
+    setCanScrollRight(maxScroll > 5 && scrollLeft < maxScroll - 5);
+    setScrollProgress(maxScroll > 0 ? (scrollLeft / maxScroll) * 100 : 0);
+  };
+
+  useEffect(() => {
+    checkTableScroll();
+    const handleResize = () => checkTableScroll();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [bookings, tableDensity, isSidebarCollapsed, activeNav]);
+
+  const scrollTable = (direction: 'left' | 'right' | 'start' | 'end') => {
+    const el = bookingsTableRef.current;
+    if (!el) return;
+    if (direction === 'start') {
+      el.scrollTo({ left: 0, behavior: 'smooth' });
+    } else if (direction === 'end') {
+      el.scrollTo({ left: el.scrollWidth, behavior: 'smooth' });
+    } else {
+      const offset = direction === 'left' ? -280 : 280;
+      el.scrollBy({ left: offset, behavior: 'smooth' });
+    }
+    setTimeout(checkTableScroll, 350);
+  };
 
   // Notifications drawer / dropdown
   const [showNotifications, setShowNotifications] = useState(false);
@@ -530,18 +573,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   return (
     <div className="min-h-screen bg-[#F4F6F8] flex text-[#1C252E] font-sans">
-      {/* 1. Left Dark Forest Green Operations Sidebar */}
-      <aside className="w-64 bg-[#112F21] text-white flex flex-col justify-between shrink-0 shadow-2xl border-r border-[#194531]">
+      {/* 1. Left Dark Forest Green Operations Sidebar (Collapsible for Maximum Table Width) */}
+      <aside className={`${isSidebarCollapsed ? 'w-20' : 'w-64'} bg-[#112F21] text-white flex flex-col justify-between shrink-0 shadow-2xl border-r border-[#194531] transition-all duration-300`}>
         <div>
-          {/* Logo & Kitchen Tagline */}
-          <div className="p-5 flex items-center gap-3 border-b border-[#1b4330]">
-            <div className="w-10 h-10 rounded-xl bg-[#ED8533] flex items-center justify-center text-white shadow-md">
-              <ChefHat className="w-6 h-6" />
+          {/* Logo & Kitchen Tagline + Collapse Toggle */}
+          <div className="p-4 flex items-center justify-between border-b border-[#1b4330]">
+            <div className="flex items-center gap-3 overflow-hidden">
+              <div className="w-10 h-10 rounded-xl bg-[#ED8533] flex items-center justify-center text-white shadow-md shrink-0">
+                <ChefHat className="w-6 h-6" />
+              </div>
+              {!isSidebarCollapsed && (
+                <div className="min-w-0">
+                  <h1 className="font-bold text-sm tracking-wide text-white leading-tight truncate">Daily Drop Kitchens</h1>
+                  <p className="text-[11px] text-[#8BB89F] font-medium truncate">Operations Dashboard</p>
+                </div>
+              )}
             </div>
-            <div>
-              <h1 className="font-bold text-sm tracking-wide text-white leading-tight">Daily Drop Kitchens</h1>
-              <p className="text-[11px] text-[#8BB89F] font-medium">Operations Dashboard</p>
-            </div>
+            <button
+              type="button"
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              className="p-1.5 rounded-lg text-[#8BB89F] hover:text-white hover:bg-[#1C4632] transition-colors shrink-0 cursor-pointer"
+              title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar for wider workspace"}
+            >
+              {isSidebarCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+            </button>
           </div>
 
           {/* Navigation Menu (Matching Image 1) */}
@@ -1411,17 +1466,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {/* ========================================================
             VIEW: BOOKINGS TAB (Matching Image 3 & User Request)
             "After the Applicant Column Change the Session Window in to three separate columns. Date column. Start Time. End Time."
+            "Scrolling at the bottom in order to navigate to the side. Better if info is compressed and can be viewed in one page without scrolling"
            ======================================================== */}
         {activeNav === 'bookings' && (
-          <main className="p-8 space-y-6 flex-1 max-w-[1440px]">
-            {/* Top Sub-tabs / Pills & Search */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <main className="p-4 sm:p-6 lg:p-8 space-y-5 flex-1 w-full max-w-full min-w-0">
+            {/* Top Sub-tabs / Pills & Search & Density Controls */}
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <div className="flex items-center gap-1.5 bg-white p-1 rounded-2xl border border-gray-200/90 shadow-2xs overflow-x-auto text-xs font-bold">
                 {['all', 'pending', 'approved', 'confirmed', 'completed', 'rejected'].map((st) => (
                   <button
                     key={st}
                     onClick={() => setStatusFilter(st)}
-                    className={`px-3.5 py-2 rounded-xl uppercase tracking-wider transition-all cursor-pointer ${
+                    className={`px-3 py-2 rounded-xl uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
                       statusFilter === st
                         ? 'bg-[#112F21] text-white shadow-xs'
                         : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
@@ -1432,90 +1488,160 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 ))}
               </div>
 
-              <div className="relative w-full md:w-80">
-                <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Search name, brand, ref code..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#112F21] focus:outline-none"
-                />
+              <div className="flex flex-wrap items-center gap-2.5">
+                {/* Search Bar */}
+                <div className="relative w-full sm:w-72">
+                  <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search name, brand, ref code..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#112F21] focus:outline-none"
+                  />
+                </div>
+
+                {/* View Density Toggle: One-Page View vs Comfortable View */}
+                <div className="flex items-center bg-white p-1 rounded-xl border border-gray-200 shadow-2xs text-xs font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => setTableDensity('compact')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                      tableDensity === 'compact'
+                        ? 'bg-[#112F21] text-white shadow-2xs font-bold'
+                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+                    }`}
+                    title="Compress information to view all 10 columns in one page without horizontal scrolling"
+                  >
+                    <Minimize2 className="w-3.5 h-3.5" />
+                    <span>One-Page View</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setTableDensity('comfortable')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                      tableDensity === 'comfortable'
+                        ? 'bg-[#112F21] text-white shadow-2xs font-bold'
+                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+                    }`}
+                    title="Spacious view with side scrolling"
+                  >
+                    <Maximize2 className="w-3.5 h-3.5" />
+                    <span>Comfortable</span>
+                  </button>
+                </div>
+
+                {/* Quick Scroll Navigation Arrows (Top) */}
+                <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-gray-200 shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => scrollTable('left')}
+                    disabled={!canScrollLeft}
+                    className="p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                    title="Scroll table left"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 px-1">Scroll</span>
+                  <button
+                    type="button"
+                    onClick={() => scrollTable('right')}
+                    disabled={!canScrollRight}
+                    className="p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                    title="Scroll table right"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
 
             {/* Bookings Table with 3 Separate Columns: Date, Start Time, End Time */}
-            <div className="bg-white rounded-2xl border border-gray-200/90 overflow-hidden shadow-xs">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-gray-50 border-b border-gray-200 text-gray-400 font-bold uppercase tracking-wider">
+            <div className="bg-white rounded-2xl border border-gray-200/90 overflow-hidden shadow-xs flex flex-col">
+              {/* Scrollable Container with Custom High-Contrast Scrollbar */}
+              <div 
+                ref={bookingsTableRef}
+                onScroll={checkTableScroll}
+                className="overflow-x-auto admin-table-scroll focus:outline-none"
+              >
+                <table className={`w-full text-left text-xs ${tableDensity === 'compact' ? 'min-w-[960px] lg:w-full' : 'min-w-[1280px]'}`}>
+                  <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 font-bold uppercase tracking-wider sticky top-0 z-10">
                     <tr>
-                      <th className="px-5 py-3.5">Reference</th>
-                      <th className="px-5 py-3.5">Applicant / Brand / ABN</th>
-                      <th className="px-5 py-3.5">Date</th>
-                      <th className="px-5 py-3.5">Start Time (AWST)</th>
-                      <th className="px-5 py-3.5">End Time (AWST)</th>
-                      <th className="px-5 py-3.5">Use & Team</th>
-                      <th className="px-5 py-3.5">Amount</th>
-                      <th className="px-5 py-3.5">Status</th>
-                      <th className="px-5 py-3.5">Payment</th>
-                      <th className="px-5 py-3.5 text-right">Actions</th>
+                      <th className={`${tableDensity === 'compact' ? 'px-3 py-3 text-[11px]' : 'px-5 py-3.5 text-xs'}`}>Reference</th>
+                      <th className={`${tableDensity === 'compact' ? 'px-3 py-3 text-[11px]' : 'px-5 py-3.5 text-xs'}`}>Applicant / Brand / ABN</th>
+                      <th className={`${tableDensity === 'compact' ? 'px-3 py-3 text-[11px]' : 'px-5 py-3.5 text-xs'}`}>Date</th>
+                      <th className={`${tableDensity === 'compact' ? 'px-3 py-3 text-[11px]' : 'px-5 py-3.5 text-xs'}`}>Start Time (AWST)</th>
+                      <th className={`${tableDensity === 'compact' ? 'px-3 py-3 text-[11px]' : 'px-5 py-3.5 text-xs'}`}>End Time (AWST)</th>
+                      <th className={`${tableDensity === 'compact' ? 'px-3 py-3 text-[11px]' : 'px-5 py-3.5 text-xs'}`}>Use & Team</th>
+                      <th className={`${tableDensity === 'compact' ? 'px-3 py-3 text-[11px]' : 'px-5 py-3.5 text-xs'}`}>Amount</th>
+                      <th className={`${tableDensity === 'compact' ? 'px-3 py-3 text-[11px]' : 'px-5 py-3.5 text-xs'}`}>Status</th>
+                      <th className={`${tableDensity === 'compact' ? 'px-3 py-3 text-[11px]' : 'px-5 py-3.5 text-xs'}`}>Payment</th>
+                      <th className={`${tableDensity === 'compact' ? 'px-3 py-3 text-[11px]' : 'px-5 py-3.5 text-xs'} text-right`}>Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 font-medium">
                     {loadingBookings ? (
                       <tr>
-                        <td colSpan={10} className="px-5 py-8 text-center text-gray-400">
-                          <Loader2 className="w-5 h-5 animate-spin mx-auto text-emerald-800" />
+                        <td colSpan={10} className="px-5 py-12 text-center text-gray-400">
+                          <Loader2 className="w-6 h-6 animate-spin mx-auto text-emerald-800" />
                           <p className="mt-2 text-xs">Loading reservations...</p>
                         </td>
                       </tr>
                     ) : bookings.length === 0 ? (
                       <tr>
-                        <td colSpan={10} className="px-5 py-8 text-center text-gray-400">
+                        <td colSpan={10} className="px-5 py-12 text-center text-gray-400">
                           No booking requests match the current filters.
                         </td>
                       </tr>
                     ) : (
                       bookings.map((b) => (
-                        <tr key={b.reference_code} className="hover:bg-gray-50/60 transition-colors">
+                        <tr key={b.reference_code} className="hover:bg-gray-50/70 transition-colors">
                           {/* 1. Reference */}
-                          <td className="px-5 py-4 font-mono font-bold text-emerald-800 whitespace-nowrap">
+                          <td className={`${tableDensity === 'compact' ? 'px-3 py-2.5 text-[11px]' : 'px-5 py-4 text-xs'} font-mono font-bold text-emerald-800 whitespace-nowrap`}>
                             {b.reference_code}
                           </td>
 
                           {/* 2. Applicant / Brand */}
-                          <td className="px-5 py-4">
-                            <div className="font-bold text-gray-900">{b.full_name}</div>
-                            {b.business_name && (
-                              <div className="text-gray-500 text-[11px]">{b.business_name}</div>
-                            )}
-                            {b.abn && (
-                              <div className="text-emerald-700 font-mono text-[10px] font-bold">ABN: {b.abn}</div>
-                            )}
-                            <div className="text-[11px] text-gray-400">{b.phone}</div>
+                          <td className={`${tableDensity === 'compact' ? 'px-3 py-2.5' : 'px-5 py-4'}`}>
+                            <div className="font-bold text-gray-900 leading-snug truncate max-w-[155px]" title={b.full_name}>
+                              {b.full_name}
+                            </div>
+                            <div className="flex items-center gap-1 flex-wrap mt-0.5">
+                              {b.business_name && (
+                                <span className="text-gray-500 text-[11px] truncate max-w-[110px]" title={b.business_name}>
+                                  {b.business_name}
+                                </span>
+                              )}
+                              {b.abn && (
+                                <span className="text-emerald-700 font-mono text-[9px] font-bold bg-emerald-50 px-1 py-0.2 rounded border border-emerald-200">
+                                  ABN {b.abn}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-gray-400 font-mono mt-0.5">{b.phone}</div>
                           </td>
 
                           {/* 3. Date Column (Formatted properly in Perth time) */}
-                          <td className="px-5 py-4 whitespace-nowrap">
-                            <div className="font-bold text-gray-900 flex items-center gap-1.5">
+                          <td className={`${tableDensity === 'compact' ? 'px-3 py-2.5' : 'px-5 py-4'} whitespace-nowrap`}>
+                            <div className="font-bold text-gray-900 flex items-center gap-1.5 text-xs">
                               <Calendar className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
                               <span>{formatDisplayDate(b.booking_date)}</span>
                             </div>
                           </td>
 
                           {/* 4. Start Time Column (Formatted properly in Perth time) */}
-                          <td className="px-5 py-4 whitespace-nowrap">
-                            <div className="font-semibold text-gray-800 flex items-center gap-1.5">
+                          <td className={`${tableDensity === 'compact' ? 'px-3 py-2.5' : 'px-5 py-4'} whitespace-nowrap`}>
+                            <div className="font-semibold text-gray-800 flex items-center gap-1.5 text-xs">
                               <Clock className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
                               <span>{formatDisplayTime(b.start_time)}</span>
                             </div>
-                            <span className="text-[10px] text-emerald-800 font-bold block mt-0.5">AWST</span>
+                            <span className="text-[9px] text-emerald-800 font-bold block mt-0.5">AWST</span>
                           </td>
 
                           {/* 5. End Time Column (Formatted properly in Perth time) */}
-                          <td className="px-5 py-4 whitespace-nowrap">
-                            <div className="font-semibold text-gray-800 flex items-center gap-1.5">
+                          <td className={`${tableDensity === 'compact' ? 'px-3 py-2.5' : 'px-5 py-4'} whitespace-nowrap`}>
+                            <div className="font-semibold text-gray-800 flex items-center gap-1.5 text-xs">
                               <Clock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                               <span>{formatDisplayTime(b.end_time || calculateEndTime(b.start_time, b.duration_hours))}</span>
                             </div>
@@ -1525,22 +1651,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </td>
 
                           {/* 6. Use & Team */}
-                          <td className="px-5 py-4">
-                            <div className="font-medium text-gray-900 truncate max-w-[140px]" title={b.intended_use}>
+                          <td className={`${tableDensity === 'compact' ? 'px-3 py-2.5' : 'px-5 py-4'}`}>
+                            <div className="font-medium text-gray-900 truncate max-w-[125px]" title={b.intended_use}>
                               {b.intended_use}
                             </div>
                             <div className="text-[11px] text-gray-400">{b.team_size} Person(s)</div>
                           </td>
 
                           {/* 7. Amount */}
-                          <td className="px-5 py-4 font-mono font-bold text-gray-900 whitespace-nowrap">
+                          <td className={`${tableDensity === 'compact' ? 'px-3 py-2.5' : 'px-5 py-4'} font-mono font-bold text-gray-900 whitespace-nowrap text-xs`}>
                             ${Number(b.total_price || b.total_cost || 0).toFixed(2)}
                           </td>
 
                           {/* 8. Status */}
-                          <td className="px-5 py-4 whitespace-nowrap">
+                          <td className={`${tableDensity === 'compact' ? 'px-3 py-2.5' : 'px-5 py-4'} whitespace-nowrap`}>
                             <span
-                              className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                                 b.status === 'confirmed'
                                   ? 'bg-emerald-100 text-emerald-800'
                                   : b.status === 'approved'
@@ -1557,9 +1683,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </td>
 
                           {/* 9. Payment */}
-                          <td className="px-5 py-4 whitespace-nowrap">
+                          <td className={`${tableDensity === 'compact' ? 'px-3 py-2.5' : 'px-5 py-4'} whitespace-nowrap`}>
                             <span
-                              className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                                 b.payment_status === 'paid'
                                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                   : b.payment_status === 'deposit_paid'
@@ -1572,10 +1698,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </td>
 
                           {/* 10. Actions */}
-                          <td className="px-5 py-4 text-right whitespace-nowrap">
+                          <td className={`${tableDensity === 'compact' ? 'px-3 py-2.5' : 'px-5 py-4'} text-right whitespace-nowrap`}>
                             <button
                               onClick={() => openBookingModal(b)}
-                              className="px-3.5 py-1.5 rounded-xl bg-[#112F21] hover:bg-[#1a4731] text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+                              className="px-3 py-1 rounded-xl bg-[#112F21] hover:bg-[#1a4731] text-white text-[11px] font-bold transition-all shadow-xs cursor-pointer"
                             >
                               Manage
                             </button>
@@ -1585,6 +1711,90 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     )}
                   </tbody>
                 </table>
+              </div>
+
+              {/* STICKY BOTTOM SCROLLING & NAVIGATION BAR */}
+              <div className="sticky bottom-0 z-20 bg-white/95 backdrop-blur-md border-t border-gray-200 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 shadow-sm">
+                {/* Left: Summary & Mode indicator */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-gray-700">
+                    {bookings.length} {bookings.length === 1 ? 'Booking' : 'Bookings'}
+                  </span>
+                  {tableDensity === 'compact' ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-md font-semibold border border-emerald-200">
+                      ✓ One-Page View Active (Fits without scrolling)
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[11px] bg-blue-50 text-blue-800 px-2 py-0.5 rounded-md font-semibold border border-blue-200">
+                      ⇄ Side Scrolling Active
+                    </span>
+                  )}
+                </div>
+
+                {/* Center / Right: Interactive Bottom Scroll Controls */}
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <span className="text-[11px] font-semibold text-gray-400">Scroll Side:</span>
+                    <button
+                      type="button"
+                      onClick={() => scrollTable('start')}
+                      className="text-xs font-bold text-emerald-800 hover:text-emerald-950 px-1 py-0.5 rounded hover:bg-emerald-50 cursor-pointer transition-colors"
+                      title="Jump to Reference column"
+                    >
+                      ⇤ Left
+                    </button>
+
+                    <div 
+                      className="w-24 sm:w-36 h-2.5 bg-gray-200 hover:bg-gray-300 rounded-full cursor-pointer relative overflow-hidden transition-colors border border-gray-300"
+                      title="Click anywhere on slider to scroll table side-to-side"
+                      onClick={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const pct = (e.clientX - rect.left) / rect.width;
+                        const el = bookingsTableRef.current;
+                        if (el) el.scrollTo({ left: pct * (el.scrollWidth - el.clientWidth), behavior: 'smooth' });
+                      }}
+                    >
+                      <div 
+                        className="h-full bg-[#112F21] rounded-full transition-all"
+                        style={{ 
+                          width: `${Math.max(25, scrollProgress)}%`,
+                          marginLeft: `${Math.min(100 - Math.max(25, scrollProgress), scrollProgress * 0.75)}%`
+                        }}
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => scrollTable('end')}
+                      className="text-xs font-bold text-emerald-800 hover:text-emerald-950 px-1 py-0.5 rounded hover:bg-emerald-50 cursor-pointer transition-colors"
+                      title="Jump to Actions column"
+                    >
+                      Right (Actions) ⇥
+                    </button>
+                  </div>
+
+                  {/* Left & Right Arrow Buttons */}
+                  <div className="flex items-center gap-1 border-l border-gray-200 pl-2">
+                    <button
+                      type="button"
+                      onClick={() => scrollTable('left')}
+                      disabled={!canScrollLeft}
+                      className="p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 text-gray-700 transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-2xs cursor-pointer"
+                      title="Scroll left"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => scrollTable('right')}
+                      disabled={!canScrollRight}
+                      className="p-1.5 rounded-lg border border-[#112F21] bg-[#112F21] hover:bg-[#1a4731] text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-2xs cursor-pointer"
+                      title="Scroll right"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </main>
@@ -1908,76 +2118,83 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             {/* Storage Bookings Table */}
             <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-xs">
-              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                <h4 className="font-bold text-sm text-gray-900">All Commercial Storage Leases</h4>
-                <span className="text-xs text-gray-400">{storageBookings.length} Total Lease(s)</span>
+              <div className="px-5 py-3.5 border-b border-gray-200 flex items-center justify-between bg-gray-50/50">
+                <div className="flex items-center gap-2">
+                  <h4 className="font-bold text-sm text-gray-900">All Commercial Storage Leases</h4>
+                  <span className="text-[11px] bg-sky-50 text-sky-800 font-semibold px-2 py-0.5 rounded-md border border-sky-200">
+                    Max 2 Active Tenants
+                  </span>
+                </div>
+                <span className="text-xs text-gray-400 font-semibold">{storageBookings.length} Total Lease(s)</span>
               </div>
-              <table className="w-full text-left text-xs">
-                <thead className="bg-gray-50 border-b border-gray-200 text-gray-400 font-bold uppercase tracking-wider">
-                  <tr>
-                    <th className="px-5 py-3.5">Reference</th>
-                    <th className="px-5 py-3.5">Tenant / ABN</th>
-                    <th className="px-5 py-3.5">Bay #</th>
-                    <th className="px-5 py-3.5">Storage Type</th>
-                    <th className="px-5 py-3.5">Rental Window</th>
-                    <th className="px-5 py-3.5">Amount</th>
-                    <th className="px-5 py-3.5">Status</th>
-                    <th className="px-5 py-3.5 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 font-medium">
-                  {storageBookings.length === 0 ? (
+              <div className="overflow-x-auto admin-table-scroll">
+                <table className="w-full text-left text-xs min-w-[850px]">
+                  <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 font-bold uppercase tracking-wider text-[11px]">
                     <tr>
-                      <td colSpan={8} className="px-5 py-8 text-center text-gray-400">
-                        No storage leases recorded yet.
-                      </td>
+                      <th className="px-4 py-3">Reference</th>
+                      <th className="px-4 py-3">Tenant / ABN</th>
+                      <th className="px-4 py-3">Bay #</th>
+                      <th className="px-4 py-3">Storage Type</th>
+                      <th className="px-4 py-3">Rental Window</th>
+                      <th className="px-4 py-3">Amount</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3 text-right">Actions</th>
                     </tr>
-                  ) : (
-                    storageBookings.map((st) => (
-                      <tr key={st.reference_code} className="hover:bg-gray-50/60 transition-colors">
-                        <td className="px-5 py-4 font-mono font-bold text-sky-800">{st.reference_code}</td>
-                        <td className="px-5 py-4">
-                          <div className="font-bold text-gray-900">{st.full_name}</div>
-                          {st.business_name && <div className="text-[11px] text-gray-500">{st.business_name}</div>}
-                          {st.abn && <div className="text-[10px] text-emerald-700 font-mono font-bold">ABN: {st.abn}</div>}
-                          <div className="text-[11px] text-gray-400">{st.phone}</div>
-                        </td>
-                        <td className="px-5 py-4">
-                          <span className="px-2 py-0.5 rounded-md bg-sky-100 text-sky-900 font-bold font-mono text-[11px]">
-                            Bay #{st.bay_number}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4 capitalize">{st.storage_type.replace('_', ' ')}</td>
-                        <td className="px-5 py-4 whitespace-nowrap">
-                          <div>{formatDisplayDate(st.start_date)}</div>
-                          <div className="text-[11px] text-gray-400">to {formatDisplayDate(st.end_date)} ({st.duration_days}d)</div>
-                        </td>
-                        <td className="px-5 py-4 font-mono font-bold">${Number(st.total_price).toFixed(2)} AUD</td>
-                        <td className="px-5 py-4">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                            st.status === 'confirmed' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                          }`}>
-                            {st.status}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4 text-right">
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              await api.updateStorageBookingStatus(st.reference_code, st.status === 'confirmed' ? 'completed' : 'confirmed');
-                              const refreshed = await api.getStorageBookings();
-                              setStorageBookings(refreshed);
-                            }}
-                            className="text-xs px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-emerald-50 hover:text-emerald-700 font-bold transition-colors cursor-pointer"
-                          >
-                            {st.status === 'confirmed' ? 'Mark Completed' : 'Approve Lease'}
-                          </button>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 font-medium">
+                    {storageBookings.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="px-5 py-8 text-center text-gray-400">
+                          No storage leases recorded yet.
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ) : (
+                      storageBookings.map((st) => (
+                        <tr key={st.reference_code} className="hover:bg-gray-50/60 transition-colors">
+                          <td className="px-4 py-3 font-mono font-bold text-sky-800 whitespace-nowrap">{st.reference_code}</td>
+                          <td className="px-4 py-3">
+                            <div className="font-bold text-gray-900 leading-snug">{st.full_name}</div>
+                            {st.business_name && <div className="text-[11px] text-gray-500">{st.business_name}</div>}
+                            {st.abn && <div className="text-[10px] text-emerald-700 font-mono font-bold">ABN: {st.abn}</div>}
+                            <div className="text-[10px] text-gray-400 font-mono">{st.phone}</div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <span className="px-2 py-0.5 rounded-md bg-sky-100 text-sky-900 font-bold font-mono text-[11px]">
+                              Bay #{st.bay_number}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 capitalize whitespace-nowrap">{st.storage_type.replace('_', ' ')}</td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="font-semibold text-gray-900">{formatDisplayDate(st.start_date)}</div>
+                            <div className="text-[11px] text-gray-400">to {formatDisplayDate(st.end_date)} ({st.duration_days}d)</div>
+                          </td>
+                          <td className="px-4 py-3 font-mono font-bold whitespace-nowrap">${Number(st.total_price).toFixed(2)} AUD</td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                              st.status === 'confirmed' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                            }`}>
+                              ● {st.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right whitespace-nowrap">
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                await api.updateStorageBookingStatus(st.reference_code, st.status === 'confirmed' ? 'completed' : 'confirmed');
+                                const refreshed = await api.getStorageBookings();
+                                setStorageBookings(refreshed);
+                              }}
+                              className="text-xs px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-emerald-50 hover:text-emerald-700 font-bold transition-colors cursor-pointer"
+                            >
+                              {st.status === 'confirmed' ? 'Mark Completed' : 'Approve Lease'}
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </main>
         )}
