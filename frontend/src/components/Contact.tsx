@@ -70,7 +70,7 @@ export const Contact: React.FC<ContactProps> = ({ config }) => {
             <span>Questions & Custom Bookings</span>
           </div>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-brand-dark tracking-tight">
-            Custom Rental & Storage Enquiry
+            Kitchen Rental & Storage Enquiry
           </h2>
           <p className="text-sm sm:text-base text-brand-muted mt-3 max-w-2xl mx-auto leading-relaxed">
             Need recurring kitchen shifts, long-term commercial storage space, or a tailored arrangement? 

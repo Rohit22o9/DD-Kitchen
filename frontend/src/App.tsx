@@ -124,6 +124,7 @@ export function App() {
         onBackToSite={() => setViewMode('site')}
         onGoToAdminPortal={() => setViewMode('admin')}
         onBookClick={() => scrollToBooking()}
+        onBookStorage={() => scrollToStorage()}
         onUserAuthChange={(user) => setCurrentUser(user)}
       />
     );
@@ -247,6 +248,8 @@ export function App() {
           setCurrentUser(user);
           setShowAuthModal(false);
           setAuthModalPrompt(undefined);
+          // Once the user logins, this should be his landing page
+          setViewMode('customer');
         }}
       />
 

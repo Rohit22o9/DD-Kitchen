@@ -35,16 +35,18 @@ import {
   Plus,
   X,
   FileCheck,
-  AlertTriangle
+  AlertTriangle,
+  Package
 } from 'lucide-react';
 import { Images } from '../assets/images';
 import { api } from '../services/api';
-import { User as UserType } from '../types';
+import { User as UserType, StorageBooking } from '../types';
 
 interface CustomerDashboardProps {
   onBackToSite: () => void;
   onGoToAdminPortal: () => void;
   onBookClick: () => void;
+  onBookStorage?: () => void;
   onUserAuthChange?: (user: UserType | null) => void;
 }
 
@@ -52,17 +54,11 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
   onBackToSite,
   onGoToAdminPortal,
   onBookClick,
+  onBookStorage,
   onUserAuthChange,
 }) => {
   const [currentUser, setCurrentUser] = useState<UserType | null>(() => api.getCurrentUser());
-  const [authTab, setAuthTab] = useState<'login' | 'signup'>('login');
-  const [authEmail, setAuthEmail] = useState('');
-  const [authPassword, setAuthPassword] = useState('');
-  const [authFullName, setAuthFullName] = useState('');
-  const [authBusiness, setAuthBusiness] = useState('');
-  const [authPhone, setAuthPhone] = useState('');
-  const [authLoading, setAuthLoading] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
+  const [userStorageBookings, setUserStorageBookings] = useState<StorageBooking[]>([]);
 
   // Payment instruction modal state
   const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
@@ -115,41 +111,81 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
     }
   }, [currentUser]);
 
-  // Load bookings for current user
+  // Load bookings and storage leases for current user
   useEffect(() => {
-    async function loadBookings() {
-      if (currentUser?.email) {
-        try {
-          const list = await api.getUserBookings(currentUser.email);
-          if (list && list.length > 0) {
-            setLiveUserBookings(list.map((b) => ({
-              reference_code: b.reference_code,
-              booking_date: b.booking_date,
-              date_time: `${b.booking_date}, ${b.start_time} – ${b.end_time}`,
-              intended_use: b.intended_use,
-              status: b.status === 'pending_approval' ? 'pending' : b.status,
-              payment_status: b.payment_status || 'unpaid',
-              amount: b.total_price || b.total_cost || 167.20,
-              duration: `${b.duration_hours} hours`,
-              team: `${b.team_size || 2} Persons`,
-              equipment: b.equipment_requirements || 'All-Inclusive Commercial Equipment',
-              location: 'Unit 1, 1 Lichfield St, Victoria Park',
-              duration_hours: b.duration_hours,
-              team_size: b.team_size || 2,
-              start_time: b.start_time,
-              end_time: b.end_time,
-              hourly_rate: b.hourly_rate || 38,
-              cleaning_fee: b.cleaning_fee || 0,
-              security_deposit: b.security_deposit || 750,
-              total_price: b.total_price || 167.20,
-            })));
-          }
-        } catch (e) {
-          console.warn('Error fetching bookings:', e);
+    async function loadData() {
+      const email = currentUser?.email || 'demo@dailydrop.today';
+      try {
+        const list = await api.getUserBookings(email);
+        if (list && list.length > 0) {
+          setLiveUserBookings(list.map((b) => ({
+            reference_code: b.reference_code,
+            booking_date: b.booking_date,
+            date_time: `${b.booking_date}, ${b.start_time} – ${b.end_time}`,
+            intended_use: b.intended_use,
+            status: b.status === 'pending_approval' ? 'pending' : b.status,
+            payment_status: b.payment_status || 'unpaid',
+            amount: b.total_price || b.total_cost || 167.20,
+            duration: `${b.duration_hours} hours`,
+            team: `${b.team_size || 2} Persons`,
+            equipment: b.equipment_requirements || 'All-Inclusive Commercial Equipment',
+            location: 'Unit 1, 1 Lichfield St, Victoria Park',
+            duration_hours: b.duration_hours,
+            team_size: b.team_size || 2,
+            start_time: b.start_time,
+            end_time: b.end_time,
+            hourly_rate: b.hourly_rate || 38,
+            cleaning_fee: b.cleaning_fee || 0,
+            security_deposit: b.security_deposit || 750,
+            total_price: b.total_price || 167.20,
+          })));
         }
+      } catch (e) {
+        console.warn('Error fetching bookings:', e);
+      }
+
+      try {
+        const stList = await api.getUserStorageBookings(email);
+        if (stList && stList.length > 0) {
+          setUserStorageBookings(stList);
+        } else {
+          // If demo user or none found for email, show the active commercial storage bay
+          const allSt = await api.getStorageBookings();
+          if (allSt && allSt.length > 0) {
+            setUserStorageBookings(allSt.slice(0, 1));
+          } else {
+            setUserStorageBookings([
+              {
+                id: 1,
+                reference_code: 'DD-ST-88102',
+                user_id: 1,
+                full_name: 'Chef Michael Davies',
+                business_name: 'Perth Catering Co.',
+                abn: '54 123 456 789',
+                email: 'demo@dailydrop.today',
+                phone: '+61 412 345 678',
+                storage_type: 'cool_room',
+                bay_number: 1,
+                start_date: '2026-10-15',
+                end_date: '2026-11-15',
+                duration_days: 31,
+                duration_type: 'monthly',
+                daily_rate: 7.10,
+                total_price: 220.00,
+                security_deposit: 200.00,
+                status: 'confirmed',
+                payment_status: 'paid',
+                special_requirements: 'Chilled dairy & prepared pastry rack storage',
+                created_at: '2026-10-14T08:00:00Z',
+              }
+            ]);
+          }
+        }
+      } catch (err) {
+        console.warn('Error fetching storage bookings:', err);
       }
     }
-    loadBookings();
+    loadData();
   }, [currentUser]);
 
   // Mock primary booking
@@ -310,46 +346,11 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
     alert(`Payment of invoice ${invId} completed successfully! A receipt has been issued.`);
   };
 
-  const handleDashboardLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError(null);
-    setAuthLoading(true);
-    try {
-      const res = await api.userLogin(authEmail, authPassword);
-      setCurrentUser(res.user);
-      onUserAuthChange?.(res.user);
-    } catch (err: any) {
-      setAuthError(err.message || 'Login failed. Please check credentials.');
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const handleDashboardSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError(null);
-    setAuthLoading(true);
-    try {
-      const res = await api.userSignUp({
-        email: authEmail,
-        password: authPassword,
-        full_name: authFullName,
-        business_name: authBusiness || undefined,
-        phone: authPhone || undefined,
-      });
-      setCurrentUser(res.user);
-      onUserAuthChange?.(res.user);
-    } catch (err: any) {
-      setAuthError(err.message || 'Signup failed. Please try again.');
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
   const handleDashboardLogout = () => {
     api.userLogout();
     setCurrentUser(null);
     onUserAuthChange?.(null);
+    onBackToSite();
   };
 
   const handleOpenPaymentModal = (b: any) => {
@@ -420,220 +421,6 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
     return matchesStatus && matchesSearch;
   });
 
-  // If user is not authenticated, show sign up / login portal screen
-  if (!currentUser) {
-    return (
-      <div className="min-h-screen bg-[#F4F6F8] flex flex-col justify-center items-center p-4 selection:bg-brand-mint selection:text-brand-forest">
-        {/* Brand Header */}
-        <div className="max-w-md w-full mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#112F21] text-[#ED8533] flex items-center justify-center shadow-md">
-              <ChefHat className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="font-extrabold text-base text-gray-900 leading-tight">Daily Drop Kitchens</h1>
-              <p className="text-xs text-gray-500">Customer & Tenant Portal</p>
-            </div>
-          </div>
-          <button
-            onClick={onBackToSite}
-            className="text-xs font-bold text-emerald-800 hover:text-emerald-900 flex items-center gap-1 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs cursor-pointer"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Back to Site</span>
-          </button>
-        </div>
-
-        {/* Auth Card */}
-        <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-xl border border-gray-200 space-y-5">
-          <div className="text-center">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-[#ED8533] bg-[#FFF3EB] px-3 py-1 rounded-full">
-              Member Access
-            </span>
-            <h2 className="text-2xl font-black text-gray-900 mt-2">
-              {authTab === 'login' ? 'Customer Sign In' : 'Create Customer Account'}
-            </h2>
-            <p className="text-xs text-gray-500 mt-1">
-              Sign up or log in using your email to view your kitchen bookings, payment confirmations & door keypad access.
-            </p>
-          </div>
-
-          {/* Toggle buttons */}
-          <div className="flex bg-[#F4F6F8] p-1 rounded-xl border border-gray-200">
-            <button
-              type="button"
-              onClick={() => { setAuthTab('login'); setAuthError(null); }}
-              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                authTab === 'login' ? 'bg-[#112F21] text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Sign In
-            </button>
-            <button
-              type="button"
-              onClick={() => { setAuthTab('signup'); setAuthError(null); }}
-              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                authTab === 'signup' ? 'bg-[#112F21] text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Sign Up (New User)
-            </button>
-          </div>
-
-          {authError && (
-            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              <span>{authError}</span>
-            </div>
-          )}
-
-          {authTab === 'login' ? (
-            <form onSubmit={handleDashboardLogin} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <input
-                    type="email"
-                    required
-                    placeholder="name@business.com.au"
-                    value={authEmail}
-                    onChange={(e) => setAuthEmail(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-[#112F21] focus:outline-none"
-                  />
-                  <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
-                  Password
-                </label>
-                <div className="relative">
-                  <input
-                    type="password"
-                    required
-                    placeholder="••••••••"
-                    value={authPassword}
-                    onChange={(e) => setAuthPassword(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-[#112F21] focus:outline-none"
-                  />
-                  <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={authLoading}
-                className="w-full bg-[#112F21] hover:bg-[#1a4731] text-white py-3 rounded-xl font-bold text-xs shadow-md transition-colors flex items-center justify-center gap-2 cursor-pointer"
-              >
-                {authLoading ? 'Signing in...' : 'Sign In to Portal'}
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleDashboardSignup} className="space-y-3">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
-                  Full Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Chef / Manager Name"
-                  value={authFullName}
-                  onChange={(e) => setAuthFullName(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-[#112F21] focus:outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
-                    Business (Opt.)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Catering Co."
-                    value={authBusiness}
-                    onChange={(e) => setAuthBusiness(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-[#112F21] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
-                    Phone (Opt.)
-                  </label>
-                  <input
-                    type="tel"
-                    placeholder="0400 000 000"
-                    value={authPhone}
-                    onChange={(e) => setAuthPhone(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-[#112F21] focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
-                  Email Address *
-                </label>
-                <input
-                  type="email"
-                  required
-                  placeholder="name@business.com.au"
-                  value={authEmail}
-                  onChange={(e) => setAuthEmail(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-[#112F21] focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
-                  Password * (Min 6 chars)
-                </label>
-                <input
-                  type="password"
-                  required
-                  minLength={6}
-                  placeholder="••••••••"
-                  value={authPassword}
-                  onChange={(e) => setAuthPassword(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-[#112F21] focus:outline-none"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={authLoading}
-                className="w-full bg-[#ED8533] hover:bg-[#d87222] text-white py-3 rounded-xl font-bold text-xs shadow-md transition-colors flex items-center justify-center gap-2 cursor-pointer mt-2"
-              >
-                {authLoading ? 'Creating account...' : 'Create Account & Enter'}
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </form>
-          )}
-
-          {/* Quick Demo button */}
-          <div className="pt-3 border-t border-gray-100 text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setAuthTab('login');
-                setAuthEmail('demo@dailydrop.today');
-                setAuthPassword('kitchen123');
-              }}
-              className="text-xs text-emerald-800 font-bold hover:underline cursor-pointer"
-            >
-              Quick Test: Fill Demo Account (demo@dailydrop.today / kitchen123)
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-[#F4F6F8] flex text-[#1C252E] font-sans">
       {/* 1. Left Dark Forest Green Sidebar */}
@@ -662,6 +449,19 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
             >
               <LayoutDashboard className="w-4 h-4 text-[#8BB89F]" />
               <span>Dashboard</span>
+            </button>
+
+            <button
+              onClick={onBookStorage || onBookClick}
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-[#B4D5C2] hover:bg-[#163c2b] hover:text-white transition-all cursor-pointer group"
+            >
+              <Package className="w-4 h-4 text-[#ED8533] group-hover:scale-110 transition-transform" />
+              <div className="flex items-center justify-between w-full">
+                <span>Book Storage Space</span>
+                <span className="text-[9px] bg-brand-orange text-white px-1.5 py-0.5 rounded-full font-black">
+                  Max 2
+                </span>
+              </div>
             </button>
 
             <button
@@ -1028,8 +828,30 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
                   </div>
                 </div>
 
-                {/* Right 5 Cols: "Book Another Kitchen" & Quick Links */}
-                <div className="lg:col-span-5 space-y-5">
+                {/* Right 5 Cols: "Book Storage Space" Placeholder & "Book Another Kitchen" & Quick Links */}
+                <div className="lg:col-span-5 space-y-4">
+                  {/* Action Banner Card: Book Storage Space (Feedback Batch 3) */}
+                  <button
+                    onClick={onBookStorage || onBookClick}
+                    className="w-full bg-linear-to-r from-[#112F21] to-[#1C4632] hover:from-[#163c2b] hover:to-[#23583f] text-white p-5 rounded-2xl shadow-sm flex items-center justify-between group transition-all cursor-pointer border border-emerald-800/40"
+                  >
+                    <div className="flex items-center gap-3.5 text-left">
+                      <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                        <Package className="w-5 h-5 text-[#ED8533]" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-sm">Book Storage Space</h4>
+                          <span className="text-[9px] font-black uppercase tracking-wider bg-brand-orange text-white px-2 py-0.5 rounded-full">
+                            Max 2 Bays
+                          </span>
+                        </div>
+                        <p className="text-xs text-white/80 mt-0.5">Reserve cool room, freezer or dry commercial bay</p>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-white/80 group-hover:translate-x-1 transition-transform" />
+                  </button>
+
                   {/* Action Banner Card */}
                   <button
                     onClick={onBookClick}
@@ -1152,7 +974,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
                 <div className="p-5 border-b border-gray-100 flex items-center justify-between">
                   <h3 className="font-bold text-sm text-gray-900 flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-emerald-700" />
-                    <span>Upcoming Bookings</span>
+                    <span>Upcoming Kitchen Bookings</span>
                   </h3>
                   <button
                     onClick={() => setActiveNav('bookings')}
@@ -1214,6 +1036,118 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
                   </table>
                 </div>
               </div>
+
+              {/* Commercial Storage Leases in Dashboard (Image 5 feedback) */}
+              <div className="bg-white rounded-2xl border border-gray-200/90 overflow-hidden shadow-xs">
+                <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-linear-to-r from-emerald-950/5 via-transparent to-transparent">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#112F21] text-[#ED8533] flex items-center justify-center shrink-0 shadow-xs">
+                      <Package className="w-5 h-5 text-[#ED8533]" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-sm text-gray-900">Your Commercial Storage Leases</h3>
+                        <span className="text-[10px] bg-brand-orange text-white px-2 py-0.5 rounded-full font-black uppercase tracking-wider">
+                          Max 2 Bays
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Lockable commercial cold room, freezer & dry goods bays at Victoria Park facility
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={onBookStorage || onBookClick}
+                    className="self-start sm:self-auto text-xs font-bold text-white bg-[#ED8533] hover:bg-[#d87222] px-3.5 py-2 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Book Storage Space</span>
+                  </button>
+                </div>
+
+                {userStorageBookings && userStorageBookings.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-gray-50/80 text-gray-400 font-bold uppercase tracking-wider border-b border-gray-100">
+                        <tr>
+                          <th className="px-6 py-3.5">Storage Bay & Unit</th>
+                          <th className="px-6 py-3.5">Reference</th>
+                          <th className="px-6 py-3.5">Lease Term</th>
+                          <th className="px-6 py-3.5">Rate & Total</th>
+                          <th className="px-6 py-3.5">Status</th>
+                          <th className="px-6 py-3.5">Payment</th>
+                          <th className="px-6 py-3.5 text-right">Access PIN</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 font-medium">
+                        {userStorageBookings.map((st) => (
+                          <tr key={st.reference_code} className="hover:bg-gray-50/50 transition-colors">
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-2.5">
+                                <span className="w-8 h-8 rounded-lg bg-[#112F21] text-white text-xs font-black flex items-center justify-center shrink-0">
+                                  B{st.bay_number}
+                                </span>
+                                <div>
+                                  <div className="font-bold text-gray-900 capitalize">
+                                    {st.storage_type.replace('_', ' ')} (Bay #{st.bay_number})
+                                  </div>
+                                  <div className="text-[11px] text-gray-400">Lockable Dedicated Bay</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 font-mono text-emerald-800 font-bold">{st.reference_code}</td>
+                            <td className="px-6 py-4 text-gray-700">
+                              <div className="font-semibold text-gray-900">{st.start_date} → {st.end_date}</div>
+                              <div className="text-[11px] text-gray-400 capitalize">{st.duration_type} Lease ({st.duration_days} days)</div>
+                            </td>
+                            <td className="px-6 py-4 text-gray-900 font-bold">
+                              <div>${Number(st.total_price || 0).toFixed(2)}</div>
+                              <div className="text-[10px] text-gray-400 font-normal">($200 bond held)</div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide bg-emerald-100 text-emerald-800">
+                                ● {st.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
+                                st.payment_status === 'paid'
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                  : 'bg-amber-50 text-amber-700 border-amber-200'
+                              }`}>
+                                {st.payment_status || 'paid'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <span className="px-2.5 py-1 rounded-lg bg-gray-100 font-mono text-xs font-bold text-gray-800 border border-gray-200">
+                                4892#
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="p-8 text-center bg-gray-50/40">
+                    <div className="w-12 h-12 rounded-2xl bg-brand-orange-light text-brand-orange flex items-center justify-center mx-auto mb-3">
+                      <Package className="w-6 h-6" />
+                    </div>
+                    <h4 className="font-bold text-sm text-gray-900">No Storage Space Bookings Yet</h4>
+                    <p className="text-xs text-gray-500 max-w-md mx-auto mt-1 leading-relaxed">
+                      Need dedicated cold room shelving, commercial freezer space, or dry ingredient pallet storage? 
+                      We offer 2 lockable storage bays for registered food businesses.
+                    </p>
+                    <button
+                      onClick={onBookStorage || onBookClick}
+                      className="mt-4 inline-flex items-center gap-2 bg-[#112F21] hover:bg-[#1C4632] text-white text-xs font-bold px-4 py-2 rounded-xl shadow-xs transition-all cursor-pointer"
+                    >
+                      <Package className="w-3.5 h-3.5 text-[#ED8533]" />
+                      <span>Book Storage Space (Max 2 Hirers)</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </>
           )}
 
@@ -1252,11 +1186,18 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
                     />
                   </div>
                   <button
+                    onClick={onBookStorage || onBookClick}
+                    className="bg-[#112F21] hover:bg-[#1C4632] text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
+                  >
+                    <Package className="w-3.5 h-3.5 text-[#ED8533]" />
+                    <span>Book Storage</span>
+                  </button>
+                  <button
                     onClick={onBookClick}
-                    className="bg-[#ED8533] hover:bg-[#d87222] text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
+                    className="bg-[#ED8533] hover:bg-[#d87222] text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>New Booking</span>
+                    <span>New Kitchen Slot</span>
                   </button>
                 </div>
               </div>

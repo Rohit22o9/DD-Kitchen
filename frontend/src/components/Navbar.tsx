@@ -146,16 +146,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             )}
 
-            {onCustomerClick && (
-              <button
-                onClick={onCustomerClick}
-                className="flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-gray-700 border border-gray-200 hover:bg-gray-50 transition-all cursor-pointer shadow-2xs"
-                title="Customer & Tenant Dashboard"
-              >
-                <span>Portal</span>
-              </button>
-            )}
-
             <button
               onClick={onAdminClick}
               className="flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-brand-forest border border-brand-forest/30 hover:bg-brand-mint/50 hover:border-brand-forest/50 transition-all cursor-pointer shadow-2xs"
@@ -287,7 +277,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               Contact Us
             </button>
 
-            {onCustomerClick && (
+            {currentUser && onCustomerClick && (
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
@@ -296,7 +286,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="text-left py-2 text-brand-forest font-semibold flex items-center space-x-2 border-b border-gray-100"
               >
                 <UserIcon className="w-4 h-4" />
-                <span>Customer Portal</span>
+                <span>Customer Dashboard</span>
               </button>
             )}
 

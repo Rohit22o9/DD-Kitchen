@@ -376,13 +376,12 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1 flex items-center justify-between">
-                    <span>ABN (11 Digits)</span>
-                    <span className="text-[10px] text-brand-muted font-normal">Australian Business No.</span>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-brand-dark mb-1">
+                    ABN
                   </label>
                   <input
                     type="text"
-                    placeholder="51 824 753 556"
+                    placeholder="11 Digits"
                     value={signupAbn}
                     onChange={(e) => setSignupAbn(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-gray-300 bg-white text-xs font-medium focus:ring-2 focus:ring-brand-forest focus:outline-none"
