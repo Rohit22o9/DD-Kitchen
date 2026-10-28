@@ -633,9 +633,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const totalBookingsCount = bookings.length;
 
   return (
-    <div className="min-h-screen bg-[#F4F6F8] flex text-[#1C252E] font-sans">
+    <div className="h-screen bg-[#F4F6F8] flex text-[#1C252E] font-sans overflow-hidden">
       {/* 1. Left Dark Forest Green Operations Sidebar (Collapsible for Maximum Table Width) */}
-      <aside className={`${isSidebarCollapsed ? 'w-20' : 'w-64'} bg-[#112F21] text-white flex flex-col justify-between shrink-0 shadow-2xl border-r border-[#194531] transition-all duration-300`}>
+      <aside className={`${isSidebarCollapsed ? 'w-20' : 'w-64'} bg-[#112F21] text-white flex flex-col justify-between shrink-0 shadow-2xl border-r border-[#194531] transition-all duration-300 h-screen overflow-y-auto`}>
         <div>
           {/* Logo & Kitchen Tagline + Collapse Toggle */}
           <div className="p-4 flex items-center justify-between border-b border-[#1b4330]">
@@ -831,10 +831,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       </aside>
 
-      {/* 2. Main Content Area */}
-      <div className="flex-1 flex flex-col min-h-screen overflow-y-auto">
+      {/* 2. Main Content Area (Locked to screen height so One-Page View fits without window scrolling) */}
+      <div className="flex-1 flex flex-col h-screen min-w-0 overflow-hidden">
         {/* Top Header Bar with Live Australia/Perth Date & Time */}
-        <header className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between sticky top-0 z-20">
+        <header className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between shrink-0 z-20">
           <div>
             <h2 className="text-xl font-bold text-gray-900 leading-tight">
               {perthGreeting}, Admin
@@ -960,7 +960,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             VIEW: OPERATIONS DASHBOARD (Matching Image 1)
            ======================================================== */}
         {activeNav === 'dashboard' && (
-          <main className="p-8 space-y-8 flex-1 max-w-[1440px]">
+          <main className="p-4 sm:p-6 lg:p-8 space-y-8 flex-1 max-w-[1440px] overflow-y-auto">
             {/* Top 5 Stat Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               {/* 1. Bookings Today */}
@@ -1537,17 +1537,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             "Scrolling at the bottom in order to navigate to the side. Better if info is compressed and can be viewed in one page without scrolling"
            ======================================================== */}
         {activeNav === 'bookings' && (
-          <main className="p-4 sm:p-6 lg:p-8 space-y-5 flex-1 w-full max-w-full min-w-0">
-            {/* Top Sub-tabs / Pills & Search & Density Controls */}
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-              <div className="flex items-center gap-1.5 bg-white p-1 rounded-2xl border border-gray-200/90 shadow-2xs overflow-x-auto text-xs font-bold">
+          <main className="p-3 sm:p-4 lg:p-5 flex-1 min-h-0 flex flex-col space-y-2.5 w-full max-w-full overflow-hidden">
+            {/* Top Sub-tabs / Pills & Search */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-1 bg-white p-1 rounded-2xl border border-gray-200/90 shadow-2xs overflow-x-auto text-xs font-bold">
                 {['all', 'pending', 'approved', 'confirmed', 'completed', 'rejected'].map((st) => (
                   <button
                     key={st}
                     onClick={() => setStatusFilter(st)}
-                    className={`px-3 py-2 rounded-xl uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
+                    className={`px-3 py-1.5 rounded-xl uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap text-[11px] ${
                       statusFilter === st
-                        ? 'bg-[#112F21] text-white shadow-xs'
+                        ? 'bg-[#112F21] text-white shadow-xs font-bold'
                         : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
                     }`}
                   >
@@ -1556,154 +1556,151 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 ))}
               </div>
 
-              <div className="flex flex-wrap items-center gap-2.5">
+              <div className="flex items-center gap-2">
                 {/* Search Bar */}
-                <div className="relative w-full sm:w-72">
-                  <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <div className="relative w-full sm:w-64">
+                  <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     placeholder="Search name, brand, ref code..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#112F21] focus:outline-none"
+                    className="w-full pl-8 pr-3 py-1.5 bg-white border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#112F21] focus:outline-none"
                   />
                 </div>
 
                 {/* Quick Side Scroll Navigation Arrows */}
-                <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-gray-200 shadow-2xs">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 pl-2">Side Scroll:</span>
+                <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-gray-200 shadow-2xs shrink-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 pl-1.5">Side Scroll:</span>
                   <button
                     type="button"
                     onClick={() => scrollTable('left')}
                     disabled={!canScrollLeft}
-                    className="p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                    className="p-1 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                     title="Scroll table left"
                   >
-                    <ChevronLeft className="w-4 h-4" />
+                    <ChevronLeft className="w-3.5 h-3.5" />
                   </button>
                   <button
                     type="button"
                     onClick={() => scrollTable('right')}
                     disabled={!canScrollRight}
-                    className="p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                    className="p-1 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                     title="Scroll table right"
                   >
-                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Bookings Table: Permanently Compressed (One-Page Fit + Bottom Scrolling) */}
-            <div className="bg-white rounded-2xl border border-gray-200/90 overflow-hidden shadow-xs flex flex-col">
+            {/* Bookings Table: 100% Screen-Fit (One-Page View with Fixed Header & Bottom Controls) */}
+            <div className="bg-white rounded-2xl border border-gray-200/90 overflow-hidden shadow-xs flex-1 min-h-0 flex flex-col">
               {/* Scrollable Container with Custom High-Contrast Scrollbar */}
               <div 
                 ref={bookingsTableRef}
                 onScroll={checkTableScroll}
-                className="overflow-x-auto admin-table-scroll focus:outline-none"
+                className="overflow-x-auto overflow-y-auto flex-1 min-h-0 admin-table-scroll focus:outline-none"
               >
-                <table className="w-full text-left text-xs min-w-[960px] lg:w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 font-bold uppercase tracking-wider sticky top-0 z-10 text-[11px]">
+                <table className="w-full text-left text-xs min-w-[840px]">
+                  <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 font-bold uppercase tracking-wider sticky top-0 z-10 text-[10px]">
                     <tr>
-                      <th className="px-3 py-3">Reference</th>
-                      <th className="px-3 py-3">Applicant / Brand / ABN</th>
-                      <th className="px-3 py-3">Date</th>
-                      <th className="px-3 py-3">Start Time (AWST)</th>
-                      <th className="px-3 py-3">End Time (AWST)</th>
-                      <th className="px-3 py-3">Use & Team</th>
-                      <th className="px-3 py-3">Amount</th>
-                      <th className="px-3 py-3">Status</th>
-                      <th className="px-3 py-3">Payment</th>
-                      <th className="px-3 py-3 text-right">Actions</th>
+                      <th className="px-2.5 py-2">Reference</th>
+                      <th className="px-2.5 py-2">Applicant / Brand / ABN</th>
+                      <th className="px-2.5 py-2">Date</th>
+                      <th className="px-2.5 py-2">Start (AWST)</th>
+                      <th className="px-2.5 py-2">End (AWST)</th>
+                      <th className="px-2.5 py-2">Use & Team</th>
+                      <th className="px-2.5 py-2">Amount</th>
+                      <th className="px-2.5 py-2">Status</th>
+                      <th className="px-2.5 py-2">Payment</th>
+                      <th className="px-2.5 py-2 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 font-medium">
                     {loadingBookings ? (
                       <tr>
-                        <td colSpan={10} className="px-5 py-12 text-center text-gray-400">
-                          <Loader2 className="w-6 h-6 animate-spin mx-auto text-emerald-800" />
-                          <p className="mt-2 text-xs">Loading reservations...</p>
+                        <td colSpan={10} className="px-4 py-8 text-center text-gray-400">
+                          <Loader2 className="w-5 h-5 animate-spin mx-auto text-emerald-800" />
+                          <p className="mt-1.5 text-xs">Loading reservations...</p>
                         </td>
                       </tr>
                     ) : bookings.length === 0 ? (
                       <tr>
-                        <td colSpan={10} className="px-5 py-12 text-center text-gray-400">
+                        <td colSpan={10} className="px-4 py-8 text-center text-gray-400">
                           No booking requests match the current filters.
                         </td>
                       </tr>
                     ) : (
                       bookings.map((b) => (
-                        <tr key={b.reference_code} className="hover:bg-gray-50/70 transition-colors">
+                        <tr key={b.reference_code} className="hover:bg-gray-50/80 transition-colors">
                           {/* 1. Reference */}
-                          <td className="px-3 py-2.5 font-mono font-bold text-emerald-800 whitespace-nowrap text-[11px]">
+                          <td className="px-2.5 py-1.5 font-mono font-bold text-emerald-800 whitespace-nowrap text-[11px]">
                             {b.reference_code}
                           </td>
 
                           {/* 2. Applicant / Brand */}
-                          <td className="px-3 py-2.5">
-                            <div className="font-bold text-gray-900 leading-snug truncate max-w-[155px]" title={b.full_name}>
+                          <td className="px-2.5 py-1.5">
+                            <div className="font-bold text-gray-900 leading-tight text-xs truncate max-w-[135px]" title={b.full_name}>
                               {b.full_name}
                             </div>
                             <div className="flex items-center gap-1 flex-wrap mt-0.5">
                               {b.business_name && (
-                                <span className="text-gray-500 text-[11px] truncate max-w-[110px]" title={b.business_name}>
+                                <span className="text-gray-500 text-[10px] truncate max-w-[95px]" title={b.business_name}>
                                   {b.business_name}
                                 </span>
                               )}
                               {b.abn && (
-                                <span className="text-emerald-700 font-mono text-[9px] font-bold bg-emerald-50 px-1 py-0.2 rounded border border-emerald-200">
+                                <span className="text-emerald-700 font-mono text-[9px] font-bold bg-emerald-50 px-1 rounded border border-emerald-200">
                                   ABN {b.abn}
                                 </span>
                               )}
                             </div>
-                            <div className="text-[10px] text-gray-400 font-mono mt-0.5">{b.phone}</div>
+                            <div className="text-[9px] text-gray-400 font-mono">{b.phone}</div>
                           </td>
 
-                          {/* 3. Date Column (Formatted properly in Perth time) */}
-                          <td className="px-3 py-2.5 whitespace-nowrap">
-                            <div className="font-bold text-gray-900 flex items-center gap-1.5 text-xs">
-                              <Calendar className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                              <span>{formatDisplayDate(b.booking_date)}</span>
+                          {/* 3. Date Column (Compact Perth Date) */}
+                          <td className="px-2.5 py-1.5 whitespace-nowrap">
+                            <div className="font-semibold text-gray-900 flex items-center gap-1 text-[11px]">
+                              <Calendar className="w-3 h-3 text-emerald-700 shrink-0" />
+                              <span>{formatDisplayDate(b.booking_date).replace(/^[A-Za-z]+,\s*/, '')}</span>
                             </div>
                           </td>
 
-                          {/* 4. Start Time Column (Formatted properly in Perth time) */}
-                          <td className="px-3 py-2.5 whitespace-nowrap">
-                            <div className="font-semibold text-gray-800 flex items-center gap-1.5 text-xs">
-                              <Clock className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                          {/* 4. Start Time Column */}
+                          <td className="px-2.5 py-1.5 whitespace-nowrap">
+                            <div className="font-semibold text-gray-800 flex items-center gap-1 text-[11px]">
+                              <Clock className="w-3 h-3 text-emerald-700 shrink-0" />
                               <span>{formatDisplayTime(b.start_time)}</span>
                             </div>
-                            <span className="text-[9px] text-emerald-800 font-bold block mt-0.5">AWST</span>
                           </td>
 
-                          {/* 5. End Time Column (Formatted properly in Perth time) */}
-                          <td className="px-3 py-2.5 whitespace-nowrap">
-                            <div className="font-semibold text-gray-800 flex items-center gap-1.5 text-xs">
-                              <Clock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                          {/* 5. End Time Column */}
+                          <td className="px-2.5 py-1.5 whitespace-nowrap">
+                            <div className="font-semibold text-gray-800 flex items-center gap-1 text-[11px]">
+                              <Clock className="w-3 h-3 text-gray-400 shrink-0" />
                               <span>{formatDisplayTime(b.end_time || calculateEndTime(b.start_time, b.duration_hours))}</span>
+                              <span className="text-[10px] text-gray-400 font-normal ml-0.5">({b.duration_hours}h)</span>
                             </div>
-                            <span className="text-[10px] text-gray-400 font-normal block mt-0.5">
-                              {b.duration_hours}h duration
-                            </span>
                           </td>
 
                           {/* 6. Use & Team */}
-                          <td className="px-3 py-2.5">
-                            <div className="font-medium text-gray-900 truncate max-w-[125px]" title={b.intended_use}>
+                          <td className="px-2.5 py-1.5">
+                            <div className="font-medium text-gray-900 truncate max-w-[100px] text-[11px]" title={b.intended_use}>
                               {b.intended_use}
                             </div>
-                            <div className="text-[11px] text-gray-400">{b.team_size} Person(s)</div>
+                            <div className="text-[10px] text-gray-400">{b.team_size} Person(s)</div>
                           </td>
 
                           {/* 7. Amount */}
-                          <td className="px-3 py-2.5 font-mono font-bold text-gray-900 whitespace-nowrap text-xs">
+                          <td className="px-2.5 py-1.5 font-mono font-bold text-gray-900 whitespace-nowrap text-xs">
                             ${Number(b.total_price || b.total_cost || 0).toFixed(2)}
                           </td>
 
                           {/* 8. Status */}
-                          <td className="px-3 py-2.5 whitespace-nowrap">
+                          <td className="px-2.5 py-1.5 whitespace-nowrap">
                             <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                              className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
                                 b.status === 'confirmed'
                                   ? 'bg-emerald-100 text-emerald-800'
                                   : b.status === 'approved'
@@ -1720,9 +1717,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </td>
 
                           {/* 9. Payment */}
-                          <td className="px-3 py-2.5 whitespace-nowrap">
+                          <td className="px-2.5 py-1.5 whitespace-nowrap">
                             <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                              className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
                                 b.payment_status === 'paid'
                                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                   : b.payment_status === 'deposit_paid'
@@ -1735,10 +1732,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </td>
 
                           {/* 10. Actions */}
-                          <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                          <td className="px-2.5 py-1.5 text-right whitespace-nowrap">
                             <button
                               onClick={() => openBookingModal(b)}
-                              className="px-3 py-1 rounded-xl bg-[#112F21] hover:bg-[#1a4731] text-white text-[11px] font-bold transition-all shadow-xs cursor-pointer"
+                              className="px-2.5 py-1 rounded-lg bg-[#112F21] hover:bg-[#1a4731] text-white text-[10px] font-bold transition-all shadow-xs cursor-pointer"
                             >
                               Manage
                             </button>
@@ -1750,20 +1747,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </table>
               </div>
 
-              {/* STICKY BOTTOM SCROLLING & NAVIGATION BAR */}
-              <div className="sticky bottom-0 z-20 bg-white/95 backdrop-blur-md border-t border-gray-200 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 shadow-sm">
+              {/* FIXED BOTTOM SCROLLING & NAVIGATION BAR */}
+              <div className="shrink-0 bg-white border-t border-gray-200 px-3 py-2 flex flex-wrap items-center justify-between gap-2 shadow-2xs">
                 {/* Left: Summary */}
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-gray-700">
                     {bookings.length} {bookings.length === 1 ? 'Booking' : 'Bookings'}
                   </span>
-                  <span className="text-[11px] text-gray-400">• Commercial Kitchen Schedule</span>
+                  <span className="text-[10px] text-gray-400">• Perth Commercial Kitchen Schedule</span>
                 </div>
 
                 {/* Center / Right: Interactive Bottom Scroll Controls */}
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <span className="text-[11px] font-semibold text-gray-400">Scroll Side:</span>
+                <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                    <span className="text-[10px] font-semibold text-gray-400">Scroll:</span>
                     <button
                       type="button"
                       onClick={() => scrollTable('start')}
@@ -1774,7 +1771,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </button>
 
                     <div 
-                      className="w-24 sm:w-36 h-2.5 bg-gray-200 hover:bg-gray-300 rounded-full cursor-pointer relative overflow-hidden transition-colors border border-gray-300"
+                      className="w-20 sm:w-32 h-2.5 bg-gray-200 hover:bg-gray-300 rounded-full cursor-pointer relative overflow-hidden transition-colors border border-gray-300"
                       title="Click anywhere on slider to scroll table side-to-side"
                       onClick={(e) => {
                         const rect = e.currentTarget.getBoundingClientRect();
@@ -1808,19 +1805,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       type="button"
                       onClick={() => scrollTable('left')}
                       disabled={!canScrollLeft}
-                      className="p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 text-gray-700 transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-2xs cursor-pointer"
+                      className="p-1 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 text-gray-700 transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-2xs cursor-pointer"
                       title="Scroll left"
                     >
-                      <ChevronLeft className="w-4 h-4" />
+                      <ChevronLeft className="w-3.5 h-3.5" />
                     </button>
                     <button
                       type="button"
                       onClick={() => scrollTable('right')}
                       disabled={!canScrollRight}
-                      className="p-1.5 rounded-lg border border-[#112F21] bg-[#112F21] hover:bg-[#1a4731] text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-2xs cursor-pointer"
+                      className="p-1 rounded-lg border border-[#112F21] bg-[#112F21] hover:bg-[#1a4731] text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-2xs cursor-pointer"
                       title="Scroll right"
                     >
-                      <ChevronRight className="w-4 h-4" />
+                      <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
@@ -1833,7 +1830,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             VIEW: KITCHEN CALENDAR
            ======================================================== */}
         {activeNav === 'calendar' && (
-          <main className="p-8 space-y-6 flex-1 max-w-[1440px]">
+          <main className="p-4 sm:p-6 lg:p-8 space-y-6 flex-1 max-w-[1440px] overflow-y-auto">
             <div className="bg-white rounded-2xl border border-gray-200/90 p-6 shadow-xs space-y-6">
               <div className="flex items-center justify-between border-b border-gray-100 pb-4">
                 <div>
@@ -1891,7 +1888,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             VIEW: PAYMENTS & DEPOSITS
            ======================================================== */}
         {activeNav === 'payments' && (
-          <main className="p-8 space-y-6 flex-1 max-w-[1440px]">
+          <main className="p-4 sm:p-6 lg:p-8 space-y-6 flex-1 max-w-[1440px] overflow-y-auto">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-xs">
                 <div className="text-xs font-bold text-gray-500 uppercase">Total Revenue Collected</div>
@@ -1943,7 +1940,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             VIEW: CUSTOMERS
            ======================================================== */}
         {activeNav === 'customers' && (
-          <main className="p-8 space-y-6 flex-1 max-w-[1440px]">
+          <main className="p-4 sm:p-6 lg:p-8 space-y-6 flex-1 max-w-[1440px] overflow-y-auto">
             <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs space-y-4">
               <h3 className="font-bold text-base text-gray-900">Tenant & Applicant Directory</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1968,7 +1965,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             VIEW: KITCHEN MANAGEMENT & BLOCKED SLOTS
            ======================================================== */}
         {activeNav === 'kitchen' && (
-          <main className="p-8 space-y-8 flex-1 max-w-[1440px]">
+          <main className="p-4 sm:p-6 lg:p-8 space-y-8 flex-1 max-w-[1440px] overflow-y-auto">
             <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs space-y-6">
               <h3 className="font-bold text-base text-gray-900">Scheduled Maintenance & Blocked Slots</h3>
               <p className="text-xs text-gray-500">Block hours for deep sanitation, hood degreasing, or maintenance</p>
@@ -2041,7 +2038,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             VIEW: STORAGE BAYS (MAX 2 TENANTS CAPACITY)
            ======================================================== */}
         {activeNav === 'storage' && (
-          <main className="p-8 space-y-8 flex-1 max-w-[1440px]">
+          <main className="p-4 sm:p-6 lg:p-8 space-y-8 flex-1 max-w-[1440px] overflow-y-auto">
             {/* Storage Header & Stats */}
             <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -2232,7 +2229,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             VIEW: ENQUIRIES
            ======================================================== */}
         {activeNav === 'enquiries' && (
-          <main className="p-8 space-y-6 flex-1 max-w-[1440px]">
+          <main className="p-4 sm:p-6 lg:p-8 space-y-6 flex-1 max-w-[1440px] overflow-y-auto">
             <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs space-y-4">
               <h3 className="font-bold text-base text-gray-900">Customer Enquiries & Prospective Tenants</h3>
               <div className="divide-y divide-gray-100">
@@ -2259,7 +2256,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             VIEW: REPORTS
            ======================================================== */}
         {activeNav === 'reports' && (
-          <main className="p-8 space-y-6 flex-1 max-w-[1440px]">
+          <main className="p-4 sm:p-6 lg:p-8 space-y-6 flex-1 max-w-[1440px] overflow-y-auto">
             <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs space-y-6">
               <h3 className="font-bold text-base text-gray-900">Operations & Occupancy Reports</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -2287,7 +2284,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             VIEW: SETTINGS
            ======================================================== */}
         {activeNav === 'settings' && (
-          <main className="p-8 space-y-8 flex-1 max-w-[1440px]">
+          <main className="p-4 sm:p-6 lg:p-8 space-y-8 flex-1 max-w-[1440px] overflow-y-auto">
             {/* Google Sheets Sync */}
             <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs space-y-4">
               <div className="flex items-center gap-3">
