@@ -85,10 +85,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loggingIn, setLoggingIn] = useState(false);
 
-  // Active Main Navigation Tab matching Image 1
-  const [activeNav, setActiveNav] = useState<
-    'dashboard' | 'bookings' | 'calendar' | 'payments' | 'customers' | 'kitchen' | 'storage' | 'enquiries' | 'reports' | 'settings'
-  >('dashboard');
+  // Active Main Navigation Tab (Default to 'bookings' or saved in localStorage so refreshes don't reset)
+  type AdminNavTab = 'dashboard' | 'bookings' | 'calendar' | 'payments' | 'customers' | 'kitchen' | 'storage' | 'enquiries' | 'reports' | 'settings';
+  
+  const [activeNav, setActiveNavState] = useState<AdminNavTab>(() => {
+    const saved = localStorage.getItem('dd_admin_active_nav') as AdminNavTab | null;
+    if (saved) return saved;
+    if (window.location.hash.includes('bookings')) return 'bookings';
+    return 'bookings';
+  });
+
+  const setActiveNav = (nav: AdminNavTab) => {
+    try {
+      localStorage.setItem('dd_admin_active_nav', nav);
+    } catch (_) {}
+    setActiveNavState(nav);
+  };
 
   const [storageBookings, setStorageBookings] = useState<StorageBooking[]>([]);
 
