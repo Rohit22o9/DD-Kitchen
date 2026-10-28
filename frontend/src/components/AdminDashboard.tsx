@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   Shield, 
   Calendar, 
@@ -259,6 +259,137 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [showPaymentLinkPrompt, setShowPaymentLinkPrompt] = useState(false);
   const [sendPaymentLinkChoice, setSendPaymentLinkChoice] = useState<'yes' | 'no'>('yes');
   const [paymentOptionChoice, setPaymentOptionChoice] = useState<'full' | 'split'>('full');
+
+  // Group bookings & customer records into unique customer profiles (Image 3)
+  const uniqueCustomers = useMemo(() => {
+    const map = new Map<string, {
+      id: string;
+      full_name: string;
+      business_name?: string;
+      email: string;
+      phone: string;
+      abn: string;
+      status: 'Active' | 'Inactive';
+      totalBookings: number;
+    }>();
+
+    const defaultAbnMap: Record<string, string> = {
+      'michael': '54 123 456 789',
+      'rohit': '61 824 753 556',
+      'srini': '38 412 879 104',
+      'satya': '72 901 345 612',
+      'test': '47 917 570 500',
+    };
+
+    bookings.forEach((b) => {
+      const key = (b.email || b.phone || b.full_name).trim().toLowerCase();
+      if (!key) return;
+
+      const isActive = b.status === 'confirmed' || b.status === 'approved' || b.status === 'pending_approval';
+      const existing = map.get(key);
+      const firstNameLower = b.full_name.split(' ')[0].toLowerCase();
+      const abnVal = (b as any).abn || defaultAbnMap[firstNameLower] || '51 902 829 220';
+
+      if (existing) {
+        existing.totalBookings += 1;
+        if (isActive) existing.status = 'Active';
+        if (!existing.business_name && b.business_name) existing.business_name = b.business_name;
+        if (abnVal && existing.abn === '51 902 829 220') existing.abn = abnVal;
+      } else {
+        map.set(key, {
+          id: key,
+          full_name: b.full_name,
+          business_name: b.business_name || '',
+          email: b.email,
+          phone: b.phone,
+          abn: abnVal,
+          status: isActive ? 'Active' : 'Inactive',
+          totalBookings: 1,
+        });
+      }
+    });
+
+    return Array.from(map.values());
+  }, [bookings]);
+
+  // Kitchen Calendar: Weekly calendar view state & helpers (Image 4 wireframe)
+  const [calendarWeekStart, setCalendarWeekStart] = useState<Date>(() => {
+    return new Date('2026-10-26T00:00:00');
+  });
+  const [calendarKitchen, setCalendarKitchen] = useState<string>('kitchen-1');
+
+  const calendarDays = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(calendarWeekStart);
+      d.setDate(calendarWeekStart.getDate() + i);
+      const iso = d.toISOString().split('T')[0];
+      const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+      const dayNum = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+      return {
+        dateObj: d,
+        iso,
+        dayName,
+        dayNum,
+        label: `${dayName} (${dayNum})`,
+      };
+    });
+  }, [calendarWeekStart]);
+
+  const calendarWeekLabel = useMemo(() => {
+    if (calendarDays.length === 0) return '';
+    const first = calendarDays[0];
+    const last = calendarDays[6];
+    return `Week of ${first.dayNum} – ${last.dayNum} ${first.dateObj.getFullYear()}`;
+  }, [calendarDays]);
+
+  const navigateCalendarWeek = (direction: -1 | 1) => {
+    setCalendarWeekStart((prev) => {
+      const next = new Date(prev);
+      next.setDate(next.getDate() + direction * 7);
+      return next;
+    });
+  };
+
+  const resetCalendarToToday = () => {
+    setCalendarWeekStart(new Date('2026-10-26T00:00:00'));
+  };
+
+  const CALENDAR_SLOTS = [
+    { label: '00:00 – 04:00', startHour: 0, endHour: 4 },
+    { label: '04:00 – 08:00', startHour: 4, endHour: 8 },
+    { label: '08:00 – 12:00', startHour: 8, endHour: 12 },
+    { label: '12:00 – 16:00', startHour: 12, endHour: 16 },
+    { label: '16:00 – 20:00', startHour: 16, endHour: 20 },
+    { label: '20:00 – 24:00', startHour: 20, endHour: 24 },
+  ];
+
+  const getSlotBookings = (dayIso: string, startHour: number, endHour: number) => {
+    return bookings.filter((b) => {
+      let bDate = b.booking_date || '';
+      if (bDate.includes(',')) {
+        const parsed = new Date(bDate);
+        if (!isNaN(parsed.getTime())) {
+          bDate = parsed.toISOString().split('T')[0];
+        }
+      }
+      if (bDate !== dayIso) return false;
+
+      let h = 10;
+      const t = b.start_time || '';
+      const m12 = t.match(/(\d+):(\d+)\s*(AM|PM)/i);
+      if (m12) {
+        h = parseInt(m12[1], 10);
+        const isPM = m12[3].toUpperCase() === 'PM';
+        if (isPM && h < 12) h += 12;
+        if (!isPM && h === 12) h = 0;
+      } else {
+        const m24 = t.match(/^(\d+):/);
+        if (m24) h = parseInt(m24[1], 10);
+      }
+
+      return h >= startHour && h < endHour;
+    });
+  };
 
   // Initial load when token is present
   useEffect(() => {
@@ -803,16 +934,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         {/* Sidebar Footer Controls */}
         <div className="p-4 border-t border-[#1b4330] space-y-2 text-xs">
-          {onGoToCustomerPortal && (
-            <button
-              onClick={onGoToCustomerPortal}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-[#B4D5C2] hover:bg-[#163c2b] hover:text-white transition-all text-left"
-            >
-              <ChefHat className="w-4 h-4 text-[#ED8533]" />
-              <span>Customer Portal View</span>
-            </button>
-          )}
-
           <button
             onClick={onBackToSite}
             className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-[#B4D5C2] hover:bg-[#163c2b] hover:text-white transition-all text-left"
@@ -1827,58 +1948,185 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         )}
 
         {/* ========================================================
-            VIEW: KITCHEN CALENDAR
+            VIEW: KITCHEN CALENDAR (Weekly 7-Day / 4-Hour Block Wireframe)
            ======================================================== */}
         {activeNav === 'calendar' && (
           <main className="p-4 sm:p-6 lg:p-8 space-y-6 flex-1 max-w-[1440px] overflow-y-auto">
-            <div className="bg-white rounded-2xl border border-gray-200/90 p-6 shadow-xs space-y-6">
-              <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+            <div className="bg-white rounded-2xl border border-gray-200/90 p-5 sm:p-6 shadow-xs space-y-5">
+              {/* Top Title Bar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-gray-100 gap-3">
                 <div>
                   <h3 className="font-bold text-base text-gray-900">Commercial Kitchen Reservation Calendar</h3>
-                  <p className="text-xs text-gray-500">Visual operational schedule across all shifts and stations</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Visual operational schedule across all shifts and stations (7 days · 4-hour blocks from 00:00 to 24:00)</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="flex items-center gap-1.5 text-xs text-emerald-700 font-semibold">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Confirmed
+                {/* Legend */}
+                <div className="flex items-center gap-3 text-xs">
+                  <span className="flex items-center gap-1.5 font-semibold text-emerald-800">
+                    <span className="w-3 h-3 rounded-xs bg-emerald-600 inline-block"></span> Confirmed
                   </span>
-                  <span className="flex items-center gap-1.5 text-xs text-blue-700 font-semibold ml-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span> Approved
+                  <span className="flex items-center gap-1.5 font-semibold text-amber-800">
+                    <span className="w-3 h-3 rounded-xs bg-amber-500 inline-block"></span> Pending
                   </span>
-                  <span className="flex items-center gap-1.5 text-xs text-amber-700 font-semibold ml-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Pending
+                  <span className="flex items-center gap-1.5 font-semibold text-red-800">
+                    <span className="w-3 h-3 rounded-xs bg-red-500 inline-block"></span> Cancelled
                   </span>
                 </div>
               </div>
 
-              {/* Day slot cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {bookings.map((b) => (
-                  <div
-                    key={b.reference_code}
-                    onClick={() => openBookingModal(b)}
-                    className="p-4 rounded-xl border border-gray-200 hover:border-emerald-600 transition-all cursor-pointer bg-gray-50/50 space-y-2 hover:shadow-md"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono font-bold text-xs text-emerald-800">{b.reference_code}</span>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800">
-                        {b.status}
-                      </span>
-                    </div>
-                    <div className="font-bold text-sm text-gray-900">{b.full_name}</div>
-                    <div className="text-xs text-gray-500 flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                      <span>{formatDisplayDate(b.booking_date)}</span>
-                    </div>
-                    <div className="text-xs text-gray-500 flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5 text-gray-400" />
-                      <span>{formatDisplayTime(b.start_time)} – {formatDisplayTime(b.end_time || calculateEndTime(b.start_time, b.duration_hours))}</span>
-                    </div>
-                    <div className="text-xs text-gray-600 border-t border-gray-100 pt-2 flex items-center justify-between font-mono font-bold">
-                      <span>Total: ${Number(b.total_price || b.total_cost || 0).toFixed(2)}</span>
-                      <span className="text-emerald-700 font-sans text-[11px]">Click to manage →</span>
-                    </div>
+              {/* Wireframe Controls Bar: Kitchen Selector + New Booking + Week Navigator */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gray-50/80 p-3 rounded-xl border border-gray-200">
+                {/* Kitchen Dropdown & New Booking CTA */}
+                <div className="flex items-center gap-2.5">
+                  <div className="flex items-center bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 shadow-2xs">
+                    <span className="text-xs text-gray-500 font-semibold mr-1.5">Kitchen:</span>
+                    <select
+                      value={calendarKitchen}
+                      onChange={(e) => setCalendarKitchen(e.target.value)}
+                      className="text-xs font-bold text-gray-800 bg-transparent focus:outline-none cursor-pointer"
+                    >
+                      <option value="kitchen-1">Kitchen 1 (Victoria Park)</option>
+                      <option value="all">All Prep Stations</option>
+                    </select>
                   </div>
-                ))}
+
+                  <button
+                    onClick={() => {
+                      // Open quick booking modal with default slot
+                      if (bookings.length > 0) openBookingModal(bookings[0]);
+                    }}
+                    className="bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5 text-brand-orange" />
+                    <span>+ New booking</span>
+                  </button>
+                </div>
+
+                {/* Week Range Navigator (< Week of 26 Oct - 1 Nov 2026 > Today) */}
+                <div className="flex items-center gap-2 self-end sm:self-auto">
+                  <div className="flex items-center bg-white border border-gray-300 rounded-lg shadow-2xs overflow-hidden">
+                    <button
+                      onClick={() => navigateCalendarWeek(-1)}
+                      className="px-2.5 py-1.5 text-gray-600 hover:bg-gray-100 hover:text-gray-900 border-r border-gray-200 cursor-pointer text-xs font-bold"
+                      title="Previous 7 Days"
+                    >
+                      &lt;
+                    </button>
+                    <div className="px-3 py-1.5 text-xs font-bold text-gray-800 whitespace-nowrap">
+                      {calendarWeekLabel}
+                    </div>
+                    <button
+                      onClick={() => navigateCalendarWeek(1)}
+                      className="px-2.5 py-1.5 text-gray-600 hover:bg-gray-100 hover:text-gray-900 border-l border-gray-200 cursor-pointer text-xs font-bold"
+                      title="Next 7 Days"
+                    >
+                      &gt;
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={resetCalendarToToday}
+                    className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-2xs cursor-pointer"
+                  >
+                    Today
+                  </button>
+                </div>
+              </div>
+
+              {/* Weekly Wireframe Calendar Grid (1280px and up wireframe, scrollable on smaller screens) */}
+              <div className="border border-gray-200 rounded-xl overflow-x-auto shadow-2xs bg-white">
+                <table className="w-full border-collapse text-xs min-w-[960px]">
+                  <thead>
+                    <tr className="bg-gray-100/90 text-gray-700 border-b border-gray-200">
+                      <th className="w-28 p-3 text-center font-bold text-xs uppercase tracking-wider border-r border-gray-200 bg-gray-100">
+                        Time
+                      </th>
+                      {calendarDays.map((d) => (
+                        <th key={d.iso} className="p-3 text-center border-r border-gray-200 last:border-r-0 font-bold min-w-[125px]">
+                          <div className="text-gray-900 font-extrabold text-xs">{d.dayName}</div>
+                          <div className="text-[11px] text-gray-500 font-semibold mt-0.5">{d.dayNum}</div>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {CALENDAR_SLOTS.map((slot) => (
+                      <tr key={slot.label} className="divide-x divide-gray-200">
+                        {/* Time Slot Header Column */}
+                        <td className="p-3 text-center font-bold text-gray-700 bg-gray-50/70 text-[11px] align-middle select-none whitespace-pre-line border-r border-gray-200">
+                          {slot.label}
+                        </td>
+
+                        {/* 7 Days Columns */}
+                        {calendarDays.map((d) => {
+                          const slotBookings = getSlotBookings(d.iso, slot.startHour, slot.endHour);
+
+                          return (
+                            <td
+                              key={`${d.iso}-${slot.label}`}
+                              className="p-1.5 align-top min-h-[92px] h-[92px] bg-white hover:bg-gray-50/40 transition-colors"
+                            >
+                              {slotBookings.length === 0 ? (
+                                <div className="h-full flex items-center justify-center text-gray-400 text-xs font-normal select-none">
+                                  No bookings
+                                </div>
+                              ) : (
+                                <div className="space-y-1.5">
+                                  {slotBookings.map((b) => {
+                                    const isConfirmed = b.status === 'confirmed';
+                                    const isPending = b.status === 'pending_approval' || b.status === 'approved' || b.status === 'pending';
+                                    const isCancelled = b.status === 'rejected' || b.status === 'cancelled';
+
+                                    const cardStyle = isConfirmed
+                                      ? 'border-l-4 border-l-emerald-600 bg-emerald-50/80 text-emerald-950 hover:bg-emerald-100/80 hover:shadow-xs'
+                                      : isPending
+                                      ? 'border-l-4 border-l-amber-500 bg-amber-50/80 text-amber-950 hover:bg-amber-100/80 hover:shadow-xs'
+                                      : 'border-l-4 border-l-red-500 bg-red-50/80 text-red-950 hover:bg-red-100/80 hover:shadow-xs';
+
+                                    const statusText = isConfirmed
+                                      ? 'Confirmed'
+                                      : isPending
+                                      ? 'Pending'
+                                      : 'Cancelled';
+
+                                    const statusColor = isConfirmed
+                                      ? 'text-emerald-700'
+                                      : isPending
+                                      ? 'text-amber-700'
+                                      : 'text-red-700';
+
+                                    return (
+                                      <div
+                                        key={b.reference_code}
+                                        onClick={() => openBookingModal(b)}
+                                        className={`rounded-lg p-2 text-left cursor-pointer transition-all shadow-2xs ${cardStyle}`}
+                                        title={`Click to view & manage booking ${b.reference_code}`}
+                                      >
+                                        <div className="font-extrabold text-xs truncate">
+                                          {b.business_name || b.full_name}
+                                        </div>
+                                        <div className="flex items-center justify-between text-[10px] mt-0.5">
+                                          <span className={`font-bold ${statusColor}`}>
+                                            {statusText}
+                                          </span>
+                                          <span className="font-mono text-gray-500 text-[10px]">
+                                            {b.duration_hours || 4}h
+                                          </span>
+                                        </div>
+                                        <div className="text-[10px] text-gray-600 truncate mt-0.5">
+                                          {b.intended_use}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           </main>
@@ -1937,22 +2185,52 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         )}
 
         {/* ========================================================
-            VIEW: CUSTOMERS
+            VIEW: CUSTOMERS (Unique directory, ABN & Active/Inactive status)
            ======================================================== */}
         {activeNav === 'customers' && (
           <main className="p-4 sm:p-6 lg:p-8 space-y-6 flex-1 max-w-[1440px] overflow-y-auto">
             <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs space-y-4">
-              <h3 className="font-bold text-base text-gray-900">Tenant & Applicant Directory</h3>
+              <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                <div>
+                  <h3 className="font-bold text-base text-gray-900">Tenant & Applicant Directory</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">Verified food businesses and registered commercial kitchen hirers</p>
+                </div>
+                <span className="text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded-full">
+                  {uniqueCustomers.length} Hirer Accounts
+                </span>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {bookings.map((b) => (
-                  <div key={b.reference_code} className="p-4 rounded-xl border border-gray-100 bg-gray-50/50 space-y-2 text-xs">
-                    <div className="font-bold text-sm text-gray-900">{b.full_name}</div>
-                    <div className="text-gray-500">{b.business_name || 'Individual Chef'}</div>
-                    <div className="text-gray-600 flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-gray-400" /> {b.email}</div>
-                    <div className="text-gray-600 flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-gray-400" /> {b.phone}</div>
-                    <div className="border-t border-gray-100 pt-2 flex items-center justify-between text-[11px] text-gray-400">
-                      <span>Ref: {b.reference_code}</span>
-                      <span className="font-bold text-emerald-700 uppercase">{b.status}</span>
+                {uniqueCustomers.map((c) => (
+                  <div key={c.id} className="p-4 rounded-xl border border-gray-200/90 bg-white hover:border-emerald-600 shadow-2xs transition-all space-y-2.5 text-xs">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="font-bold text-sm text-gray-900">{c.full_name}</div>
+                        <div className="text-gray-500 font-medium">{c.business_name || 'Commercial Kitchen Hirer'}</div>
+                      </div>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                        c.status === 'Active'
+                          ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                          : 'bg-gray-100 text-gray-600 border-gray-200'
+                      }`}>
+                        ● {c.status}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1 text-gray-600">
+                      <div className="flex items-center gap-1.5">
+                        <Mail className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                        <span className="truncate">{c.email}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Phone className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                        <span>{c.phone}</span>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-gray-100 pt-2 flex items-center justify-between text-[11px]">
+                      <span className="font-semibold text-gray-700">ABN: <span className="font-mono text-gray-900">{c.abn}</span></span>
+                      <span className="text-gray-400 font-medium">{c.totalBookings} booking{c.totalBookings > 1 ? 's' : ''}</span>
                     </div>
                   </div>
                 ))}

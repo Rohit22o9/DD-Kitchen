@@ -79,6 +79,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
   // Filter state for Bookings tab
   const [bookingFilterStatus, setBookingFilterStatus] = useState<string>('all');
   const [bookingSearch, setBookingSearch] = useState<string>('');
+  const [bookingCategory, setBookingCategory] = useState<'all' | 'kitchen' | 'storage'>('all');
 
   // Support ticket form state
   const [supportSubmitted, setSupportSubmitted] = useState<boolean>(false);
@@ -556,13 +557,6 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
             <span>Sign Out</span>
           </button>
           <button
-            onClick={onGoToAdminPortal}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-[#B4D5C2] hover:bg-[#163c2b] hover:text-white transition-all text-left cursor-pointer"
-          >
-            <ShieldCheck className="w-4 h-4 text-[#ED8533]" />
-            <span>Switch to Admin Panel</span>
-          </button>
-          <button
             onClick={onBackToSite}
             className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-[#B4D5C2] hover:bg-[#163c2b] hover:text-white transition-all text-left cursor-pointer"
           >
@@ -579,7 +573,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
           <div>
             <h2 className="text-xl font-bold text-gray-900">
               {activeNav === 'dashboard' && `Welcome back, ${chefName}!`}
-              {activeNav === 'bookings' && 'My Kitchen Bookings'}
+              {activeNav === 'bookings' && 'My Kitchen & Storage Bookings'}
               {activeNav === 'payments' && 'Payments & Invoices'}
               {activeNav === 'recurring' && 'Recurring Bookings & Production Schedules'}
               {activeNav === 'guidelines' && 'Commercial Kitchen Guidelines & Safety'}
@@ -588,7 +582,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
             </h2>
             <p className="text-xs text-gray-500 mt-0.5">
               {activeNav === 'dashboard' && 'Manage your kitchen bookings, payments and everything in one place.'}
-              {activeNav === 'bookings' && 'Review your upcoming reservations, past cooking sessions, and booking specifications.'}
+              {activeNav === 'bookings' && 'Review your upcoming reservations, past cooking sessions, and storage bay leases.'}
               {activeNav === 'payments' && 'Track outstanding fees, download official tax invoices, and manage payment records.'}
               {activeNav === 'recurring' && 'Reserve regular weekly or fortnightly production shifts with dedicated storage.'}
               {activeNav === 'guidelines' && 'Health compliance, sanitisation checklists, and council commercial standards.'}
@@ -1152,10 +1146,47 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
           )}
 
           {/* ========================================================== */}
-          {/* TAB 2: MY BOOKINGS VIEW */}
+          {/* TAB 2: MY BOOKINGS & STORAGE VIEW */}
           {/* ========================================================== */}
           {activeNav === 'bookings' && (
             <div className="space-y-6">
+              {/* Category Segmented Selector (Kitchen vs Storage vs All) */}
+              <div className="flex items-center gap-2 border-b border-gray-200 pb-3">
+                <button
+                  onClick={() => setBookingCategory('all')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                    bookingCategory === 'all'
+                      ? 'bg-[#112F21] text-white shadow-xs'
+                      : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <LayoutDashboard className="w-3.5 h-3.5 text-[#ED8533]" />
+                  <span>All Bookings & Storage ({filteredBookings.length + userStorageBookings.length})</span>
+                </button>
+                <button
+                  onClick={() => setBookingCategory('kitchen')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                    bookingCategory === 'kitchen'
+                      ? 'bg-[#112F21] text-white shadow-xs'
+                      : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <Calendar className="w-3.5 h-3.5 text-[#ED8533]" />
+                  <span>Kitchen Bookings ({filteredBookings.length})</span>
+                </button>
+                <button
+                  onClick={() => setBookingCategory('storage')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                    bookingCategory === 'storage'
+                      ? 'bg-[#112F21] text-white shadow-xs'
+                      : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <Package className="w-3.5 h-3.5 text-[#ED8533]" />
+                  <span>Storage Space Leases ({userStorageBookings.length})</span>
+                </button>
+              </div>
+
               {/* Controls bar: Filters + Search + New Booking CTA */}
               <div className="bg-white rounded-2xl p-5 border border-gray-200/90 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex flex-wrap items-center gap-2">
@@ -1169,7 +1200,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                     >
-                      {status === 'all' ? 'All Bookings' : status}
+                      {status === 'all' ? 'All Statuses' : status}
                     </button>
                   ))}
                 </div>
@@ -1202,8 +1233,116 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
                 </div>
               </div>
 
-              {/* Bookings Full Table */}
-              <div className="bg-white rounded-2xl border border-gray-200/90 overflow-hidden shadow-xs">
+              {/* SECTION A: Commercial Storage Leases (Feedback Image 1: Include Storage Space booking details) */}
+              {(bookingCategory === 'all' || bookingCategory === 'storage') && (
+                <div className="bg-white rounded-2xl border border-gray-200/90 overflow-hidden shadow-xs space-y-0">
+                  <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-linear-to-r from-emerald-950/5 via-transparent to-transparent">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-[#112F21] text-[#ED8533] flex items-center justify-center shrink-0 shadow-xs">
+                        <Package className="w-5 h-5 text-[#ED8533]" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-bold text-sm text-gray-900">Commercial Storage Space Bookings</h3>
+                          <span className="text-[10px] bg-brand-orange text-white px-2 py-0.5 rounded-full font-black uppercase tracking-wider">
+                            Max 2 Bays
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Dedicated commercial cool room, walk-in freezer & dry storage bays
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={onBookStorage || onBookClick}
+                      className="self-start sm:self-auto text-xs font-bold text-white bg-[#ED8533] hover:bg-[#d87222] px-3.5 py-2 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Reserve Storage Bay</span>
+                    </button>
+                  </div>
+
+                  {userStorageBookings && userStorageBookings.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-gray-50/80 text-gray-400 font-bold uppercase tracking-wider border-b border-gray-100">
+                          <tr>
+                            <th className="px-6 py-3.5">Storage Bay & Unit</th>
+                            <th className="px-6 py-3.5">Reference</th>
+                            <th className="px-6 py-3.5">Lease Term</th>
+                            <th className="px-6 py-3.5">Rate & Total</th>
+                            <th className="px-6 py-3.5">Status</th>
+                            <th className="px-6 py-3.5">Payment</th>
+                            <th className="px-6 py-3.5 text-right">Access Keypad PIN</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 font-medium">
+                          {userStorageBookings.map((st) => (
+                            <tr key={st.reference_code} className="hover:bg-gray-50/50 transition-colors">
+                              <td className="px-6 py-4">
+                                <div className="flex items-center gap-2.5">
+                                  <span className="w-8 h-8 rounded-lg bg-[#112F21] text-white text-xs font-black flex items-center justify-center shrink-0">
+                                    B{st.bay_number}
+                                  </span>
+                                  <div>
+                                    <div className="font-bold text-gray-900 capitalize">
+                                      {st.storage_type.replace('_', ' ')} (Bay #{st.bay_number})
+                                    </div>
+                                    <div className="text-[11px] text-gray-400">Lockable Dedicated Commercial Bay</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 font-mono text-emerald-800 font-bold">{st.reference_code}</td>
+                              <td className="px-6 py-4 text-gray-700">
+                                <div className="font-semibold text-gray-900">{st.start_date} → {st.end_date}</div>
+                                <div className="text-[11px] text-gray-400 capitalize">{st.duration_type} Lease ({st.duration_days} days)</div>
+                              </td>
+                              <td className="px-6 py-4 text-gray-900 font-bold">
+                                <div>${Number(st.total_price || 0).toFixed(2)} AUD</div>
+                                <div className="text-[10px] text-gray-400 font-normal">($200 bond held)</div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide bg-emerald-100 text-emerald-800">
+                                  ● {st.status}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
+                                  st.payment_status === 'paid'
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    : 'bg-amber-50 text-amber-700 border-amber-200'
+                                }`}>
+                                  {st.payment_status || 'paid'}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 text-right">
+                                <span className="px-2.5 py-1 rounded-lg bg-gray-100 font-mono text-xs font-bold text-gray-800 border border-gray-200">
+                                  4892#
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="p-8 text-center bg-gray-50/40">
+                      <p className="text-xs text-gray-500">No storage bookings found. Click "Reserve Storage Bay" to book a commercial bay.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* SECTION B: Kitchen Slot Bookings */}
+              {(bookingCategory === 'all' || bookingCategory === 'kitchen') && (
+                <div className="bg-white rounded-2xl border border-gray-200/90 overflow-hidden shadow-xs">
+                  <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-linear-to-r from-emerald-950/5 via-transparent to-transparent">
+                    <div className="flex items-center gap-2.5">
+                      <Calendar className="w-4 h-4 text-emerald-700" />
+                      <h3 className="font-bold text-sm text-gray-900">Commercial Kitchen Production Bookings</h3>
+                    </div>
+                    <span className="text-xs text-gray-400 font-medium">Unit 1, 1 Lichfield St, Victoria Park</span>
+                  </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead className="bg-gray-50/80 text-gray-400 font-bold uppercase tracking-wider border-b border-gray-100">
@@ -1297,6 +1436,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
                   </table>
                 </div>
               </div>
+              )}
             </div>
           )}
 
