@@ -14,7 +14,12 @@ import {
   StorageBooking,
   StorageType,
   StorageDurationType,
-  StorageAvailability
+  StorageAvailability,
+  Invoice,
+  InvoiceStatus,
+  InvoiceType,
+  AIRiskLevel,
+  InvoiceLineItem
 } from '../types';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/+$/, '');
@@ -1596,5 +1601,291 @@ export const api = {
         status,
       });
     }
+  },
+
+  // ==========================================
+  // SUPER ADMIN INVOICES & AGENTIC AI MONITOR
+  // ==========================================
+  async getInvoices(): Promise<Invoice[]> {
+    const bookings = getStoredBookings();
+    const storages = getStoredStorageBookings();
+    
+    // Custom invoices created by Super Admin
+    let customInvoices: Invoice[] = [];
+    try {
+      const raw = localStorage.getItem('dd_custom_invoices');
+      if (raw) customInvoices = JSON.parse(raw);
+    } catch {}
+
+    const invoices: Invoice[] = [];
+
+    // 1. Generate Invoices from Kitchen Bookings
+    bookings.forEach((b, idx) => {
+      const rentalAmount = Number(b.total_price || b.total_cost || 167.20);
+      const deposit = Number(b.security_deposit || 750.0);
+      const isPaid = b.payment_status === 'paid';
+      const isRejected = b.status === 'rejected' || b.status === 'cancelled';
+      
+      let status: InvoiceStatus = 'pending';
+      if (isRejected) status = 'void';
+      else if (isPaid) status = 'paid';
+      else if (idx === 1) status = 'overdue'; // e.g. for demonstration of hold expiry
+      
+      // Calculate AI Risk Assessment
+      let riskLevel: AIRiskLevel = 'low';
+      let riskReason = 'Payment confirmed and reconciled.';
+      let recommendedAction = 'Shift ready. Door keypad PIN active: 4892#';
+
+      if (status === 'pending' || status === 'overdue') {
+        if (b.reference_code === 'DD-BK-77953' || idx === 1) {
+          riskLevel = 'critical';
+          riskReason = 'Shift starts in under 24 hours. Station reserved without verified payment.';
+          recommendedAction = 'Send Priority WhatsApp Nudge or Auto-Release slot immediately to free up commercial bay.';
+        } else {
+          riskLevel = 'high';
+          riskReason = 'Provisional hold approaching 48-hour policy window without bank transfer match.';
+          recommendedAction = 'Autonomous AI payment reminder queued. Send PayID details.';
+        }
+      } else if (status === 'void') {
+        riskLevel = 'low';
+        riskReason = 'Booking was rejected/cancelled. Slot released to inventory.';
+        recommendedAction = 'No further action required.';
+      }
+
+      const invNum = `INV-2026-BK${String(100 + idx).padStart(3, '0')}`;
+      const issueDate = b.booking_date ? b.booking_date : '2026-10-18';
+      
+      invoices.push({
+        id: invNum,
+        invoice_number: invNum,
+        booking_reference: b.reference_code,
+        booking_type: 'kitchen_rental',
+        customer_name: b.full_name || 'Chef Hirer',
+        business_name: b.business_name || 'Commercial Kitchen Hirer',
+        abn: (b as any).abn || '51 824 753 556',
+        email: b.email,
+        phone: b.phone,
+        issue_date: issueDate,
+        due_date: issueDate,
+        service_date_range: `${b.booking_date}, ${b.start_time} – ${b.end_time} (${b.duration_hours || 4} hrs)`,
+        line_items: [
+          {
+            description: `Commercial Kitchen Shift Rental (${b.duration_hours || 4} hrs @ $38.00/hr + GST)`,
+            quantity: b.duration_hours || 4,
+            unit_price: 38.00,
+            total: rentalAmount
+          },
+          {
+            description: 'Food Safety Supervisor & WA Food Act 2008 Compliance Kit',
+            quantity: 1,
+            unit_price: 0.00,
+            total: 0.00
+          },
+          {
+            description: 'Commercial Kitchen Security Bond (Refundable post-shift inspection)',
+            quantity: 1,
+            unit_price: deposit,
+            total: deposit
+          }
+        ],
+        rental_amount: rentalAmount,
+        cleaning_fee: 0,
+        security_deposit: deposit,
+        subtotal: rentalAmount,
+        gst: Number((rentalAmount * 0.1).toFixed(2)),
+        total_amount: rentalAmount,
+        status,
+        payment_method: isPaid ? 'PayID Direct Bank Transfer' : undefined,
+        paid_at: isPaid ? `${issueDate}T14:22:00Z` : undefined,
+        reconciled_by_ai: isPaid,
+        ai_risk_level: riskLevel,
+        ai_risk_reason: riskReason,
+        ai_recommended_action: recommendedAction,
+        reminder_sent_count: status === 'overdue' ? 2 : (status === 'pending' ? 1 : 0),
+        last_reminder_at: status === 'overdue' ? '2 hours ago' : undefined,
+        hold_expires_at: `${issueDate}T23:59:00`,
+        notes: b.admin_notes || undefined
+      });
+    });
+
+    // 2. Generate Invoices from Commercial Storage Leases
+    storages.forEach((s, idx) => {
+      const isPaid = s.payment_status === 'paid';
+      const invNum = `INV-2026-ST${String(200 + idx).padStart(3, '0')}`;
+      const status: InvoiceStatus = isPaid ? 'paid' : 'pending';
+      const storageRent = Number(s.total_price || 220.0);
+      const bond = Number(s.security_deposit || 200.0);
+
+      invoices.push({
+        id: invNum,
+        invoice_number: invNum,
+        booking_reference: s.reference_code,
+        booking_type: 'storage_lease',
+        customer_name: s.full_name,
+        business_name: s.business_name || 'Food Business Hirer',
+        abn: s.abn || '54 123 456 789',
+        email: s.email,
+        phone: s.phone,
+        issue_date: s.start_date,
+        due_date: s.start_date,
+        service_date_range: `Bay #${s.bay_number} (${s.storage_type.replace('_', ' ')}): ${s.start_date} → ${s.end_date}`,
+        line_items: [
+          {
+            description: `Commercial Storage Lease: Bay #${s.bay_number} (${s.storage_type.replace('_', ' ')}) - ${s.duration_type}`,
+            quantity: s.duration_days,
+            unit_price: s.daily_rate,
+            total: storageRent
+          },
+          {
+            description: 'Commercial Storage Security Bond (Keypad Access & Temperature Lock)',
+            quantity: 1,
+            unit_price: bond,
+            total: bond
+          }
+        ],
+        rental_amount: storageRent,
+        cleaning_fee: 0,
+        security_deposit: bond,
+        subtotal: storageRent,
+        gst: Number((storageRent * 0.1).toFixed(2)),
+        total_amount: storageRent,
+        status,
+        payment_method: isPaid ? 'Direct Bank Transfer / PayID' : undefined,
+        paid_at: isPaid ? `${s.start_date}T09:00:00Z` : undefined,
+        reconciled_by_ai: isPaid,
+        ai_risk_level: isPaid ? 'low' : 'medium',
+        ai_risk_reason: isPaid ? 'Storage bay lease active. Bond securely held in escrow.' : 'Storage lease pending tenant initial payment.',
+        ai_recommended_action: isPaid ? 'Bay 1 access code active: 4892#' : 'Send storage check-in instructions and PayID.',
+        reminder_sent_count: isPaid ? 0 : 1,
+        hold_expires_at: `${s.start_date}T18:00:00`
+      });
+    });
+
+    // 3. Merge custom invoices
+    customInvoices.forEach((ci) => {
+      invoices.push(ci);
+    });
+
+    return invoices;
+  },
+
+  async updateInvoiceStatus(
+    invoiceId: string,
+    status: InvoiceStatus,
+    paymentMethod: string = 'PayID Direct Bank Transfer',
+    notes?: string
+  ): Promise<Invoice | null> {
+    const invoices = await this.getInvoices();
+    const inv = invoices.find((i) => i.id === invoiceId || i.invoice_number === invoiceId);
+    if (!inv) return null;
+
+    inv.status = status;
+    if (status === 'paid') {
+      inv.paid_at = new Date().toISOString();
+      inv.payment_method = paymentMethod;
+      inv.reconciled_by_ai = true;
+      inv.ai_risk_level = 'low';
+      inv.ai_risk_reason = 'Payment verified via Super Admin & AI Reconciliation.';
+      inv.ai_recommended_action = 'Slot locked. Door keypad PIN active.';
+    } else if (status === 'void' || status === 'refunded') {
+      inv.ai_risk_level = 'low';
+      inv.ai_risk_reason = `Invoice marked as ${status.toUpperCase()}. Slot released in inventory.`;
+    }
+
+    if (notes) inv.notes = notes;
+
+    // Update underlying booking or storage booking
+    if (inv.booking_reference.startsWith('DD-BK')) {
+      const bookings = getStoredBookings();
+      const bIdx = bookings.findIndex((b) => b.reference_code === inv.booking_reference);
+      if (bIdx !== -1) {
+        if (status === 'paid') {
+          bookings[bIdx].payment_status = 'paid';
+          bookings[bIdx].status = 'confirmed';
+        } else if (status === 'void') {
+          bookings[bIdx].status = 'rejected';
+        } else if (status === 'refunded') {
+          bookings[bIdx].payment_status = 'refunded';
+          bookings[bIdx].status = 'rejected';
+        }
+        saveStoredBookings(bookings);
+      }
+    } else if (inv.booking_reference.startsWith('DD-ST')) {
+      const storages = getStoredStorageBookings();
+      const sIdx = storages.findIndex((s) => s.reference_code === inv.booking_reference);
+      if (sIdx !== -1) {
+        if (status === 'paid') {
+          storages[sIdx].payment_status = 'paid';
+          storages[sIdx].status = 'confirmed';
+        } else if (status === 'void') {
+          storages[sIdx].status = 'cancelled';
+        }
+        saveStoredStorageBookings(storages);
+      }
+    }
+
+    // Persist in custom invoices storage if it's custom or override
+    try {
+      const raw = localStorage.getItem('dd_custom_invoices');
+      let customList: Invoice[] = raw ? JSON.parse(raw) : [];
+      const cIdx = customList.findIndex((c) => c.id === invoiceId);
+      if (cIdx !== -1) {
+        customList[cIdx] = inv;
+      } else {
+        customList.push(inv);
+      }
+      localStorage.setItem('dd_custom_invoices', JSON.stringify(customList));
+    } catch {}
+
+    return inv;
+  },
+
+  async createCustomInvoice(data: Partial<Invoice>): Promise<Invoice> {
+    const id = `INV-2026-MAN${Math.floor(100 + Math.random() * 900)}`;
+    const newInv: Invoice = {
+      id,
+      invoice_number: id,
+      booking_reference: data.booking_reference || `DD-MAN-${Math.floor(1000 + Math.random() * 9000)}`,
+      booking_type: data.booking_type || 'custom',
+      customer_name: data.customer_name || 'Chef / Hirer',
+      business_name: data.business_name || 'Independent Food Hirer',
+      abn: data.abn || '51 824 753 556',
+      email: data.email || 'hirer@example.com',
+      phone: data.phone || '+61 412 345 678',
+      issue_date: data.issue_date || new Date().toISOString().split('T')[0],
+      due_date: data.due_date || new Date().toISOString().split('T')[0],
+      service_date_range: data.service_date_range || 'Commercial Kitchen Facility Use',
+      line_items: data.line_items || [
+        {
+          description: 'Commercial Kitchen Rental & Facility Use',
+          quantity: 1,
+          unit_price: Number(data.total_amount || 167.20),
+          total: Number(data.total_amount || 167.20)
+        }
+      ],
+      rental_amount: Number(data.rental_amount || data.total_amount || 167.20),
+      cleaning_fee: Number(data.cleaning_fee || 0),
+      security_deposit: Number(data.security_deposit || 750.0),
+      subtotal: Number(data.rental_amount || data.total_amount || 167.20),
+      gst: Number(((data.rental_amount || data.total_amount || 167.20) * 0.1).toFixed(2)),
+      total_amount: Number(data.total_amount || 167.20),
+      status: data.status || 'pending',
+      payment_method: data.payment_method,
+      reconciled_by_ai: false,
+      ai_risk_level: 'medium',
+      ai_risk_reason: 'Newly created manual invoice awaiting payment verification.',
+      ai_recommended_action: 'Send official tax invoice link to client.',
+      reminder_sent_count: 0,
+      notes: data.notes
+    };
+
+    try {
+      const raw = localStorage.getItem('dd_custom_invoices');
+      let customList: Invoice[] = raw ? JSON.parse(raw) : [];
+      customList.unshift(newInv);
+      localStorage.setItem('dd_custom_invoices', JSON.stringify(customList));
+    } catch {}
+
+    return newInv;
   }
 };

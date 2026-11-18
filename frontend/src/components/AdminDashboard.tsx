@@ -44,8 +44,10 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Minimize2,
-  Maximize2
+  Maximize2,
+  Bot
 } from 'lucide-react';
+import { SuperAdminInvoiceMonitor } from './SuperAdminInvoiceMonitor';
 import { 
   Booking, 
   DashboardStats, 
@@ -86,7 +88,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [loggingIn, setLoggingIn] = useState(false);
 
   // Active Main Navigation Tab (Default to 'bookings' or saved in localStorage so refreshes don't reset)
-  type AdminNavTab = 'dashboard' | 'bookings' | 'calendar' | 'payments' | 'customers' | 'kitchen' | 'storage' | 'enquiries' | 'reports' | 'settings';
+  type AdminNavTab = 'dashboard' | 'super_invoices' | 'bookings' | 'calendar' | 'payments' | 'customers' | 'kitchen' | 'storage' | 'enquiries' | 'reports' | 'settings';
   
   const [activeNav, setActiveNavState] = useState<AdminNavTab>(() => {
     const saved = localStorage.getItem('dd_admin_active_nav') as AdminNavTab | null;
@@ -803,6 +805,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             >
               <LayoutDashboard className="w-4 h-4 text-[#8BB89F]" />
               <span>Dashboard</span>
+            </button>
+
+            <button
+              onClick={() => setActiveNav('super_invoices')}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer group ${
+                activeNav === 'super_invoices'
+                  ? 'bg-[#1C4632] text-white shadow-inner font-bold'
+                  : 'text-[#B4D5C2] hover:bg-[#163c2b] hover:text-white'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Bot className="w-4 h-4 text-[#ED8533] group-hover:scale-110 transition-transform" />
+                <span className="font-bold">AI Invoices Hub</span>
+              </div>
+              <span className="text-[9px] bg-[#ED8533] text-white px-1.5 py-0.5 rounded-full font-black uppercase tracking-wider shadow-xs">
+                AI
+              </span>
             </button>
 
             <button
@@ -1653,6 +1672,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         )}
 
         {/* ========================================================
+            VIEW: SUPER ADMIN INVOICES & AGENTIC AI MONITOR
+           ======================================================== */}
+        {activeNav === 'super_invoices' && (
+          <main className="p-4 sm:p-6 lg:p-8 space-y-6 flex-1 max-w-[1440px] overflow-y-auto">
+            <SuperAdminInvoiceMonitor
+              onGoToBookings={() => setActiveNav('bookings')}
+              onGoToCalendar={() => setActiveNav('calendar')}
+            />
+          </main>
+        )}
+
+        {/* ========================================================
             VIEW: BOOKINGS TAB (Matching Image 3 & User Request)
             "After the Applicant Column Change the Session Window in to three separate columns. Date column. Start Time. End Time."
             "Scrolling at the bottom in order to navigate to the side. Better if info is compressed and can be viewed in one page without scrolling"
@@ -2137,6 +2168,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
            ======================================================== */}
         {activeNav === 'payments' && (
           <main className="p-4 sm:p-6 lg:p-8 space-y-6 flex-1 max-w-[1440px] overflow-y-auto">
+            {/* Quick Link Banner to Super Admin AI Invoices Hub */}
+            <div className="bg-linear-to-r from-[#112F21] to-[#1C4632] rounded-2xl p-4 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md border border-emerald-800/40">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                  <Bot className="w-5 h-5 text-[#ED8533]" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm">Super Admin: Agentic AI Invoice Watchdog</h4>
+                  <p className="text-xs text-[#B4D5C2]">Full commercial tax invoice lifecycle, auto-reconciliation, ATO PDFs & smart WhatsApp reminders.</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setActiveNav('super_invoices')}
+                className="bg-[#ED8533] hover:bg-[#d87222] text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
+              >
+                <span>Open AI Invoices Hub</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-xs">
                 <div className="text-xs font-bold text-gray-500 uppercase">Total Revenue Collected</div>

@@ -208,4 +208,48 @@ export interface StorageAvailability {
   overlapping_bookings: StorageBooking[];
 }
 
+export type InvoiceStatus = 'pending' | 'paid' | 'overdue' | 'disputed' | 'refunded' | 'void';
+export type InvoiceType = 'kitchen_rental' | 'storage_lease' | 'equipment_hire' | 'custom';
+export type AIRiskLevel = 'low' | 'medium' | 'high' | 'critical';
+
+export interface InvoiceLineItem {
+  description: string;
+  quantity: number;
+  unit_price: number;
+  total: number;
+}
+
+export interface Invoice {
+  id: string; // e.g. "INV-2026-001"
+  invoice_number: string;
+  booking_reference: string; // e.g. "DD-BK-77953" or "DD-ST-88102"
+  booking_type: InvoiceType;
+  customer_name: string;
+  business_name?: string;
+  abn?: string;
+  email: string;
+  phone: string;
+  issue_date: string; // YYYY-MM-DD
+  due_date: string; // YYYY-MM-DD
+  service_date_range: string; // e.g. "Tue, 20 Oct 2026, 11:38 AM - 3:38 PM"
+  line_items: InvoiceLineItem[];
+  rental_amount: number;
+  cleaning_fee: number;
+  security_deposit: number; // $750 kitchen or $200 storage
+  subtotal: number;
+  gst: number;
+  total_amount: number;
+  status: InvoiceStatus;
+  payment_method?: string;
+  paid_at?: string;
+  reconciled_by_ai: boolean;
+  ai_risk_level: AIRiskLevel;
+  ai_risk_reason?: string;
+  ai_recommended_action?: string;
+  reminder_sent_count: number;
+  last_reminder_at?: string;
+  hold_expires_at?: string;
+  notes?: string;
+}
+
 
