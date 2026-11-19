@@ -82,9 +82,9 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
         });
         const dateFormatter = new Intl.DateTimeFormat('en-AU', {
           timeZone: 'Australia/Perth',
-          weekday: 'long',
+          weekday: 'short',
           day: 'numeric',
-          month: 'long',
+          month: 'short',
           year: 'numeric'
         });
         setPerthTimeStr(timeFormatter.format(now));
@@ -150,7 +150,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
     }
   }, [token]);
 
-  // Handle Super Admin Login
+  // Handle Super Admin Login (Credentials not displayed on screen)
   const handleSuperAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
@@ -166,12 +166,6 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
     }
   };
 
-  const handleFillDemoCredentials = () => {
-    setUsernameInput('superadmin');
-    setPasswordInput('superadmin2026');
-    setLoginError(null);
-  };
-
   const handleLogout = () => {
     api.superAdminLogout();
     setToken(null);
@@ -183,10 +177,10 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
     setTimeout(() => {
       setIsAuditing(false);
       setAuditToast(
-        '⚡ Agentic AI Audit Complete: 14 tenant records analyzed. Reconciled cleared bank transfers. 2 upcoming shifts flagged for unconfirmed payment within 24h window. Escrow bonds verified at $950.00.'
+        '⚡ Audit Complete: All 14 tenant invoices scanned. Bank reconciliations verified. 2 shifts within 24h flagged for unconfirmed payment.'
       );
-      setTimeout(() => setAuditToast(null), 8000);
-    }, 1000);
+      setTimeout(() => setAuditToast(null), 7000);
+    }, 900);
   };
 
   // Mark Paid / Reconcile
@@ -207,7 +201,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
             : i
         )
       );
-      setAuditToast(`✓ Invoice ${inv.invoice_number} marked as PAID. Security PIN activated for tenant.`);
+      setAuditToast(`✓ Invoice ${inv.invoice_number} marked as PAID. Door PIN code activated for tenant.`);
       setTimeout(() => setAuditToast(null), 5000);
     } catch (err) {
       alert('Failed to update invoice status');
@@ -253,23 +247,23 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
     const q = query.toLowerCase();
     if (q.includes('overdue') || q.includes('who owes') || q.includes('risk') || q.includes('urgent')) {
       setAiAnswer(
-        '🚨 High Priority Action: 2 bookings have shifts within 24 hours without confirmed payment: (1) Rohit (ABC Kitchen · $167.20 · Shift: Tue, 20 Oct 11:38 AM) and (2) Chef Michael Davies ($167.20 · Shift: Thu, 22 Oct 10:38 AM). Recommended action: Send WhatsApp payment reminders now. If unpaid 12h prior, release slots.'
+        '🚨 2 Upcoming Shifts Unpaid: (1) Rohit (ABC Kitchen · $167.20 · Shift: Tue 20 Oct) and (2) Chef Michael Davies ($167.20 · Shift: Thu 22 Oct). Recommendation: Send WhatsApp reminders now. If unpaid 12h prior, release slots.'
       );
     } else if (q.includes('bond') || q.includes('deposit') || q.includes('escrow')) {
       setAiAnswer(
-        '🛡️ Escrow Telemetry: Total $950.00 AUD is held in escrow ($750.00 kitchen security bond + $200.00 storage space bond). All bonds remain protected until post-shift inspection confirms kitchen equipment cleanliness.'
+        '🛡️ Escrow Balance: $950.00 AUD total ($750.00 kitchen security bond + $200.00 storage bond). All bonds are safely held in escrow pending post-shift cleanliness inspection.'
       );
     } else if (q.includes('storage') || q.includes('bay')) {
       setAiAnswer(
-        '📦 Commercial Storage Status: 2 storage bays available in Victoria Park. Currently Unit A (Dry Storage · $150/mo) and Unit B (Cold Room Bay · $250/mo) generate recurring monthly commercial revenue.'
+        '📦 Storage Leases: 2 bays active in Victoria Park: Unit A (Dry Storage · $150/mo) and Unit B (Cold Room Bay · $250/mo). Recurring revenue: $400.00 AUD/mo.'
       );
-    } else if (q.includes('revenue') || q.includes('how much') || q.includes('total')) {
+    } else if (q.includes('revenue') || q.includes('how much') || q.includes('total') || q.includes('cashflow')) {
       setAiAnswer(
-        `💰 Financial Summary: Total Invoiced: $${totalInvoiced.toFixed(2)} AUD. Cleared & Reconciled: $${totalPaidRevenue.toFixed(2)} AUD. Pending 48h provisional holds: $${totalPending.toFixed(2)} AUD.`
+        `💰 Financial Status: Total Invoiced: $${totalInvoiced.toFixed(2)} AUD. Reconciled in Bank: $${totalPaidRevenue.toFixed(2)} AUD. Pending Collection: $${totalPending.toFixed(2)} AUD.`
       );
     } else {
       setAiAnswer(
-        `🤖 AI Query Result for "${query}": Found 14 active commercial records. All tenant shifts are aligned with WA Food Act compliance standards. Total escrow balance is intact.`
+        `🤖 AI Inspection Result: 14 active tenant records examined. All booking slots comply with WA commercial kitchen standards.`
       );
     }
   };
@@ -277,10 +271,10 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   // Filtered Invoices
   const filteredInvoices = useMemo(() => {
     return invoices.filter((inv) => {
+      const bType = inv.booking_type || inv.invoice_type;
       if (activeFilterTab === 'pending' && inv.status !== 'pending') return false;
       if (activeFilterTab === 'paid' && inv.status !== 'paid') return false;
       if (activeFilterTab === 'overdue' && inv.status !== 'overdue' && inv.ai_risk_level !== 'critical' && inv.ai_risk_level !== 'high') return false;
-      const bType = inv.booking_type || inv.invoice_type;
       if (activeFilterTab === 'kitchen' && bType !== 'kitchen_rental') return false;
       if (activeFilterTab === 'storage' && bType !== 'storage_lease') return false;
 
@@ -338,23 +332,23 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   };
 
   // ========================================================
-  // RENDER: SUPER ADMIN LOGIN SCREEN (If not logged in)
+  // RENDER: SUPER ADMIN LOGIN SCREEN (Clean, No Stored Creds Displayed)
   // ========================================================
   if (!token) {
     return (
-      <div className="min-h-screen bg-[#F4F6F8] flex items-center justify-center p-4 selection:bg-amber-200">
-        <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-gray-200 shadow-2xl space-y-6">
+      <div className="min-h-screen bg-[#EAEFEA] flex items-center justify-center p-4 selection:bg-amber-200">
+        <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-gray-300 shadow-2xl space-y-6">
           <div className="text-center space-y-3">
-            <div className="w-16 h-16 bg-[#112F21] rounded-2xl flex items-center justify-center mx-auto text-[#ED8533] shadow-lg border border-[#1b4a34]">
+            <div className="w-16 h-16 bg-[#112F21] rounded-2xl flex items-center justify-center mx-auto text-[#ED8533] shadow-md border border-[#1b4a34]">
               <ShieldCheck className="w-9 h-9" />
             </div>
             <div>
-              <span className="text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 px-2.5 py-1 rounded-full border border-amber-300">
+              <span className="text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 px-3 py-1 rounded-full border border-amber-300">
                 Director & Executive Oversight
               </span>
-              <h1 className="text-2xl font-black text-gray-900 mt-2">Super Admin Portal</h1>
+              <h1 className="text-2xl font-black text-gray-900 mt-2.5">Super Admin Portal</h1>
               <p className="text-xs text-gray-500 mt-1">
-                Commercial Invoice Management, AI Cashflow Watchdog & Bond Escrow
+                Victoria Park Kitchen · Invoices, AI Cashflow & Escrow Bonds
               </p>
             </div>
           </div>
@@ -375,8 +369,8 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                 type="text"
                 value={usernameInput}
                 onChange={(e) => setUsernameInput(e.target.value)}
-                placeholder="superadmin"
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-[#112F21] focus:outline-none"
+                placeholder="Enter username"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-[#112F21] focus:outline-none bg-gray-50/50"
                 required
               />
             </div>
@@ -388,27 +382,9 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                 value={passwordInput}
                 onChange={(e) => setPasswordInput(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-[#112F21] focus:outline-none"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-[#112F21] focus:outline-none bg-gray-50/50"
                 required
               />
-            </div>
-
-            {/* Quick Demo Helper Box */}
-            <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-3 text-xs text-amber-900 space-y-2">
-              <div className="flex items-center gap-1.5 font-bold text-[11px] text-amber-800">
-                <Key className="w-3.5 h-3.5 text-[#ED8533]" />
-                <span>Super Admin Test Credentials:</span>
-              </div>
-              <div className="text-[11px] font-mono text-gray-800 bg-white/80 p-2 rounded-lg border border-amber-200 flex justify-between items-center">
-                <span>Username: <b>superadmin</b> · Password: <b>superadmin2026</b></span>
-              </div>
-              <button
-                type="button"
-                onClick={handleFillDemoCredentials}
-                className="w-full text-center text-[11px] font-bold text-[#112F21] hover:underline cursor-pointer py-1"
-              >
-                ⚡ Click to auto-fill credentials
-              </button>
             </div>
 
             <button
@@ -449,54 +425,49 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   }
 
   // ========================================================
-  // RENDER: LOGGED IN SUPER ADMIN PORTAL WORKSPACE
+  // RENDER: SUPER ADMIN PORTAL WORKSPACE (Rich Contrast & Clean Hierarchy)
   // ========================================================
   return (
-    <div className="min-h-screen bg-[#F4F6F8] flex flex-col text-gray-900 selection:bg-amber-200">
+    <div className="min-h-screen bg-[#EBF0EC] flex flex-col text-gray-900 selection:bg-amber-200">
       
-      {/* 1. Executive Top Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-xs">
+      {/* 1. Executive Top Navbar */}
+      <header className="bg-white border-b border-gray-300 sticky top-0 z-30 shadow-xs">
         <div className="max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-18">
+          <div className="flex items-center justify-between h-16">
             
             {/* Left: Brand & Executive Badge */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <img
                 src={Images.logo}
                 alt="Daily Drop Commercial Kitchen"
-                className="h-9 w-auto object-contain mix-blend-multiply cursor-pointer"
+                className="h-8 w-auto object-contain mix-blend-multiply cursor-pointer"
                 onClick={onBackToSite}
                 title="Daily Drop Commercial Kitchen Home"
               />
-              <div className="hidden sm:flex flex-col pl-3 border-l border-gray-200">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] font-black tracking-wider uppercase text-[#112F21]">
-                    Super Admin Portal
-                  </span>
-                  <span className="text-[9px] font-black uppercase tracking-wider bg-[#ED8533] text-white px-1.5 py-0.2 rounded-full">
-                    Director
-                  </span>
-                </div>
-                <span className="text-[10px] text-gray-500 font-medium">
-                  Victoria Park Commercial Hub · Perth WA
+              <div className="flex items-center gap-1.5 pl-3 border-l border-gray-300">
+                <span className="text-xs font-black tracking-wider uppercase text-[#112F21]">
+                  Super Admin
+                </span>
+                <span className="text-[9px] font-black uppercase tracking-wider bg-[#ED8533] text-white px-2 py-0.5 rounded-full shadow-2xs">
+                  Director Hub
                 </span>
               </div>
             </div>
 
             {/* Center: Live Perth Clock (AWST · UTC+8) */}
-            <div className="hidden md:flex items-center gap-2 bg-[#F8FAFC] border border-gray-200 rounded-xl px-3.5 py-1.5 text-xs">
-              <Clock className="w-3.5 h-3.5 text-emerald-700" />
+            <div className="hidden md:flex items-center gap-2 bg-[#F0F5F1] border border-[#C5D9C8] rounded-xl px-3 py-1 text-xs">
+              <Clock className="w-3.5 h-3.5 text-emerald-800" />
               <span className="font-semibold text-gray-700">{perthDateStr}</span>
-              <span className="font-mono font-black text-emerald-900 bg-emerald-100/70 px-2 py-0.5 rounded-md">
-                {perthTimeStr || 'AWST (UTC+8)'}
+              <span className="font-mono font-black text-emerald-950 bg-emerald-200/60 px-1.5 py-0.2 rounded">
+                {perthTimeStr || 'AWST'}
               </span>
             </div>
 
             {/* Right: Portal Switchers & Profile Controls */}
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2">
               <button
                 onClick={onGoToAdminPortal}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-700 border border-gray-200 hover:bg-gray-50 hover:text-gray-900 transition-all cursor-pointer shadow-2xs"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 border border-gray-300 transition-all cursor-pointer"
                 title="Switch to Regular Operations Admin"
               >
                 <Shield className="w-3.5 h-3.5 text-[#112F21]" />
@@ -505,18 +476,16 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
 
               <button
                 onClick={onBackToSite}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-700 border border-gray-200 hover:bg-gray-50 hover:text-gray-900 transition-all cursor-pointer shadow-2xs"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 border border-gray-300 transition-all cursor-pointer"
                 title="View Public Website"
               >
-                <ExternalLink className="w-3.5 h-3.5 text-gray-500" />
+                <ExternalLink className="w-3.5 h-3.5 text-gray-600" />
                 <span className="hidden sm:inline">Website</span>
               </button>
 
-              <div className="h-6 w-px bg-gray-200 mx-1"></div>
-
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 transition-all cursor-pointer shadow-2xs"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-red-700 bg-red-100/80 hover:bg-red-200 border border-red-300 transition-all cursor-pointer ml-1"
                 title="Sign Out of Super Admin"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -525,20 +494,20 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
             </div>
           </div>
 
-          {/* Super Admin Navigation Tabs */}
-          <div className="flex items-center gap-1 overflow-x-auto py-2 border-t border-gray-100 text-xs font-bold">
+          {/* Super Admin Navigation Tabs (High contrast, clearly defined) */}
+          <div className="flex items-center gap-2 overflow-x-auto py-2.5 border-t border-gray-200 text-xs font-bold">
             <button
               onClick={() => setActiveTab('invoices')}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
                 activeTab === 'invoices'
-                  ? 'bg-[#112F21] text-white shadow-xs font-bold'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  ? 'bg-[#112F21] text-white shadow-md font-bold'
+                  : 'bg-white text-gray-700 border border-gray-300 hover:border-[#112F21] hover:text-gray-900'
               }`}
             >
               <Bot className="w-4 h-4 text-[#ED8533]" />
               <span>Invoices & Financial AI Monitor</span>
               <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-black ${
-                activeTab === 'invoices' ? 'bg-[#ED8533] text-white' : 'bg-gray-200 text-gray-700'
+                activeTab === 'invoices' ? 'bg-[#ED8533] text-white' : 'bg-gray-200 text-gray-800'
               }`}>
                 {invoices.length}
               </span>
@@ -548,8 +517,8 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
               onClick={() => setActiveTab('bonds')}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
                 activeTab === 'bonds'
-                  ? 'bg-[#112F21] text-white shadow-xs font-bold'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  ? 'bg-[#112F21] text-white shadow-md font-bold'
+                  : 'bg-white text-gray-700 border border-gray-300 hover:border-[#112F21] hover:text-gray-900'
               }`}
             >
               <ShieldCheck className="w-4 h-4 text-[#ED8533]" />
@@ -560,8 +529,8 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
               onClick={() => setActiveTab('storage')}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
                 activeTab === 'storage'
-                  ? 'bg-[#112F21] text-white shadow-xs font-bold'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  ? 'bg-[#112F21] text-white shadow-md font-bold'
+                  : 'bg-white text-gray-700 border border-gray-300 hover:border-[#112F21] hover:text-gray-900'
               }`}
             >
               <Package className="w-4 h-4 text-[#ED8533]" />
@@ -572,8 +541,8 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
               onClick={() => setActiveTab('rates')}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
                 activeTab === 'rates'
-                  ? 'bg-[#112F21] text-white shadow-xs font-bold'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  ? 'bg-[#112F21] text-white shadow-md font-bold'
+                  : 'bg-white text-gray-700 border border-gray-300 hover:border-[#112F21] hover:text-gray-900'
               }`}
             >
               <Sliders className="w-4 h-4 text-[#ED8533]" />
@@ -583,12 +552,12 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
         </div>
       </header>
 
-      {/* Main Workspace Body */}
+      {/* Main Workspace Body (Soft sage-tinted background so all cards pop) */}
       <main className="flex-1 max-w-[1560px] w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
         
         {/* Toast Alert */}
         {auditToast && (
-          <div className="p-4 rounded-2xl bg-emerald-800 text-white font-medium text-xs sm:text-sm shadow-lg flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 border border-emerald-700">
+          <div className="p-3.5 rounded-2xl bg-emerald-800 text-white font-medium text-xs sm:text-sm shadow-lg flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 border border-emerald-600">
             <div className="flex items-center gap-2.5">
               <Bot className="w-5 h-5 text-emerald-300 shrink-0" />
               <span>{auditToast}</span>
@@ -605,210 +574,246 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
         {activeTab === 'invoices' && (
           <div className="space-y-6">
             
-            {/* 1. Super Admin Hero Header Banner (Deep solid green background, 100% crystal-clear contrast) */}
-            <div
-              style={{ backgroundColor: '#112F21' }}
-              className="rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden border border-[#1d4c35]"
-            >
-              <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                <div className="space-y-2">
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#ED8533] text-white shadow-sm flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>Executive Oversight Hub</span>
-                    </span>
-                    <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-white/10 text-[#8BB89F] border border-white/15 flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                      <span>Agentic AI Watchdog Active</span>
-                    </span>
-                  </div>
+            {/* 1. Header Bar: Title & Direct Action Buttons */}
+            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-300 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-xl sm:text-2xl font-black text-[#112F21] tracking-tight">
+                  Commercial Invoices & Cashflow Overview
+                </h1>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Victoria Park Commercial Kitchen Hub · Automatic 48h rental hold monitoring & escrow safeguards
+                </p>
+              </div>
 
-                  {/* Guaranteed Readable High-Contrast Header */}
-                  <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-                    Commercial Invoices & Agentic AI Monitor
-                  </h1>
-                  <p className="text-xs sm:text-sm text-[#B4D5C2] max-w-2xl leading-relaxed">
-                    Autonomous financial supervisor for Daily Drop Victoria Park. Continuously evaluates 48-hour rental holds, detects upcoming unpaid shift risks, auto-reconciles bank transfers, and safeguards tenant bond escrows.
-                  </p>
-                </div>
+              <div className="flex items-center gap-2.5 shrink-0">
+                <button
+                  onClick={handleRunAiAudit}
+                  disabled={isAuditing}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-300 px-3.5 py-2 rounded-xl font-bold text-xs shadow-2xs transition-all flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-75"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-[#ED8533] ${isAuditing ? 'animate-spin' : ''}`} />
+                  <span>{isAuditing ? 'Auditing...' : 'Run 1-Click AI Audit'}</span>
+                </button>
 
-                <div className="flex flex-wrap items-center gap-3">
-                  <button
-                    onClick={handleRunAiAudit}
-                    disabled={isAuditing}
-                    className="bg-white hover:bg-emerald-50 text-[#112F21] px-4 py-2.5 rounded-xl font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-75"
-                  >
-                    <RefreshCw className={`w-4 h-4 text-[#ED8533] ${isAuditing ? 'animate-spin' : ''}`} />
-                    <span>{isAuditing ? 'Running AI Deep Audit...' : 'Run 1-Click AI Audit'}</span>
-                  </button>
-
-                  <button
-                    onClick={() => setShowCreateModal(true)}
-                    className="bg-[#ED8533] hover:bg-[#d87222] text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer active:scale-95"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>+ Create Manual Tax Invoice</span>
-                  </button>
-                </div>
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="bg-[#ED8533] hover:bg-[#d87222] text-white px-4 py-2 rounded-xl font-bold text-xs shadow-sm transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>+ Create Invoice</span>
+                </button>
               </div>
             </div>
 
-            {/* 2. Top Executive Metrics Cards (Plain language, high readability) */}
+            {/* 2. Top Executive Metrics Cards (Each card has a rich, distinct color - NO MORE SEA OF WHITE) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               
-              {/* Total Invoiced */}
-              <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-2xs space-y-1">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-gray-500">
-                  Total Invoiced
+              {/* Card 1: Total Invoiced (Deep Forest Green) */}
+              <div className="bg-[#112F21] text-white rounded-2xl p-4 sm:p-5 border border-[#1b4330] shadow-md space-y-1">
+                <div className="text-[10px] font-black uppercase tracking-wider text-[#8BB89F] flex items-center gap-1">
+                  <Receipt className="w-3.5 h-3.5 text-[#ED8533]" />
+                  <span>Total Invoiced</span>
                 </div>
-                <div className="text-2xl font-black text-gray-900 font-mono">
+                <div className="text-2xl font-black font-mono tracking-tight text-white mt-1">
                   ${totalInvoiced.toFixed(2)} AUD
                 </div>
-                <div className="text-[11px] text-gray-400">All kitchen shifts & storage bays</div>
+                <div className="text-[11px] text-[#B4D5C2]">All shifts & storage leases</div>
               </div>
 
-              {/* Paid Revenue */}
-              <div className="bg-white rounded-2xl p-5 border border-emerald-200 bg-emerald-50/20 shadow-2xs space-y-1">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">
-                  Verified Paid Revenue
+              {/* Card 2: Verified Paid Revenue (Fresh Emerald Tint) */}
+              <div className="bg-[#EBF7EE] text-emerald-950 rounded-2xl p-4 sm:p-5 border-2 border-[#81C784] shadow-xs space-y-1">
+                <div className="text-[10px] font-black uppercase tracking-wider text-emerald-800 flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>Verified Paid Revenue</span>
                 </div>
-                <div className="text-2xl font-black text-emerald-800 font-mono">
+                <div className="text-2xl font-black font-mono tracking-tight text-emerald-900 mt-1">
                   ${totalPaidRevenue.toFixed(2)} AUD
                 </div>
-                <div className="text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Reconciled in Bank Account
+                <div className="text-[11px] text-emerald-700 font-bold">
+                  ✓ Reconciled in Bank Account
                 </div>
               </div>
 
-              {/* Pending Collection */}
-              <div className="bg-white rounded-2xl p-5 border border-amber-200 bg-amber-50/20 shadow-2xs space-y-1">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-amber-800">
-                  Pending Collection
+              {/* Card 3: Pending Collection (Warm Amber Gold Tint) */}
+              <div className="bg-[#FFF9E6] text-amber-950 rounded-2xl p-4 sm:p-5 border-2 border-[#FFD54F] shadow-xs space-y-1">
+                <div className="text-[10px] font-black uppercase tracking-wider text-amber-800 flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Pending Collection</span>
                 </div>
-                <div className="text-2xl font-black text-amber-800 font-mono">
+                <div className="text-2xl font-black font-mono tracking-tight text-amber-900 mt-1">
                   ${totalPending.toFixed(2)} AUD
                 </div>
-                <div className="text-[11px] text-amber-700 font-semibold flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5" /> 48-Hour Payment Window Active
+                <div className="text-[11px] text-amber-800 font-semibold">
+                  ⏳ 48-Hour Payment Window Active
                 </div>
               </div>
 
-              {/* Urgent Risk / Overdue */}
-              <div className="bg-white rounded-2xl p-5 border border-red-200 bg-red-50/30 shadow-2xs space-y-1">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-red-700 flex items-center gap-1">
-                  <AlertTriangle className="w-3.5 h-3.5 text-red-600" /> Action Required / Overdue
+              {/* Card 4: Action Required / Overdue (Alert Crimson Red Tint) */}
+              <div className="bg-[#FDEDEC] text-red-950 rounded-2xl p-4 sm:p-5 border-2 border-[#E57373] shadow-xs space-y-1">
+                <div className="text-[10px] font-black uppercase tracking-wider text-red-700 flex items-center gap-1">
+                  <AlertTriangle className="w-3.5 h-3.5 text-red-600 animate-bounce" />
+                  <span>Action Required / Overdue</span>
                 </div>
-                <div className="text-2xl font-black text-red-700 font-mono">
+                <div className="text-2xl font-black font-mono tracking-tight text-red-700 mt-1">
                   {highRiskList.length} Invoices
                 </div>
-                <div className="text-[11px] text-red-600 font-bold">
-                  Shift within 24h & Unpaid!
+                <div className="text-[11px] text-red-700 font-black">
+                  ⚠️ Shift in &lt; 24h & Unpaid!
                 </div>
               </div>
 
-              {/* Security Deposits Held */}
-              <div className="bg-white rounded-2xl p-5 border border-blue-200 bg-blue-50/20 shadow-2xs space-y-1">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-blue-800">
-                  Security Bonds in Escrow
+              {/* Card 5: Security Bonds in Escrow (Ice Blue Tint) */}
+              <div className="bg-[#E8F0FE] text-blue-950 rounded-2xl p-4 sm:p-5 border-2 border-[#90CAF9] shadow-xs space-y-1">
+                <div className="text-[10px] font-black uppercase tracking-wider text-blue-800 flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-blue-700" />
+                  <span>Security Bonds in Escrow</span>
                 </div>
-                <div className="text-2xl font-black text-blue-900 font-mono">
+                <div className="text-2xl font-black font-mono tracking-tight text-blue-950 mt-1">
                   ${totalBondsHeld.toFixed(2)} AUD
                 </div>
-                <div className="text-[11px] text-blue-600 font-medium">
-                  $750 Kitchen + $200 Storage
+                <div className="text-[11px] text-blue-700 font-semibold">
+                  🛡️ $750 Kitchen + $200 Storage
                 </div>
               </div>
 
             </div>
 
-            {/* 3. Agentic AI Financial Copilot (Clean, intuitive, and explains itself clearly) */}
-            <div className="bg-white rounded-3xl border border-gray-200 p-6 shadow-xs space-y-5">
-              
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-[#112F21] text-[#ED8533] flex items-center justify-center shrink-0 shadow-sm">
-                    <Bot className="w-5 h-5" />
+            {/* 3. URGENT ATTENTION SECTION (Only rendered when there are high-risk bookings to address) */}
+            {highRiskList.length > 0 && (
+              <div className="bg-[#FFF5F5] border-2 border-red-300 rounded-2xl p-5 shadow-xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />
+                    <h2 className="font-black text-sm text-red-900">
+                      Immediate Action Needed: Upcoming Shifts Without Confirmed Payment
+                    </h2>
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="font-bold text-sm text-gray-900">Agentic AI Financial Copilot</h2>
-                      <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
-                        Autonomous
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      Continuously inspects provisional slot holds, calculates time-to-shift, and prevents unpaid commercial kitchen use.
-                    </p>
-                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-wider bg-red-200 text-red-900 px-2 py-0.5 rounded-full">
+                    Shift in &lt; 24 Hours
+                  </span>
                 </div>
+                <p className="text-xs text-red-800/80">
+                  These tenants have reserved kitchen stations for tomorrow, but payment has not cleared. Follow up via WhatsApp or release the kitchen slot to other caterers.
+                </p>
 
-                <div className="flex items-center gap-2 text-xs font-semibold text-gray-600">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                  <span>WA Food Act & Commercial Leasing Rules Active</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
+                  {highRiskList.slice(0, 2).map((riskInv) => (
+                    <div
+                      key={riskInv.id}
+                      className="bg-white p-4 rounded-xl border border-red-200 shadow-2xs space-y-3"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="font-black text-xs text-gray-900">
+                            {riskInv.customer_name} <span className="font-normal text-gray-500">({riskInv.business_name || 'Individual'})</span>
+                          </div>
+                          <div className="text-[11px] text-gray-500 font-mono mt-0.5">
+                            Ref: {riskInv.booking_reference || riskInv.invoice_number} · Shift starts soon
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-mono font-black text-sm text-red-700">
+                            ${riskInv.total_amount.toFixed(2)} AUD
+                          </div>
+                          <span className="text-[9px] font-bold text-red-600 bg-red-50 px-1.5 py-0.2 rounded border border-red-200">
+                            UNPAID
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+                        <button
+                          onClick={() => handleOpenReminder(riskInv)}
+                          className="bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                        >
+                          <Send className="w-3 h-3" />
+                          <span>WhatsApp Reminder</span>
+                        </button>
+                        
+                        <button
+                          onClick={() => handleMarkPaid(riskInv)}
+                          className="bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-400 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <Check className="w-3 h-3 text-emerald-600" />
+                          <span>Mark Paid</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleVoidInvoice(riskInv)}
+                          className="text-red-700 hover:bg-red-50 px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ml-auto"
+                        >
+                          Release Slot
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
+            )}
 
-              {/* Quick AI Audit Filter Buttons */}
-              <div className="flex flex-wrap items-center gap-2 text-xs">
-                <span className="text-gray-400 font-bold uppercase text-[10px] mr-1">Quick Audit:</span>
-                <button
-                  onClick={() => handleAiAsk('Which invoices are overdue and high risk?')}
-                  className="px-3 py-1.5 rounded-xl bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 font-semibold cursor-pointer transition-colors flex items-center gap-1.5"
-                >
-                  <AlertTriangle className="w-3.5 h-3.5" />
-                  <span>Overdue High-Risk Invoices</span>
-                </button>
-                <button
-                  onClick={() => handleAiAsk('Show me storage bay leases')}
-                  className="px-3 py-1.5 rounded-xl bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200 font-semibold cursor-pointer transition-colors flex items-center gap-1.5"
-                >
-                  <Package className="w-3.5 h-3.5" />
-                  <span>Commercial Storage Leases</span>
-                </button>
-                <button
-                  onClick={() => handleAiAsk('How much bond money is currently held in escrow?')}
-                  className="px-3 py-1.5 rounded-xl bg-blue-50 text-blue-800 hover:bg-blue-100 border border-blue-200 font-semibold cursor-pointer transition-colors flex items-center gap-1.5"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>Bonds in Escrow ($750/$200)</span>
-                </button>
-                <button
-                  onClick={() => handleAiAsk('What is our total invoiced revenue?')}
-                  className="px-3 py-1.5 rounded-xl bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200 font-semibold cursor-pointer transition-colors flex items-center gap-1.5"
-                >
-                  <TrendingUp className="w-3.5 h-3.5" />
-                  <span>Cashflow Summary</span>
-                </button>
+            {/* 4. Streamlined AI Assistant Bar (Compact, zero clutter) */}
+            <div className="bg-white rounded-2xl border border-gray-300 p-4 shadow-xs space-y-3">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#112F21]">
+                  <Bot className="w-4 h-4 text-[#ED8533]" />
+                  <span>Smart AI Financial Assistant:</span>
+                </div>
+
+                {/* Clickable Quick Questions */}
+                <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                  <button
+                    onClick={() => handleAiAsk('Which invoices are overdue and high risk?')}
+                    className="px-2.5 py-1 rounded-lg bg-red-100/70 text-red-800 hover:bg-red-100 text-[11px] font-semibold transition-colors cursor-pointer"
+                  >
+                    🚨 Who owes money?
+                  </button>
+                  <button
+                    onClick={() => handleAiAsk('How much bond money is currently held in escrow?')}
+                    className="px-2.5 py-1 rounded-lg bg-blue-100/70 text-blue-800 hover:bg-blue-100 text-[11px] font-semibold transition-colors cursor-pointer"
+                  >
+                    🛡️ Escrow Bonds ($950)
+                  </button>
+                  <button
+                    onClick={() => handleAiAsk('Show me storage bay leases')}
+                    className="px-2.5 py-1 rounded-lg bg-amber-100/70 text-amber-900 hover:bg-amber-100 text-[11px] font-semibold transition-colors cursor-pointer"
+                  >
+                    📦 Storage Leases
+                  </button>
+                  <button
+                    onClick={() => handleAiAsk('What is our total invoiced revenue?')}
+                    className="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200 text-[11px] font-semibold transition-colors cursor-pointer"
+                  >
+                    💰 Revenue Summary
+                  </button>
+                </div>
               </div>
 
               {/* Natural Language Prompt Search Bar */}
-              <div className="flex items-center gap-2 bg-[#F8FAFC] p-2 rounded-2xl border border-gray-200">
+              <div className="flex items-center gap-2 bg-[#F4F7F4] p-1.5 rounded-xl border border-gray-300">
                 <Search className="w-4 h-4 text-gray-400 ml-2" />
                 <input
                   type="text"
                   value={aiQueryInput}
                   onChange={(e) => setAiQueryInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleAiAsk(aiQueryInput)}
-                  placeholder="Ask AI Copilot: e.g. 'Who owes money for upcoming shifts?' or 'Show escrow bonds'..."
+                  placeholder="Ask AI anything: e.g. 'Who has unpaid shifts?' or 'Show escrow bonds'..."
                   className="flex-1 bg-transparent border-none text-xs focus:outline-none text-gray-800 placeholder-gray-400"
                 />
                 <button
                   onClick={() => handleAiAsk(aiQueryInput || 'Which invoices are overdue?')}
-                  className="bg-[#112F21] hover:bg-[#1a4731] text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
+                  className="bg-[#112F21] hover:bg-[#1a4731] text-white px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer"
                 >
-                  <span>Ask AI</span>
-                  <ChevronRight className="w-3 h-3 text-[#ED8533]" />
+                  Ask
                 </button>
               </div>
 
               {/* AI Answer Box */}
               {aiAnswer && (
-                <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 text-xs text-gray-800 space-y-2 animate-in fade-in">
+                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-xs text-gray-900 space-y-1.5 animate-in fade-in">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 font-bold text-[#112F21]">
-                      <Bot className="w-4 h-4 text-[#ED8533]" />
-                      <span>Agentic AI Financial Response:</span>
-                    </div>
+                    <span className="font-bold text-[#112F21] flex items-center gap-1.5">
+                      <Bot className="w-3.5 h-3.5 text-[#ED8533]" /> AI Response:
+                    </span>
                     <button onClick={() => setAiAnswer(null)} className="text-gray-400 hover:text-gray-600">
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -816,85 +821,19 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                   <p className="leading-relaxed font-medium">{aiAnswer}</p>
                 </div>
               )}
-
-              {/* Active High-Risk Alert Cards (Direct 1-Click Actionable Items) */}
-              {highRiskList.length > 0 && (
-                <div className="pt-2 space-y-3">
-                  <div className="text-xs font-bold text-gray-800 flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-red-600" />
-                    <span>Urgent Action Required (Kitchen Shifts Starting Soon Without Confirmed Payment):</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {highRiskList.slice(0, 2).map((riskInv) => (
-                      <div
-                        key={riskInv.id}
-                        className="p-4 rounded-2xl border border-red-200 bg-red-50/40 space-y-3 shadow-2xs"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <div className="font-black text-xs text-gray-900 flex items-center gap-2">
-                              <span>{riskInv.customer_name}</span>
-                              <span className="font-mono text-[10px] text-gray-500 font-normal">
-                                ({riskInv.booking_reference || riskInv.invoice_number})
-                              </span>
-                            </div>
-                            <div className="text-[11px] text-red-700 font-bold mt-0.5">
-                              ⚠️ Shift starts soon · Unpaid fee: ${riskInv.total_amount.toFixed(2)} AUD
-                            </div>
-                          </div>
-                          <span className="text-[10px] font-black uppercase tracking-wider bg-red-100 text-red-800 px-2 py-0.5 rounded-full border border-red-300">
-                            Critical Risk
-                          </span>
-                        </div>
-
-                        <p className="text-[11px] text-gray-600 leading-tight">
-                          {riskInv.ai_risk_reason || 'Shift scheduled within 24h. No cleared bank funds detected. Provisional hold will expire.'}
-                        </p>
-
-                        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-red-100">
-                          <button
-                            onClick={() => handleOpenReminder(riskInv)}
-                            className="bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                          >
-                            <Send className="w-3 h-3" />
-                            <span>WhatsApp Reminder</span>
-                          </button>
-                          
-                          <button
-                            onClick={() => handleMarkPaid(riskInv)}
-                            className="bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 px-3 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                          >
-                            <Check className="w-3 h-3 text-emerald-600" />
-                            <span>Mark Paid (Reconcile)</span>
-                          </button>
-
-                          <button
-                            onClick={() => handleVoidInvoice(riskInv)}
-                            className="text-red-700 hover:bg-red-100 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold transition-colors cursor-pointer"
-                          >
-                            Release Slot
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
             </div>
 
-            {/* 4. Master Invoices Data Table (Wide, clear, responsive) */}
-            <div className="bg-white rounded-3xl border border-gray-200 shadow-xs overflow-hidden space-y-4 p-5">
+            {/* 5. Master Invoices Data Table (Dark slate header, zebra rows, crystal clear status badges) */}
+            <div className="bg-white rounded-2xl border border-gray-300 shadow-sm overflow-hidden space-y-4 p-5">
               
-              {/* Header Filters & Search Bar */}
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                <div className="flex items-center gap-1 bg-[#F8FAFC] p-1 rounded-2xl border border-gray-200 overflow-x-auto text-xs font-bold">
+              {/* Table Filters & Search */}
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                <div className="flex items-center gap-1.5 overflow-x-auto text-xs font-bold">
                   {[
-                    { id: 'all', label: `All Invoices (${invoices.length})` },
+                    { id: 'all', label: `All (${invoices.length})` },
                     { id: 'pending', label: 'Pending Payment' },
-                    { id: 'paid', label: 'Paid & Reconciled' },
-                    { id: 'overdue', label: 'High Risk / Overdue' },
+                    { id: 'paid', label: 'Paid & Cleared' },
+                    { id: 'overdue', label: 'Action Required' },
                     { id: 'kitchen', label: 'Kitchen Shifts' },
                     { id: 'storage', label: 'Storage Bays' }
                   ].map((tab) => (
@@ -904,7 +843,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                       className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-all cursor-pointer ${
                         activeFilterTab === tab.id
                           ? 'bg-[#112F21] text-white shadow-xs font-bold'
-                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/60'
+                          : 'bg-[#F0F4F1] text-gray-700 hover:bg-gray-200 border border-gray-200'
                       }`}
                     >
                       {tab.label}
@@ -912,36 +851,34 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                   ))}
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <div className="relative w-full sm:w-72">
-                    <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      placeholder="Search invoice, client, ABN, ref..."
-                      className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[#112F21]"
-                    />
-                  </div>
+                <div className="relative w-full sm:w-64">
+                  <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search tenant, ABN, invoice #..."
+                    className="w-full pl-9 pr-3 py-2 bg-[#F8FAF8] border border-gray-300 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[#112F21]"
+                  />
                 </div>
               </div>
 
-              {/* Table Container */}
-              <div className="overflow-x-auto rounded-2xl border border-gray-200">
+              {/* Table with High Contrast Dark Slate Header */}
+              <div className="overflow-x-auto rounded-xl border border-gray-300">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className="bg-[#F8FAFC] text-gray-500 font-bold uppercase tracking-wider text-[10px] border-b border-gray-200">
-                      <th className="py-3 px-4">Invoice # & Date</th>
-                      <th className="py-3 px-4">Tenant / Business</th>
-                      <th className="py-3 px-4">Rental Category</th>
-                      <th className="py-3 px-4">Rental Fee</th>
-                      <th className="py-3 px-4">Bond (Escrow)</th>
-                      <th className="py-3 px-4">Status</th>
-                      <th className="py-3 px-4">AI Risk Watchdog</th>
-                      <th className="py-3 px-4 text-right">Actions</th>
+                    <tr className="bg-[#E5ECE7] text-gray-800 font-black uppercase tracking-wider text-[10px] border-b border-gray-300">
+                      <th className="py-3 px-3.5">Invoice # & Date</th>
+                      <th className="py-3 px-3.5">Tenant / Business</th>
+                      <th className="py-3 px-3.5">Rental Category</th>
+                      <th className="py-3 px-3.5">Rental Fee</th>
+                      <th className="py-3 px-3.5">Bond (Escrow)</th>
+                      <th className="py-3 px-3.5">Payment Status</th>
+                      <th className="py-3 px-3.5">AI Watchdog</th>
+                      <th className="py-3 px-3.5 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-gray-200">
                     {filteredInvoices.length === 0 ? (
                       <tr>
                         <td colSpan={8} className="py-8 text-center text-gray-400 font-medium">
@@ -949,13 +886,18 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                         </td>
                       </tr>
                     ) : (
-                      filteredInvoices.map((inv) => (
-                        <tr key={inv.id} className="hover:bg-gray-50/70 transition-colors">
+                      filteredInvoices.map((inv, idx) => (
+                        <tr
+                          key={inv.id}
+                          className={`transition-colors ${
+                            idx % 2 === 0 ? 'bg-white' : 'bg-[#F9FAF9]'
+                          } hover:bg-emerald-50/60`}
+                        >
                           
                           {/* Invoice # & Date */}
-                          <td className="py-3.5 px-4">
+                          <td className="py-3 px-3.5">
                             <div className="font-mono font-bold text-gray-900">{inv.invoice_number}</div>
-                            <div className="text-[10px] text-gray-400 mt-0.5">
+                            <div className="text-[10px] text-gray-500 mt-0.5">
                               Issued: {inv.issue_date}
                             </div>
                             {inv.booking_reference && (
@@ -966,69 +908,71 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                           </td>
 
                           {/* Tenant / Business */}
-                          <td className="py-3.5 px-4">
+                          <td className="py-3 px-3.5">
                             <div className="font-bold text-gray-900">{inv.customer_name}</div>
-                            <div className="text-[11px] text-gray-500">{inv.business_name || 'Individual Chef'}</div>
+                            <div className="text-[11px] text-gray-600">{inv.business_name || 'Individual Chef'}</div>
                             {inv.abn && (
-                              <div className="text-[10px] font-mono text-gray-400">ABN: {inv.abn}</div>
+                              <div className="text-[10px] font-mono text-gray-500">ABN: {inv.abn}</div>
                             )}
                           </td>
 
                           {/* Rental Category */}
-                          <td className="py-3.5 px-4">
-                            <span className="font-medium text-gray-700 capitalize">
+                          <td className="py-3 px-3.5">
+                            <span className="font-semibold text-gray-800 capitalize">
                               {(inv.booking_type || inv.invoice_type || 'rental').replace('_', ' ')}
                             </span>
-                            <div className="text-[10px] text-gray-400 max-w-[180px] truncate">
+                            <div className="text-[10px] text-gray-500 max-w-[160px] truncate">
                               {inv.line_items?.[0]?.description || 'Commercial Kitchen Station Access'}
                             </div>
                           </td>
 
                           {/* Rental Fee */}
-                          <td className="py-3.5 px-4 font-mono font-bold text-gray-900">
+                          <td className="py-3 px-3.5 font-mono font-bold text-gray-900">
                             ${inv.total_amount.toFixed(2)} AUD
                           </td>
 
                           {/* Bond */}
-                          <td className="py-3.5 px-4 font-mono text-gray-700">
+                          <td className="py-3 px-3.5 font-mono">
                             {inv.security_deposit > 0 ? (
-                              <span className="font-bold text-blue-900">${inv.security_deposit.toFixed(2)}</span>
+                              <span className="font-bold text-blue-900 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                                ${inv.security_deposit.toFixed(2)}
+                              </span>
                             ) : (
                               <span className="text-gray-400">—</span>
                             )}
                           </td>
 
-                          {/* Payment Status Badge */}
-                          <td className="py-3.5 px-4">
+                          {/* Payment Status Badge (Solid High Contrast Pills) */}
+                          <td className="py-3 px-3.5">
                             <span
-                              className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
                                 inv.status === 'paid'
-                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                  ? 'bg-emerald-700 text-white shadow-2xs'
                                   : inv.status === 'overdue'
-                                  ? 'bg-red-100 text-red-800 border border-red-200'
+                                  ? 'bg-red-600 text-white shadow-2xs'
                                   : inv.status === 'void'
-                                  ? 'bg-gray-100 text-gray-500'
-                                  : 'bg-amber-100 text-amber-800 border border-amber-200'
+                                  ? 'bg-gray-400 text-white'
+                                  : 'bg-amber-600 text-white shadow-2xs'
                               }`}
                             >
-                              {inv.status}
+                              {inv.status === 'pending' ? 'PENDING (48H)' : inv.status}
                             </span>
                           </td>
 
                           {/* AI Risk Watchdog */}
-                          <td className="py-3.5 px-4">
+                          <td className="py-3 px-3.5">
                             {inv.ai_risk_level === 'critical' ? (
                               <span className="text-red-700 font-bold flex items-center gap-1 text-[11px]">
                                 <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                                 <span>Critical (Shift in 24h)</span>
                               </span>
                             ) : inv.ai_risk_level === 'high' ? (
-                              <span className="text-amber-700 font-semibold flex items-center gap-1 text-[11px]">
+                              <span className="text-amber-800 font-semibold flex items-center gap-1 text-[11px]">
                                 <Clock className="w-3.5 h-3.5 shrink-0" />
                                 <span>Unpaid &gt; 48h</span>
                               </span>
                             ) : (
-                              <span className="text-emerald-700 font-medium flex items-center gap-1 text-[11px]">
+                              <span className="text-emerald-800 font-medium flex items-center gap-1 text-[11px]">
                                 <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                                 <span>Verified / Low Risk</span>
                               </span>
@@ -1036,38 +980,38 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                           </td>
 
                           {/* Actions */}
-                          <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                          <td className="py-3 px-3.5 text-right whitespace-nowrap">
                             <div className="flex items-center justify-end gap-1.5">
-                              {/* 1. Tax Invoice Button */}
+                              {/* Tax Invoice Button */}
                               <button
                                 onClick={() => {
                                   setSelectedInvoice(inv);
                                   setShowTaxInvoiceModal(true);
                                 }}
-                                className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors cursor-pointer flex items-center gap-1"
+                                className="bg-white hover:bg-gray-100 text-gray-800 border border-gray-300 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
                                 title="View official ATO Tax Invoice"
                               >
-                                <Receipt className="w-3 h-3 text-emerald-800" />
+                                <Receipt className="w-3 h-3 text-[#112F21]" />
                                 <span>Tax Invoice</span>
                               </button>
 
-                              {/* 2. WhatsApp Reminder Button */}
+                              {/* WhatsApp Reminder Button */}
                               {inv.status !== 'paid' && (
                                 <button
                                   onClick={() => handleOpenReminder(inv)}
-                                  className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors cursor-pointer flex items-center gap-1"
-                                  title="Send smart WhatsApp/Email reminder"
+                                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
+                                  title="Send smart WhatsApp reminder"
                                 >
                                   <Send className="w-3 h-3" />
-                                  <span>Reminder</span>
+                                  <span>WhatsApp</span>
                                 </button>
                               )}
 
-                              {/* 3. Mark Paid Button */}
+                              {/* Mark Paid Button */}
                               {inv.status !== 'paid' && (
                                 <button
                                   onClick={() => handleMarkPaid(inv)}
-                                  className="bg-[#112F21] hover:bg-[#1a4731] text-white px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
+                                  className="bg-[#112F21] hover:bg-[#1a4731] text-white px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors cursor-pointer shadow-2xs"
                                   title="Reconcile bank payment"
                                 >
                                   Mark Paid
@@ -1092,68 +1036,68 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
            ======================================================== */}
         {activeTab === 'bonds' && (
           <div className="space-y-6">
-            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200 shadow-xs space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-300 shadow-sm space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-200">
                 <div>
                   <h2 className="text-xl font-black text-gray-900">Tenant Security Bonds in Escrow</h2>
-                  <p className="text-xs text-gray-500">
-                    Daily Drop Commercial Kitchens holds refundable bonds for equipment and cleanliness protection.
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Refundable security deposits held for equipment protection and kitchen cleanliness.
                   </p>
                 </div>
-                <div className="text-right">
-                  <div className="text-xs text-gray-400 font-bold uppercase">Total Escrow Balance</div>
-                  <div className="text-2xl font-black text-blue-900 font-mono">${totalBondsHeld.toFixed(2)} AUD</div>
+                <div className="text-right bg-blue-50 border border-blue-200 p-3 rounded-xl">
+                  <div className="text-[10px] text-blue-800 font-bold uppercase">Total Escrow Balance</div>
+                  <div className="text-2xl font-black text-blue-950 font-mono">${totalBondsHeld.toFixed(2)} AUD</div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                  <div className="font-bold text-xs text-gray-800">Standard Commercial Kitchen Shift Bond</div>
-                  <div className="text-xl font-black text-gray-900 font-mono">$750.00 AUD</div>
-                  <p className="text-[11px] text-gray-500">
-                    Collected prior to shift start. Covers commercial combi oven, tilting bratt pan, deep fryers, and grease trap cleanliness.
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 rounded-xl bg-[#F0F5F1] border-2 border-[#81C784] space-y-1.5">
+                  <div className="font-black text-xs text-emerald-900 uppercase">Kitchen Shift Bond</div>
+                  <div className="text-2xl font-black text-emerald-950 font-mono">$750.00 AUD</div>
+                  <p className="text-[11px] text-gray-600">
+                    Collected prior to shift start. Covers combi oven, tilting bratt pan, fryers, and grease traps.
                   </p>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                  <div className="font-bold text-xs text-gray-800">Commercial Storage Space Security Bond</div>
-                  <div className="text-xl font-black text-gray-900 font-mono">$200.00 AUD</div>
-                  <p className="text-[11px] text-gray-500">
+                <div className="p-4 rounded-xl bg-[#E8F0FE] border-2 border-[#90CAF9] space-y-1.5">
+                  <div className="font-black text-xs text-blue-900 uppercase">Storage Bay Bond</div>
+                  <div className="text-2xl font-black text-blue-950 font-mono">$200.00 AUD</div>
+                  <p className="text-[11px] text-gray-600">
                     Held for dry goods storage cages and cold room shelving bays during the active lease term.
                   </p>
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-gray-100">
-                <h3 className="text-xs font-bold text-gray-800 mb-3 uppercase tracking-wider">
+              <div className="pt-2">
+                <h3 className="text-xs font-bold text-gray-800 mb-2 uppercase tracking-wider">
                   Active Escrow Ledger:
                 </h3>
-                <div className="overflow-x-auto rounded-2xl border border-gray-200">
+                <div className="overflow-x-auto rounded-xl border border-gray-300">
                   <table className="w-full text-left text-xs border-collapse">
-                    <thead className="bg-[#F8FAFC] text-[10px] uppercase font-bold text-gray-500">
+                    <thead className="bg-[#E5ECE7] text-[10px] uppercase font-bold text-gray-800">
                       <tr>
-                        <th className="py-3 px-4">Tenant</th>
-                        <th className="py-3 px-4">Service</th>
-                        <th className="py-3 px-4">Bond Amount</th>
-                        <th className="py-3 px-4">Escrow Status</th>
-                        <th className="py-3 px-4">Inspection Checklist</th>
-                        <th className="py-3 px-4 text-right">Refund Action</th>
+                        <th className="py-2.5 px-4">Tenant</th>
+                        <th className="py-2.5 px-4">Service</th>
+                        <th className="py-2.5 px-4">Bond Amount</th>
+                        <th className="py-2.5 px-4">Escrow Status</th>
+                        <th className="py-2.5 px-4">Inspection Checklist</th>
+                        <th className="py-2.5 px-4 text-right">Action</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      <tr className="hover:bg-gray-50">
-                        <td className="py-3.5 px-4 font-bold">Chef Michael Davies (Perth Catering Co.)</td>
-                        <td className="py-3.5 px-4 text-gray-600">Commercial Kitchen Shift (DD-BK-001)</td>
-                        <td className="py-3.5 px-4 font-mono font-bold text-blue-900">$750.00 AUD</td>
-                        <td className="py-3.5 px-4">
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800">
+                    <tbody className="divide-y divide-gray-200">
+                      <tr className="hover:bg-gray-50 bg-white">
+                        <td className="py-3 px-4 font-bold">Chef Michael Davies (Perth Catering Co.)</td>
+                        <td className="py-3 px-4 text-gray-600">Commercial Kitchen Shift (DD-BK-001)</td>
+                        <td className="py-3 px-4 font-mono font-bold text-blue-900">$750.00 AUD</td>
+                        <td className="py-3 px-4">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-900 border border-blue-300">
                             Held in Escrow
                           </span>
                         </td>
-                        <td className="py-3.5 px-4 text-[11px] text-gray-600">
+                        <td className="py-3 px-4 text-[11px] text-gray-600">
                           Combi oven cleaned · Grease traps clear
                         </td>
-                        <td className="py-3.5 px-4 text-right">
+                        <td className="py-3 px-4 text-right">
                           <button
                             onClick={() => alert('Inspection verified. $750.00 bond release initiated to Michael Davies via PayID.')}
                             className="bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer"
@@ -1162,19 +1106,19 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                           </button>
                         </td>
                       </tr>
-                      <tr className="hover:bg-gray-50">
-                        <td className="py-3.5 px-4 font-bold">ABC Catering Pty Ltd</td>
-                        <td className="py-3.5 px-4 text-gray-600">Cold Room Storage Bay B</td>
-                        <td className="py-3.5 px-4 font-mono font-bold text-blue-900">$200.00 AUD</td>
-                        <td className="py-3.5 px-4">
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800">
+                      <tr className="hover:bg-gray-50 bg-[#F9FAF9]">
+                        <td className="py-3 px-4 font-bold">ABC Catering Pty Ltd</td>
+                        <td className="py-3 px-4 text-gray-600">Cold Room Storage Bay B</td>
+                        <td className="py-3 px-4 font-mono font-bold text-blue-900">$200.00 AUD</td>
+                        <td className="py-3 px-4">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-900 border border-blue-300">
                             Held in Escrow
                           </span>
                         </td>
-                        <td className="py-3.5 px-4 text-[11px] text-gray-600">
+                        <td className="py-3 px-4 text-[11px] text-gray-600">
                           Active Monthly Storage Lease
                         </td>
-                        <td className="py-3.5 px-4 text-right">
+                        <td className="py-3 px-4 text-right">
                           <span className="text-xs text-gray-400 font-medium">Active Lease</span>
                         </td>
                       </tr>
@@ -1191,56 +1135,56 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
            ======================================================== */}
         {activeTab === 'storage' && (
           <div className="space-y-6">
-            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200 shadow-xs space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-300 shadow-sm space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-200">
                 <div>
                   <h2 className="text-xl font-black text-gray-900">Commercial Storage Bays (Max 2 Bays)</h2>
-                  <p className="text-xs text-gray-500">
-                    Recurring monthly revenue from on-site dry goods and walk-in cold storage facilities.
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Monthly recurring revenue from dry storage cage and walk-in cold room facilities.
                   </p>
                 </div>
-                <div className="text-right">
-                  <div className="text-xs text-gray-400 font-bold uppercase">Monthly Recurring Revenue</div>
-                  <div className="text-2xl font-black text-emerald-800 font-mono">$400.00 AUD / mo</div>
+                <div className="text-right bg-emerald-50 border border-emerald-300 p-3 rounded-xl">
+                  <div className="text-[10px] text-emerald-800 font-bold uppercase">Monthly Storage Income</div>
+                  <div className="text-2xl font-black text-emerald-900 font-mono">$400.00 AUD / mo</div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {/* Bay 1 */}
-                <div className="border border-emerald-200 rounded-2xl p-5 bg-emerald-50/20 space-y-3">
+                <div className="border-2 border-emerald-300 rounded-2xl p-5 bg-[#F0F7F1] space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-black uppercase tracking-wider text-emerald-800">
+                    <span className="text-xs font-black uppercase tracking-wider text-emerald-900">
                       Storage Bay 1 · Dry Storage Unit A
                     </span>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-700 text-white">
                       OCCUPIED
                     </span>
                   </div>
                   <div className="text-2xl font-black text-gray-900 font-mono">$150.00 AUD <span className="text-xs font-normal text-gray-500">/ month</span></div>
-                  <div className="text-xs space-y-1 text-gray-700">
+                  <div className="text-xs space-y-1 text-gray-700 pt-1 border-t border-emerald-200">
                     <div><b>Tenant:</b> Chef Michael Davies (Perth Catering Co.)</div>
-                    <div><b>Lease Term:</b> 1 Nov 2026 – 30 Nov 2026 (Monthly Auto-Renew)</div>
-                    <div><b>Security Deposit:</b> $200.00 (Cleared in Escrow)</div>
-                    <div><b>Payment Status:</b> <span className="text-emerald-700 font-bold">Current & Paid</span></div>
+                    <div><b>Lease Term:</b> Monthly Auto-Renew</div>
+                    <div><b>Security Deposit:</b> $200.00 (Held in Escrow)</div>
+                    <div><b>Status:</b> <span className="text-emerald-800 font-bold">Current & Paid</span></div>
                   </div>
                 </div>
 
                 {/* Bay 2 */}
-                <div className="border border-blue-200 rounded-2xl p-5 bg-blue-50/20 space-y-3">
+                <div className="border-2 border-blue-300 rounded-2xl p-5 bg-[#EBF3FD] space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-black uppercase tracking-wider text-blue-800">
+                    <span className="text-xs font-black uppercase tracking-wider text-blue-900">
                       Storage Bay 2 · Cold Room Storage Unit B
                     </span>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-blue-100 text-blue-800">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-blue-700 text-white">
                       OCCUPIED
                     </span>
                   </div>
                   <div className="text-2xl font-black text-gray-900 font-mono">$250.00 AUD <span className="text-xs font-normal text-gray-500">/ month</span></div>
-                  <div className="text-xs space-y-1 text-gray-700">
+                  <div className="text-xs space-y-1 text-gray-700 pt-1 border-t border-blue-200">
                     <div><b>Tenant:</b> ABC Catering Co.</div>
-                    <div><b>Lease Term:</b> 1 Nov 2026 – 30 Nov 2026</div>
-                    <div><b>Security Deposit:</b> $200.00 (Cleared in Escrow)</div>
-                    <div><b>Payment Status:</b> <span className="text-emerald-700 font-bold">Current & Paid</span></div>
+                    <div><b>Lease Term:</b> Monthly Auto-Renew</div>
+                    <div><b>Security Deposit:</b> $200.00 (Held in Escrow)</div>
+                    <div><b>Status:</b> <span className="text-emerald-800 font-bold">Current & Paid</span></div>
                   </div>
                 </div>
               </div>
@@ -1253,66 +1197,66 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
            ======================================================== */}
         {activeTab === 'rates' && (
           <div className="space-y-6">
-            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200 shadow-xs space-y-6">
-              <div>
+            <div className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-300 shadow-sm space-y-5">
+              <div className="pb-4 border-b border-gray-200">
                 <h2 className="text-xl font-black text-gray-900">Commercial Rates & Official ATO Tax Settings</h2>
-                <p className="text-xs text-gray-500">
-                  Official Australian taxation and commercial pricing rules applied across all invoices.
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Australian Taxation Office registration, pricing formulas, and bank transfer credentials.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 
-                {/* Australian Taxation Office Details */}
-                <div className="p-5 rounded-2xl bg-gray-50 border border-gray-200 space-y-3 text-xs">
+                {/* ATO Details */}
+                <div className="p-5 rounded-2xl bg-[#F8FAF8] border border-gray-300 space-y-3 text-xs">
                   <div className="font-bold text-gray-900 text-sm flex items-center gap-2">
                     <Building className="w-4 h-4 text-[#112F21]" />
                     <span>Registered Business & ATO Entity</span>
                   </div>
                   <div className="space-y-2 text-gray-700">
-                    <div className="flex justify-between border-b border-gray-200/60 pb-1.5">
+                    <div className="flex justify-between border-b border-gray-200 pb-1.5">
                       <span className="text-gray-500">Legal Entity:</span>
                       <span className="font-bold text-gray-900">Daily Drop Commercial Kitchens Pty Ltd</span>
                     </div>
-                    <div className="flex justify-between border-b border-gray-200/60 pb-1.5">
+                    <div className="flex justify-between border-b border-gray-200 pb-1.5">
                       <span className="text-gray-500">Australian Business Number (ABN):</span>
                       <span className="font-mono font-bold text-gray-900">51 824 753 556</span>
                     </div>
-                    <div className="flex justify-between border-b border-gray-200/60 pb-1.5">
+                    <div className="flex justify-between border-b border-gray-200 pb-1.5">
                       <span className="text-gray-500">Facility Location:</span>
                       <span className="font-semibold text-gray-900">Victoria Park, Perth, WA 6100</span>
                     </div>
-                    <div className="flex justify-between border-b border-gray-200/60 pb-1.5">
+                    <div className="flex justify-between border-b border-gray-200 pb-1.5">
                       <span className="text-gray-500">Goods and Services Tax (GST):</span>
                       <span className="font-bold text-emerald-800">10% Included on all rental fees</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Direct Banking & PayID Configuration */}
-                <div className="p-5 rounded-2xl bg-gray-50 border border-gray-200 space-y-3 text-xs">
+                {/* Direct Banking Instructions */}
+                <div className="p-5 rounded-2xl bg-[#F8FAF8] border border-gray-300 space-y-3 text-xs">
                   <div className="font-bold text-gray-900 text-sm flex items-center gap-2">
                     <CreditCard className="w-4 h-4 text-[#112F21]" />
                     <span>Direct Payment Instructions</span>
                   </div>
                   <div className="space-y-2 text-gray-700">
-                    <div className="flex justify-between border-b border-gray-200/60 pb-1.5">
+                    <div className="flex justify-between border-b border-gray-200 pb-1.5">
                       <span className="text-gray-500">PayID Identifier:</span>
                       <span className="font-mono font-bold text-emerald-800">hello@dailydrop.today</span>
                     </div>
-                    <div className="flex justify-between border-b border-gray-200/60 pb-1.5">
+                    <div className="flex justify-between border-b border-gray-200 pb-1.5">
                       <span className="text-gray-500">Bank Name:</span>
                       <span className="font-semibold text-gray-900">National Australia Bank (NAB)</span>
                     </div>
-                    <div className="flex justify-between border-b border-gray-200/60 pb-1.5">
+                    <div className="flex justify-between border-b border-gray-200 pb-1.5">
                       <span className="text-gray-500">BSB Code:</span>
                       <span className="font-mono font-bold text-gray-900">066-000</span>
                     </div>
-                    <div className="flex justify-between border-b border-gray-200/60 pb-1.5">
+                    <div className="flex justify-between border-b border-gray-200 pb-1.5">
                       <span className="text-gray-500">Account Number:</span>
                       <span className="font-mono font-bold text-gray-900">1234 5678</span>
                     </div>
-                    <div className="flex justify-between border-b border-gray-200/60 pb-1.5">
+                    <div className="flex justify-between border-b border-gray-200 pb-1.5">
                       <span className="text-gray-500">Account Name:</span>
                       <span className="font-semibold text-gray-900">Daily Drop Kitchens Perth Operations</span>
                     </div>
@@ -1331,7 +1275,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
          ======================================================== */}
       {showTaxInvoiceModal && selectedInvoice && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-3xl w-full border border-gray-200 shadow-2xl p-6 sm:p-8 space-y-6 animate-in fade-in zoom-in-95 my-8">
+          <div className="bg-white rounded-3xl max-w-3xl w-full border border-gray-300 shadow-2xl p-6 sm:p-8 space-y-6 animate-in fade-in zoom-in-95 my-8">
             
             {/* Modal Header Controls */}
             <div className="flex items-center justify-between pb-4 border-b border-gray-200">
@@ -1345,7 +1289,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => window.print()}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 border border-gray-300"
                 >
                   <Printer className="w-3.5 h-3.5" />
                   <span>Print / Save PDF</span>
@@ -1380,10 +1324,10 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                   <div className="text-gray-500">Date: {selectedInvoice.issue_date}</div>
                   <div className="text-gray-500">Due: {selectedInvoice.due_date}</div>
                   <div>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                    <span className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase ${
                       selectedInvoice.status === 'paid'
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : 'bg-amber-100 text-amber-800'
+                        ? 'bg-emerald-700 text-white'
+                        : 'bg-amber-600 text-white'
                     }`}>
                       {selectedInvoice.status}
                     </span>
@@ -1472,7 +1416,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
               </div>
 
               {/* Direct Payment Banking Instructions */}
-              <div className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-200 text-xs space-y-1 text-emerald-950">
+              <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-300 text-xs space-y-1 text-emerald-950">
                 <div className="font-bold text-emerald-900 flex items-center gap-1.5">
                   <CreditCard className="w-3.5 h-3.5 text-emerald-800" />
                   <span>Electronic Bank Transfer Details:</span>
@@ -1505,11 +1449,11 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
          ======================================================== */}
       {showReminderModal && reminderInvoice && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full border border-gray-200 shadow-2xl p-6 space-y-4 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+          <div className="bg-white rounded-3xl max-w-lg w-full border border-gray-300 shadow-2xl p-6 space-y-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-200">
               <div className="flex items-center gap-2">
                 <Send className="w-5 h-5 text-emerald-700" />
-                <h3 className="font-bold text-sm text-gray-900">Smart Payment Follow-up (AI Drafted)</h3>
+                <h3 className="font-bold text-sm text-gray-900">WhatsApp & SMS Payment Follow-up</h3>
               </div>
               <button
                 onClick={() => setShowReminderModal(false)}
@@ -1524,14 +1468,14 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
             </p>
 
             {/* Generated Message Text */}
-            <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 font-mono text-xs text-gray-800 whitespace-pre-wrap leading-relaxed select-all">
+            <div className="p-4 rounded-2xl bg-gray-50 border border-gray-300 font-mono text-xs text-gray-800 whitespace-pre-wrap leading-relaxed select-all">
 {`Hi ${reminderInvoice.customer_name},
 
 This is Daily Drop Commercial Kitchens (Victoria Park Hub). 
 
-Your kitchen booking (${reminderInvoice.booking_reference || reminderInvoice.invoice_number}) is currently on a provisional 48-hour hold.
+Your kitchen booking (${reminderInvoice.booking_reference || reminderInvoice.invoice_number}) is currently on provisional hold.
 
-Total Rental Due: $${reminderInvoice.total_amount.toFixed(2)} AUD
+Total Due: $${reminderInvoice.total_amount.toFixed(2)} AUD
 Direct PayID: hello@dailydrop.today
 Bank BSB: 066-000 | Account: 1234 5678
 Reference: ${reminderInvoice.booking_reference || reminderInvoice.invoice_number}
@@ -1550,7 +1494,7 @@ Daily Drop Kitchen Management`}
                   setReminderCopied(true);
                   setTimeout(() => setReminderCopied(false), 3000);
                 }}
-                className="w-full sm:w-auto bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                className="w-full sm:w-auto bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-1.5 border border-gray-300"
               >
                 {reminderCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                 <span>{reminderCopied ? 'Copied to Clipboard!' : 'Copy Text'}</span>
@@ -1579,8 +1523,8 @@ Daily Drop Kitchen Management`}
          ======================================================== */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full border border-gray-200 shadow-2xl p-6 sm:p-7 space-y-4 animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+          <div className="bg-white rounded-3xl max-w-lg w-full border border-gray-300 shadow-2xl p-6 sm:p-7 space-y-4 animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-200">
               <div className="flex items-center gap-2">
                 <Plus className="w-5 h-5 text-[#ED8533]" />
                 <h3 className="font-bold text-sm text-gray-900">Create Manual ATO Tax Invoice</h3>
@@ -1598,7 +1542,7 @@ Daily Drop Kitchen Management`}
                   value={newInvName}
                   onChange={(e) => setNewInvName(e.target.value)}
                   placeholder="Chef Sarah Jenkins"
-                  className="w-full px-3.5 py-2 rounded-xl border border-gray-200 text-xs focus:ring-1 focus:ring-[#112F21] focus:outline-none"
+                  className="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-xs focus:ring-1 focus:ring-[#112F21] focus:outline-none"
                   required
                 />
               </div>
@@ -1611,7 +1555,7 @@ Daily Drop Kitchen Management`}
                     value={newInvBusiness}
                     onChange={(e) => setNewInvBusiness(e.target.value)}
                     placeholder="Artisan Bakery WA"
-                    className="w-full px-3.5 py-2 rounded-xl border border-gray-200 text-xs focus:outline-none"
+                    className="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-xs focus:outline-none"
                   />
                 </div>
                 <div>
@@ -1621,7 +1565,7 @@ Daily Drop Kitchen Management`}
                     value={newInvAbn}
                     onChange={(e) => setNewInvAbn(e.target.value)}
                     placeholder="12 345 678 901"
-                    className="w-full px-3.5 py-2 rounded-xl border border-gray-200 text-xs font-mono focus:outline-none"
+                    className="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-xs font-mono focus:outline-none"
                   />
                 </div>
               </div>
@@ -1634,7 +1578,7 @@ Daily Drop Kitchen Management`}
                     value={newInvEmail}
                     onChange={(e) => setNewInvEmail(e.target.value)}
                     placeholder="sarah@bakery.com.au"
-                    className="w-full px-3.5 py-2 rounded-xl border border-gray-200 text-xs focus:outline-none"
+                    className="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-xs focus:outline-none"
                   />
                 </div>
                 <div>
@@ -1644,7 +1588,7 @@ Daily Drop Kitchen Management`}
                     value={newInvPhone}
                     onChange={(e) => setNewInvPhone(e.target.value)}
                     placeholder="+61 412 345 678"
-                    className="w-full px-3.5 py-2 rounded-xl border border-gray-200 text-xs font-mono focus:outline-none"
+                    className="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-xs font-mono focus:outline-none"
                   />
                 </div>
               </div>
@@ -1655,7 +1599,7 @@ Daily Drop Kitchen Management`}
                   <select
                     value={newInvType}
                     onChange={(e) => setNewInvType(e.target.value as any)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-gray-200 text-xs bg-white focus:outline-none"
+                    className="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-xs bg-white focus:outline-none"
                   >
                     <option value="kitchen_rental">Commercial Kitchen Shift</option>
                     <option value="storage_lease">Storage Space Lease</option>
@@ -1669,7 +1613,7 @@ Daily Drop Kitchen Management`}
                     step="0.01"
                     value={newInvAmount}
                     onChange={(e) => setNewInvAmount(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-gray-200 text-xs font-mono font-bold focus:outline-none"
+                    className="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-xs font-mono font-bold focus:outline-none"
                     required
                   />
                 </div>
@@ -1683,7 +1627,7 @@ Daily Drop Kitchen Management`}
                   value={newInvDeposit}
                   onChange={(e) => setNewInvDeposit(e.target.value)}
                   placeholder="750.00"
-                  className="w-full px-3.5 py-2 rounded-xl border border-gray-200 text-xs font-mono focus:outline-none"
+                  className="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-xs font-mono focus:outline-none"
                 />
               </div>
 
@@ -1694,11 +1638,11 @@ Daily Drop Kitchen Management`}
                   value={newInvDesc}
                   onChange={(e) => setNewInvDesc(e.target.value)}
                   placeholder="e.g. 4 Hours Combi Oven + 6-Burner Range Shift"
-                  className="w-full px-3.5 py-2 rounded-xl border border-gray-200 text-xs focus:outline-none"
+                  className="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-xs focus:outline-none"
                 />
               </div>
 
-              <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-gray-200 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
