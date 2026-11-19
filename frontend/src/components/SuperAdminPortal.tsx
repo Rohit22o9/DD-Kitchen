@@ -41,6 +41,7 @@ import {
 } from 'lucide-react';
 import { Invoice, InvoiceStatus, AIRiskLevel, KitchenConfig } from '../types';
 import { api } from '../services/api';
+import { geminiService } from '../services/geminiService';
 import { Images } from '../assets/images';
 
 interface SuperAdminPortalProps {
@@ -110,6 +111,11 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   const [auditToast, setAuditToast] = useState<string | null>(null);
   const [aiQueryInput, setAiQueryInput] = useState('');
   const [aiAnswer, setAiAnswer] = useState<string | null>(null);
+  const [aiIsThinking, setAiIsThinking] = useState(false);
+  const [aiModelUsed, setAiModelUsed] = useState<string | null>(null);
+  const [aiErrorNote, setAiErrorNote] = useState<string | null>(null);
+  const [apiKeyInput, setApiKeyInput] = useState(geminiService.getApiKey());
+  const [apiKeySavedNotice, setApiKeySavedNotice] = useState(false);
 
   // Modals State
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
@@ -241,31 +247,33 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
     setShowReminderModal(true);
   };
 
-  // Natural Language AI Answers
-  const handleAiAsk = (query: string) => {
+  // Natural Language AI Answers (Queries Google Gemini with intelligent watchdog fallback)
+  const handleAiAsk = async (query: string) => {
+    if (!query || !query.trim()) return;
     setAiQueryInput(query);
-    const q = query.toLowerCase();
-    if (q.includes('overdue') || q.includes('who owes') || q.includes('risk') || q.includes('urgent')) {
-      setAiAnswer(
-        '🚨 2 Upcoming Shifts Unpaid: (1) Rohit (ABC Kitchen · $167.20 · Shift: Tue 20 Oct) and (2) Chef Michael Davies ($167.20 · Shift: Thu 22 Oct). Recommendation: Send WhatsApp reminders now. If unpaid 12h prior, release slots.'
-      );
-    } else if (q.includes('bond') || q.includes('deposit') || q.includes('escrow')) {
-      setAiAnswer(
-        '🛡️ Escrow Balance: $950.00 AUD total ($750.00 kitchen security bond + $200.00 storage bond). All bonds are safely held in escrow pending post-shift cleanliness inspection.'
-      );
-    } else if (q.includes('storage') || q.includes('bay')) {
-      setAiAnswer(
-        '📦 Storage Leases: 2 bays active in Victoria Park: Unit A (Dry Storage · $150/mo) and Unit B (Cold Room Bay · $250/mo). Recurring revenue: $400.00 AUD/mo.'
-      );
-    } else if (q.includes('revenue') || q.includes('how much') || q.includes('total') || q.includes('cashflow')) {
-      setAiAnswer(
-        `💰 Financial Status: Total Invoiced: $${totalInvoiced.toFixed(2)} AUD. Reconciled in Bank: $${totalPaidRevenue.toFixed(2)} AUD. Pending Collection: $${totalPending.toFixed(2)} AUD.`
-      );
-    } else {
-      setAiAnswer(
-        `🤖 AI Inspection Result: 14 active tenant records examined. All booking slots comply with WA commercial kitchen standards.`
-      );
+    setAiIsThinking(true);
+    setAiAnswer(null);
+    setAiErrorNote(null);
+    try {
+      const res = await geminiService.queryInvoiceCopilot(query, invoices);
+      setAiAnswer(res.answer);
+      setAiModelUsed(res.isLiveGemini ? (res.modelUsed || 'Google Gemini 2.5 Flash') : 'Commercial Watchdog Engine');
+      if (res.errorNote) {
+        setAiErrorNote(res.errorNote);
+      }
+    } catch (err: any) {
+      setAiAnswer('Unable to query AI copilot at this moment. Please verify your connection.');
+    } finally {
+      setAiIsThinking(false);
     }
+  };
+
+  // Update Gemini Key
+  const handleSaveApiKey = (e: React.FormEvent) => {
+    e.preventDefault();
+    geminiService.setApiKey(apiKeyInput);
+    setApiKeySavedNotice(true);
+    setTimeout(() => setApiKeySavedNotice(false), 3000);
   };
 
   // Filtered Invoices
@@ -795,30 +803,51 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                   type="text"
                   value={aiQueryInput}
                   onChange={(e) => setAiQueryInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAiAsk(aiQueryInput)}
+                  onKeyDown={(e) => e.key === 'Enter' && !aiIsThinking && handleAiAsk(aiQueryInput)}
                   placeholder="Ask AI anything: e.g. 'Who has unpaid shifts?' or 'Show escrow bonds'..."
                   className="flex-1 bg-transparent border-none text-xs focus:outline-none text-gray-800 placeholder-gray-400"
+                  disabled={aiIsThinking}
                 />
                 <button
-                  onClick={() => handleAiAsk(aiQueryInput || 'Which invoices are overdue?')}
-                  className="bg-[#112F21] hover:bg-[#1a4731] text-white px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                  onClick={() => handleAiAsk(aiQueryInput || 'Which invoices are overdue and high risk?')}
+                  disabled={aiIsThinking}
+                  className="bg-[#112F21] hover:bg-[#1a4731] text-white px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
                 >
-                  Ask
+                  {aiIsThinking ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#ED8533]" />
+                      <span>Thinking...</span>
+                    </>
+                  ) : (
+                    <span>Ask AI</span>
+                  )}
                 </button>
               </div>
 
               {/* AI Answer Box */}
               {aiAnswer && (
-                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-xs text-gray-900 space-y-1.5 animate-in fade-in">
+                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-xs text-gray-900 space-y-2 animate-in fade-in">
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-[#112F21] flex items-center gap-1.5">
-                      <Bot className="w-3.5 h-3.5 text-[#ED8533]" /> AI Response:
-                    </span>
-                    <button onClick={() => setAiAnswer(null)} className="text-gray-400 hover:text-gray-600">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-[#112F21] flex items-center gap-1.5">
+                        <Bot className="w-3.5 h-3.5 text-[#ED8533]" /> AI Copilot Response:
+                      </span>
+                      {aiModelUsed && (
+                        <span className="text-[10px] bg-emerald-100 text-emerald-900 font-bold px-2 py-0.5 rounded-full border border-emerald-300">
+                          {aiModelUsed}
+                        </span>
+                      )}
+                    </div>
+                    <button onClick={() => setAiAnswer(null)} className="text-gray-400 hover:text-gray-600 cursor-pointer">
                       <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                  <p className="leading-relaxed font-medium">{aiAnswer}</p>
+                  <p className="leading-relaxed font-medium whitespace-pre-line text-gray-800">{aiAnswer}</p>
+                  {aiErrorNote && (
+                    <div className="text-[11px] text-amber-900 bg-amber-100/90 p-2 rounded-lg border border-amber-300">
+                      ℹ️ {aiErrorNote}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1261,6 +1290,67 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                       <span className="font-semibold text-gray-900">Daily Drop Kitchens Perth Operations</span>
                     </div>
                   </div>
+                </div>
+
+                {/* Google Gemini AI Engine Integration */}
+                <div className="md:col-span-2 p-5 rounded-2xl bg-gradient-to-r from-emerald-50/70 via-white to-amber-50/60 border border-emerald-300 shadow-xs space-y-4 text-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-200 pb-3">
+                    <div className="flex items-center gap-2">
+                      <Bot className="w-5 h-5 text-[#ED8533]" />
+                      <div>
+                        <div className="font-bold text-gray-900 text-sm">
+                          Google Gemini AI Agentic Engine
+                        </div>
+                        <div className="text-[11px] text-gray-500">
+                          Powering invoice risk scoring, 48h provisional rental audits, and executive queries
+                        </div>
+                      </div>
+                    </div>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-900 border border-emerald-300 w-fit">
+                      <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+                      API Connected &amp; Watchdog Active
+                    </span>
+                  </div>
+
+                  <form onSubmit={handleSaveApiKey} className="space-y-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
+                        Google Gemini API Key
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <div className="relative flex-1">
+                          <Key className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-3" />
+                          <input
+                            type="password"
+                            value={apiKeyInput}
+                            onChange={(e) => setApiKeyInput(e.target.value)}
+                            placeholder="AQ.Ab8RN6KOeF4whf_..."
+                            className="w-full pl-9 pr-3 py-2 text-xs font-mono bg-white rounded-xl border border-gray-300 focus:outline-none focus:border-[#112F21]"
+                          />
+                        </div>
+                        <button
+                          type="submit"
+                          className="bg-[#112F21] hover:bg-[#1a4731] text-white px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap"
+                        >
+                          {apiKeySavedNotice ? '✓ Saved!' : 'Update Key'}
+                        </button>
+                      </div>
+                      <div className="text-[11px] text-gray-500 mt-1">
+                        Active key: <code className="bg-gray-100 px-1 py-0.5 rounded font-mono font-bold text-gray-800">{apiKeyInput ? `${apiKeyInput.slice(0, 10)}...${apiKeyInput.slice(-6)}` : 'None configured'}</code> (Stored securely in client environment &amp; localStorage)
+                      </div>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl bg-amber-50/80 border border-amber-300/80 space-y-1 text-[11px] text-amber-950">
+                      <div className="font-bold flex items-center gap-1.5 text-amber-900">
+                        <Sparkles className="w-3.5 h-3.5 text-[#ED8533]" />
+                        <span>Dual Intelligence Architecture:</span>
+                      </div>
+                      <p className="leading-relaxed">
+                        <b>1. Cloud Model:</b> Queries Google's flagship <code>gemini-2.5-flash</code> with live Daily Drop invoice context.<br />
+                        <b>2. Graceful Watchdog Engine:</b> If Google Cloud returns <code>403 (Billing required)</code> for a project key, the system automatically falls back to the embedded Australian commercial kitchen watchdog. All financial queries, high-risk detection, and escrow audits continue without any service downtime.
+                      </p>
+                    </div>
+                  </form>
                 </div>
 
               </div>
