@@ -6,9 +6,10 @@ import { Images } from '../assets/images';
 interface FooterProps {
   config: KitchenConfig | null;
   onAdminClick: () => void;
+  onSuperAdminClick?: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ config, onAdminClick }) => {
+export const Footer: React.FC<FooterProps> = ({ config, onAdminClick, onSuperAdminClick }) => {
   const currentYear = new Date().getFullYear();
 
   const scrollTo = (id: string) => {
@@ -119,14 +120,24 @@ export const Footer: React.FC<FooterProps> = ({ config, onAdminClick }) => {
               <span>Kitchen Timings 24 hours available (24/7 for booked shifts)</span>
             </p>
 
-            <div className="pt-3">
+            <div className="pt-3 flex flex-wrap items-center gap-4">
               <button
                 onClick={onAdminClick}
-                className="inline-flex items-center space-x-1.5 text-xs text-gray-400 hover:text-white transition-colors"
+                className="inline-flex items-center space-x-1.5 text-xs text-gray-400 hover:text-white transition-colors cursor-pointer"
               >
                 <Shield className="w-3.5 h-3.5" />
-                <span>Admin & Staff Portal Access</span>
+                <span>Admin & Staff Portal</span>
               </button>
+
+              {onSuperAdminClick && (
+                <button
+                  onClick={onSuperAdminClick}
+                  className="inline-flex items-center space-x-1.5 text-xs text-amber-400/90 hover:text-amber-300 font-bold transition-colors cursor-pointer"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-brand-orange" />
+                  <span>Super Admin (Director) Portal</span>
+                </button>
+              )}
             </div>
           </div>
 

@@ -806,6 +806,43 @@ export const api = {
     throw new Error('Invalid admin credentials. (Default: username "admin", password "DailyDropAdmin2026!")');
   },
 
+  // Super Admin Dedicated Auth (Separate from regular operations admin)
+  async superAdminLogin(username: string, password: string): Promise<{ access_token: string; username: string; role: string }> {
+    try {
+      const res = await fetch(`${API_BASE}/superadmin/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      if (res.ok) return await res.json();
+    } catch {}
+
+    const u = username.trim().toLowerCase();
+    const p = password.trim();
+
+    // Distinct Super Admin credentials for executive / director oversight:
+    const validSuperAdmins = ['superadmin', 'director', 'director@dailydrop.today', 'rohit@dailydrop.today'];
+    const validSuperPasswords = ['superadmin2026', 'SuperAdmin2026!', 'director123', 'superadmin'];
+
+    if (validSuperAdmins.includes(u) && validSuperPasswords.includes(p)) {
+      const token = `dd_super_jwt_${Date.now()}`;
+      localStorage.setItem('dd_superadmin_token', token);
+      localStorage.setItem('dd_superadmin_user', u);
+      return { access_token: token, username: u, role: 'superadmin' };
+    }
+
+    throw new Error('Invalid Super Admin credentials. (Use username: "superadmin", password: "superadmin2026")');
+  },
+
+  getSuperAdminToken(): string | null {
+    return localStorage.getItem('dd_superadmin_token');
+  },
+
+  superAdminLogout(): void {
+    localStorage.removeItem('dd_superadmin_token');
+    localStorage.removeItem('dd_superadmin_user');
+  },
+
   async getDashboardStats(token: string): Promise<DashboardStats> {
     try {
       const res = await fetch(`${API_BASE}/admin/dashboard-stats`, {

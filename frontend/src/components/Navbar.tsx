@@ -7,6 +7,7 @@ interface NavbarProps {
   onBookClick: () => void;
   onStorageClick?: () => void;
   onAdminClick: () => void;
+  onSuperAdminClick?: () => void;
   onCustomerClick?: () => void;
   onLoginClick?: () => void;
   currentUser?: User | null;
@@ -18,6 +19,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onBookClick, 
   onStorageClick,
   onAdminClick, 
+  onSuperAdminClick,
   onCustomerClick, 
   onLoginClick,
   currentUser,
@@ -148,12 +150,23 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             <button
               onClick={onAdminClick}
-              className="flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-brand-forest border border-brand-forest/30 hover:bg-brand-mint/50 hover:border-brand-forest/50 transition-all cursor-pointer shadow-2xs"
+              className="flex items-center space-x-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-brand-forest border border-brand-forest/30 hover:bg-brand-mint/50 hover:border-brand-forest/50 transition-all cursor-pointer shadow-2xs"
               title="Admin Management Portal"
             >
               <Shield className="w-3.5 h-3.5 text-brand-forest" />
               <span>Admin</span>
             </button>
+
+            {onSuperAdminClick && (
+              <button
+                onClick={onSuperAdminClick}
+                className="flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-bold text-white bg-[#112F21] hover:bg-[#1a4731] transition-all cursor-pointer shadow-2xs group"
+                title="Super Admin Executive Portal (Invoices & AI Monitor)"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-[#ED8533] group-hover:scale-110 transition-transform" />
+                <span>Super Admin</span>
+              </button>
+            )}
 
             <button
               onClick={onBookClick}
@@ -300,6 +313,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               <Shield className="w-4 h-4" />
               <span>Admin Management Dashboard</span>
             </button>
+
+            {onSuperAdminClick && (
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onSuperAdminClick();
+                }}
+                className="text-left py-2 text-[#112F21] font-bold flex items-center space-x-2 border-b border-gray-100"
+              >
+                <ShieldCheck className="w-4 h-4 text-[#ED8533]" />
+                <span>Super Admin Executive Portal</span>
+              </button>
+            )}
 
             <div className="pt-2">
               <button

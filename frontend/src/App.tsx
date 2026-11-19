@@ -15,6 +15,7 @@ import { FAQ } from './components/FAQ';
 import { Contact } from './components/Contact';
 import { Footer } from './components/Footer';
 import { AdminDashboard } from './components/AdminDashboard';
+import { SuperAdminPortal } from './components/SuperAdminPortal';
 import { CustomerDashboard } from './components/CustomerDashboard';
 import { UserAuthModal } from './components/UserAuthModal';
 import { KitchenConfig, Booking, User } from './types';
@@ -23,7 +24,14 @@ import { Calendar, ArrowUp } from 'lucide-react';
 
 export function App() {
   const [config, setConfig] = useState<KitchenConfig | null>(null);
-  const [viewMode, setViewMode] = useState<'site' | 'admin' | 'customer'>('site');
+  const [viewMode, setViewMode] = useState<'site' | 'admin' | 'customer' | 'superadmin'>(() => {
+    if (typeof window !== 'undefined') {
+      if (window.location.hash === '#superadmin' || window.location.search.includes('view=superadmin')) return 'superadmin';
+      if (window.location.hash === '#admin' || window.location.search.includes('view=admin')) return 'admin';
+      if (window.location.hash === '#customer' || window.location.search.includes('view=customer')) return 'customer';
+    }
+    return 'site';
+  });
   const [latestBooking, setLatestBooking] = useState<Booking | null>(null);
   const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
 
@@ -106,6 +114,17 @@ export function App() {
     setShowConfirmation(true);
   };
 
+  // If viewing super admin panel (Executive & AI Oversight)
+  if (viewMode === 'superadmin') {
+    return (
+      <SuperAdminPortal
+        onBackToSite={() => setViewMode('site')}
+        onGoToAdminPortal={() => setViewMode('admin')}
+        onGoToCustomerPortal={() => setViewMode('customer')}
+      />
+    );
+  }
+
   // If viewing admin panel
   if (viewMode === 'admin') {
     return (
@@ -113,6 +132,7 @@ export function App() {
         onBackToSite={() => setViewMode('site')}
         onConfigUpdated={(newConfig) => setConfig(newConfig)}
         onGoToCustomerPortal={() => setViewMode('customer')}
+        onGoToSuperAdmin={() => setViewMode('superadmin')}
       />
     );
   }
@@ -140,6 +160,7 @@ export function App() {
         onBookClick={() => scrollToBooking()}
         onStorageClick={() => scrollToStorage()}
         onAdminClick={() => setViewMode('admin')}
+        onSuperAdminClick={() => setViewMode('superadmin')}
         onCustomerClick={() => setViewMode('customer')}
         onLoginClick={() => {
           setAuthModalPrompt(undefined);
@@ -224,6 +245,7 @@ export function App() {
       <Footer
         config={config}
         onAdminClick={() => setViewMode('admin')}
+        onSuperAdminClick={() => setViewMode('superadmin')}
       />
 
       {/* Booking Confirmation Modal */}
