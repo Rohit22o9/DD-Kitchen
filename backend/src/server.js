@@ -26,11 +26,19 @@ const allowedOrigins = process.env.CORS_ORIGINS
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow same-origin / server-to-server / curl without Origin in dev, or explicit allowlist
       if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
         return callback(null, true);
       }
-      return callback(new Error('Not allowed by CORS policy'));
+      // In local development, allow any localhost / 127.0.0.1 port (e.g. Vite 5173, 5174, etc.)
+      if (
+        process.env.NODE_ENV !== 'production' &&
+        /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+      ) {
+        return callback(null, true);
+      }
+      const corsErr = new Error(`Origin ${origin} is not allowed by CORS policy`);
+      corsErr.statusCode = 403;
+      return callback(corsErr);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
