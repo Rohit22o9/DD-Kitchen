@@ -896,11 +896,11 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                       Schedule for {formatDisplayDate(date)}
                     </h5>
                     <span className="text-[11px] text-brand-muted">
-                      {availability?.slots.length || 0} scheduled block(s)
+                      {availability?.slots?.length || 0} scheduled block(s)
                     </span>
                   </div>
 
-                  {availability?.slots && availability.slots.length > 0 ? (
+                  {availability && availability.slots && availability.slots.length > 0 ? (
                     <div className="space-y-2">
                       {availability.slots.map((s, idx) => (
                         <div

@@ -12,6 +12,26 @@
     <meta property="og:image" content="/images/hero_kitchen.jpg" />
   </head>
   <body>
+    <script>
+      window.addEventListener('error', function(e) {
+        console.error('Captured window error:', e);
+        var el = document.getElementById('debug-error-box');
+        if (!el) {
+          el = document.createElement('div');
+          el.id = 'debug-error-box';
+          el.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);max-width:600px;width:90%;background:#FEE2E2;border:2px solid #EF4444;color:#991B1B;padding:24px;border-radius:12px;z-index:999999;font-family:system-ui,-apple-system,sans-serif;box-shadow:0 20px 25px -5px rgba(0,0,0,0.1);';
+          document.body.appendChild(el);
+        }
+        el.innerHTML = '<h3 style="margin:0 0 10px 0;font-size:18px;font-weight:bold;color:#7F1D1D;">Application Startup Error</h3>' +
+          '<div style="font-family:monospace;font-size:13px;background:white;padding:12px;border-radius:6px;border:1px solid #FCA5A5;margin-bottom:16px;white-space:pre-wrap;word-break:break-all;">' +
+          (e.message || (e.error && e.error.message) || 'An unexpected error prevented the application from starting.') +
+          '</div>' +
+          '<div style="display:flex;gap:12px;">' +
+          '<button onclick="localStorage.clear();sessionStorage.clear();location.reload();" style="background:#DC2626;color:white;padding:10px 18px;border:none;border-radius:8px;font-weight:bold;cursor:pointer;">Clear Storage Cache & Reload</button>' +
+          '<button onclick="location.reload();" style="background:#374151;color:white;padding:10px 18px;border:none;border-radius:8px;font-weight:bold;cursor:pointer;">Refresh Page</button>' +
+          '</div>';
+      });
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

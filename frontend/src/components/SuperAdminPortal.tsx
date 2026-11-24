@@ -1332,7 +1332,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                             type="password"
                             value={apiKeyInput}
                             onChange={(e) => setApiKeyInput(e.target.value)}
-                            placeholder="AQ.Ab8RN6KOeF4whf_..."
+                            placeholder="Enter Gemini API Key..."
                             className="w-full pl-9 pr-3 py-2 text-xs font-mono bg-white rounded-xl border border-gray-300 focus:outline-none focus:border-[#112F21]"
                           />
                         </div>
