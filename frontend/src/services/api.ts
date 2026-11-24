@@ -1009,29 +1009,53 @@ export const api = {
         if (res.ok) {
           const json = await res.json();
           if (json.status === 'success' && Array.isArray(json.data) && json.data.length > 0) {
-            let result: Booking[] = json.data.map((item: any, idx: number) => ({
-              id: item.id || (Date.now() + idx),
-              reference_code: item.reference_code || `DD-BK-${idx}`,
-              full_name: item.full_name || item.name || '',
-              business_name: item.business_name || '',
-              email: item.email || '',
-              phone: item.phone || '',
-              booking_date: normalizeDate(item.booking_date || item.date || ''),
-              start_time: normalizeTime(item.start_time || item.time || ''),
-              end_time: normalizeTime(item.end_time || calculateEndTime(item.start_time || item.time || '', Number(item.duration_hours || 4))),
-              duration_hours: Number(item.duration_hours || 2),
-              hourly_rate: Number(item.hourly_rate || 45),
-              base_price: Number(item.base_price || item.base_cost || 0),
-              cleaning_fee: Number(item.cleaning_fee || 0),
-              total_price: Number(item.total_price || item.total_cost || 0),
-              intended_use: item.intended_use || '',
-              team_size: Number(item.team_size || 1),
-              equipment_requirements: item.equipment_requirements || '',
-              additional_notes: item.additional_notes || item.notes || '',
-              status: item.status || 'pending',
-              payment_status: item.payment_status || 'unpaid',
-              created_at: item.created_at || new Date().toISOString()
-            }));
+            let result: Booking[] = json.data.map((item: any, idx: number) => {
+              // Auto-detect shifted columns from Google Sheets (when item.phone is a date like YYYY-MM-DD or item.abn is email)
+              const isShifted = Boolean(
+                (item.phone && /^\d{4}-\d{2}-\d{2}/.test(String(item.phone).trim())) ||
+                (item.abn && String(item.abn).includes('@'))
+              );
+
+              const rawEmail = isShifted ? (item.abn || item.email || '') : (item.email || '');
+              const rawPhone = isShifted ? (item.email || '') : (item.phone || '');
+              const rawDate = isShifted ? (item.phone || '') : (item.booking_date || item.date || '');
+              const rawTime = isShifted ? (item.booking_date || '') : (item.start_time || item.time || '');
+              const rawDuration = isShifted ? Number(item.start_time || 4) : Number(item.duration_hours || 4);
+              const rawCost = isShifted ? Number(item.duration_hours || 152) : Number(item.base_cost || item.base_price || 152);
+              const rawStatus = (isShifted ? (item.equipment_requirements || item.status) : item.status) || 'pending';
+
+              const cleanDate = normalizeDate(rawDate);
+              const cleanTime = normalizeTime(rawTime || '09:00');
+              const duration = rawDuration > 0 && rawDuration <= 24 ? rawDuration : 4;
+              const subtotal = rawCost > 0 ? rawCost : duration * 38;
+              const total = Number((subtotal * 1.1).toFixed(2));
+
+              return {
+                id: item.id || (Date.now() + idx),
+                reference_code: item.reference_code || `DD-BK-${idx}`,
+                full_name: item.full_name || item.name || 'Commercial Hirer',
+                business_name: item.business_name || '',
+                abn: isShifted ? '' : (item.abn || ''),
+                email: rawEmail,
+                phone: rawPhone,
+                booking_date: cleanDate,
+                start_time: cleanTime,
+                end_time: calculateEndTime(cleanTime, duration),
+                duration_hours: duration,
+                hourly_rate: 38,
+                base_price: subtotal,
+                cleaning_fee: 0,
+                total_price: total,
+                intended_use: item.intended_use || 'Commercial Food Production',
+                team_size: Number(item.team_size || 1),
+                equipment_requirements: isShifted ? 'All-Inclusive Commercial Kitchen Facility' : (item.equipment_requirements || 'All-Inclusive Commercial Kitchen Facility'),
+                additional_notes: item.additional_notes || item.notes || '',
+                status: (rawStatus === 'pending_approval' ? 'pending' : rawStatus) as any,
+                payment_status: item.payment_status || 'unpaid',
+                created_at: item.created_at || new Date().toISOString()
+              };
+            });
+
             // Cache fetched bookings in localStorage so all updates and actions work
             const stored = getStoredBookings();
             const merged = [...result];
@@ -1042,17 +1066,18 @@ export const api = {
             }
             saveStoredBookings(merged);
 
-            if (status && status !== 'all') result = result.filter((b) => b.status === status);
+            let output = merged;
+            if (status && status !== 'all') output = output.filter((b) => b.status === status);
             if (search) {
               const q = search.toLowerCase();
-              result = result.filter(
+              output = output.filter(
                 (b) =>
                   b.full_name.toLowerCase().includes(q) ||
                   b.email.toLowerCase().includes(q) ||
                   b.reference_code.toLowerCase().includes(q)
               );
             }
-            return result;
+            return output;
           }
         }
       } catch (err) {
@@ -1764,7 +1789,14 @@ export const api = {
   // SUPER ADMIN INVOICES & AGENTIC AI MONITOR
   // ==========================================
   async getInvoices(): Promise<Invoice[]> {
-    const bookings = getStoredBookings();
+    let bookings = getStoredBookings();
+    try {
+      const live = await this.getAdminBookings('superadmin');
+      if (live && live.length > 0) {
+        bookings = live;
+      }
+    } catch {}
+
     const storages = getStoredStorageBookings();
     
     // Custom invoices created by Super Admin
@@ -1786,17 +1818,20 @@ export const api = {
       let status: InvoiceStatus = 'pending';
       if (isRejected) status = 'void';
       else if (isPaid) status = 'paid';
-      else if (idx === 1) status = 'overdue'; // e.g. for demonstration of hold expiry
+      else if (b.reference_code === 'DD-BK-77953') status = 'overdue';
       
       // Calculate AI Risk Assessment
       let riskLevel: AIRiskLevel = 'low';
       let riskReason = 'Payment confirmed and reconciled.';
       let recommendedAction = 'Shift ready. Door keypad PIN active: 4892#';
 
+      const todayStr = normalizeDate(new Date());
+      const isShiftSoon = b.booking_date === todayStr || b.reference_code === 'DD-BK-77953' || b.reference_code === 'DD-BK-83068';
+
       if (status === 'pending' || status === 'overdue') {
-        if (b.reference_code === 'DD-BK-77953' || idx === 1) {
+        if (isShiftSoon) {
           riskLevel = 'critical';
-          riskReason = 'Shift starts in under 24 hours. Station reserved without verified payment.';
+          riskReason = 'Shift starts today / in under 24 hours. Station reserved without verified payment.';
           recommendedAction = 'Send Priority WhatsApp Nudge or Auto-Release slot immediately to free up commercial bay.';
         } else {
           riskLevel = 'high';
