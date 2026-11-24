@@ -1360,7 +1360,11 @@ export const api = {
           password: data.password,
           full_name: data.full_name.trim(),
           business_name: data.business_name?.trim() || undefined,
+          abn: data.abn?.trim() || undefined,
           phone: data.phone?.trim() || undefined,
+          food_safety_cert_name: data.food_safety_cert_name || undefined,
+          liability_insurance_name: data.liability_insurance_name || undefined,
+          terms_accepted: Boolean(data.terms_accepted),
         }),
       });
       if (res.ok) {
