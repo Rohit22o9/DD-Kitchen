@@ -1,1 +1,0 @@
-# Daily Drop Backend package
