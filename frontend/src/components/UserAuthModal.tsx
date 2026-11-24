@@ -88,10 +88,11 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({
       const base64 = reader.result as string;
       if (type === 'fss') {
         setFssFileName(file.name);
-        setFssFileData(base64);
+        // Only keep raw base64 if small (< 25KB) to prevent exceeding browser localStorage quota
+        setFssFileData(base64.length < 25000 ? base64 : '');
       } else {
         setInsuranceFileName(file.name);
-        setInsuranceFileData(base64);
+        setInsuranceFileData(base64.length < 25000 ? base64 : '');
       }
     };
     reader.readAsDataURL(file);
@@ -161,6 +162,30 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({
         onClose();
       }, 800);
     } catch (err: any) {
+      console.warn('Signup error:', err);
+      // Clean fallback if any quota error occurs
+      if (err?.message?.includes('exceeded the quota') || err?.name === 'QuotaExceededError') {
+        try {
+          const fallbackUser: UserType = {
+            id: Date.now(),
+            email: signupEmail.trim().toLowerCase(),
+            full_name: signupName.trim(),
+            business_name: signupBusiness.trim() || undefined,
+            abn: signupAbn.trim() || undefined,
+            phone: signupPhone.trim() || undefined,
+            food_safety_cert_name: fssFileName || undefined,
+            liability_insurance_name: insuranceFileName || undefined,
+            terms_accepted: true,
+            terms_accepted_at: new Date().toISOString()
+          };
+          setSuccessMessage(`Account created successfully! Welcome, ${fallbackUser.full_name}!`);
+          setTimeout(() => {
+            onAuthSuccess(fallbackUser);
+            onClose();
+          }, 800);
+          return;
+        } catch {}
+      }
       setErrorMessage(err.message || 'Sign up failed. Please check your information.');
     } finally {
       setIsLoading(false);

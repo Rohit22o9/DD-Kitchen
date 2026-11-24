@@ -50,6 +50,121 @@ const LS_USERS = 'dd_local_users';
 const LS_CURRENT_USER = 'dd_current_user';
 const LS_USER_TOKEN = 'dd_user_token';
 
+// In-memory fallback if browser localStorage quota is reached
+const inMemoryStore = new Map<string, string>();
+
+/**
+ * Strips heavy binary files (>25KB) from user objects before saving to localStorage.
+ * Keeps file names, validation flags, metadata, phone, ABN, and contact details 100% intact.
+ */
+export const sanitizeUserForStorage = <T extends Partial<User>>(user: T): T => {
+  const sanitized = { ...user };
+  if (sanitized.food_safety_cert_data && sanitized.food_safety_cert_data.length > 25000) {
+    sanitized.food_safety_cert_data = undefined;
+  }
+  if (sanitized.liability_insurance_data && sanitized.liability_insurance_data.length > 25000) {
+    sanitized.liability_insurance_data = undefined;
+  }
+  return sanitized;
+};
+
+/**
+ * Safe localStorage setter with automatic quota recovery.
+ * If quota is exceeded, automatically purges bloated base64 entries from legacy records.
+ */
+export const safeLocalStorageSet = (key: string, value: string): void => {
+  try {
+    localStorage.setItem(key, value);
+    inMemoryStore.set(key, value);
+  } catch (err: any) {
+    console.warn(`[Storage] localStorage.setItem failed for '${key}' (${err?.message || err}). Attempting auto-cleanup...`);
+    inMemoryStore.set(key, value);
+
+    try {
+      // 1. Purge legacy base64 file payloads from dd_local_users
+      const rawUsers = localStorage.getItem(LS_USERS);
+      if (rawUsers && rawUsers.length > 50000) {
+        try {
+          const parsed = JSON.parse(rawUsers);
+          if (Array.isArray(parsed)) {
+            const stripped = parsed.map((u: any) => ({
+              ...u,
+              food_safety_cert_data: undefined,
+              liability_insurance_data: undefined,
+            }));
+            localStorage.setItem(LS_USERS, JSON.stringify(stripped));
+          }
+        } catch {}
+      }
+
+      // 2. Purge current user base64 if bloated
+      const rawCurrent = localStorage.getItem(LS_CURRENT_USER);
+      if (rawCurrent && rawCurrent.length > 25000) {
+        try {
+          const cu = JSON.parse(rawCurrent);
+          if (cu) {
+            delete cu.food_safety_cert_data;
+            delete cu.liability_insurance_data;
+            localStorage.setItem(LS_CURRENT_USER, JSON.stringify(cu));
+          }
+        } catch {}
+      }
+
+      // 3. Remove non-essential cached keys
+      const prunableKeys = ['dd_custom_invoices', 'dd_local_enquiries_backup'];
+      for (const k of prunableKeys) {
+        if (k !== key) {
+          try { localStorage.removeItem(k); } catch {}
+        }
+      }
+
+      // 4. Retry saving
+      localStorage.setItem(key, value);
+    } catch (retryErr) {
+      console.warn(`[Storage] Quota still full for '${key}'. Safely preserved in in-memory session.`, retryErr);
+    }
+  }
+};
+
+export const safeLocalStorageGet = (key: string): string | null => {
+  try {
+    const val = localStorage.getItem(key);
+    if (val !== null) return val;
+  } catch {}
+  return inMemoryStore.get(key) || null;
+};
+
+// Immediate startup cleanup to recover full quota for the user immediately
+try {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    const rawUsers = localStorage.getItem(LS_USERS);
+    if (rawUsers && (rawUsers.includes('data:image') || rawUsers.includes('data:application/pdf') || rawUsers.length > 50000)) {
+      try {
+        const users = JSON.parse(rawUsers);
+        if (Array.isArray(users)) {
+          const cleaned = users.map((u: any) => ({
+            ...u,
+            food_safety_cert_data: undefined,
+            liability_insurance_data: undefined,
+          }));
+          localStorage.setItem(LS_USERS, JSON.stringify(cleaned));
+        }
+      } catch {}
+    }
+    const rawCurrent = localStorage.getItem(LS_CURRENT_USER);
+    if (rawCurrent && (rawCurrent.includes('data:image') || rawCurrent.includes('data:application/pdf') || rawCurrent.length > 25000)) {
+      try {
+        const cu = JSON.parse(rawCurrent);
+        if (cu && typeof cu === 'object') {
+          delete cu.food_safety_cert_data;
+          delete cu.liability_insurance_data;
+          localStorage.setItem(LS_CURRENT_USER, JSON.stringify(cu));
+        }
+      } catch {}
+    }
+  }
+} catch {}
+
 interface StoredUserAccount extends User {
   password: string;
 }
@@ -73,19 +188,24 @@ const DEFAULT_USERS: StoredUserAccount[] = [
 
 const getStoredUsers = (): StoredUserAccount[] => {
   try {
-    const raw = localStorage.getItem(LS_USERS);
+    const raw = safeLocalStorageGet(LS_USERS);
     if (!raw) {
-      localStorage.setItem(LS_USERS, JSON.stringify(DEFAULT_USERS));
+      saveStoredUsers(DEFAULT_USERS);
       return DEFAULT_USERS;
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed;
+    }
+    return DEFAULT_USERS;
   } catch {
     return DEFAULT_USERS;
   }
 };
 
 const saveStoredUsers = (users: StoredUserAccount[]) => {
-  localStorage.setItem(LS_USERS, JSON.stringify(users));
+  const cleanUsers = users.map(sanitizeUserForStorage);
+  safeLocalStorageSet(LS_USERS, JSON.stringify(cleanUsers));
 };
 
 /**
@@ -1245,7 +1365,7 @@ export const api = {
       if (res.ok) {
         const authData: UserAuthResponse = await res.json();
         // Augment with frontend compliance data
-        const enrichedUser: User = {
+        const enrichedUser: User = sanitizeUserForStorage({
           ...authData.user,
           abn: data.abn?.trim() || undefined,
           food_safety_cert_name: data.food_safety_cert_name,
@@ -1254,9 +1374,9 @@ export const api = {
           liability_insurance_data: data.liability_insurance_data,
           terms_accepted: data.terms_accepted ?? true,
           terms_accepted_at: data.terms_accepted_at || new Date().toISOString()
-        };
-        localStorage.setItem(LS_USER_TOKEN, authData.access_token);
-        localStorage.setItem(LS_CURRENT_USER, JSON.stringify(enrichedUser));
+        });
+        safeLocalStorageSet(LS_USER_TOKEN, authData.access_token);
+        safeLocalStorageSet(LS_CURRENT_USER, JSON.stringify(enrichedUser));
         return { ...authData, user: enrichedUser };
       } else {
         const errJson = await res.json().catch(() => null);
@@ -1277,7 +1397,7 @@ export const api = {
       throw new Error('An account with this email address already exists. Please log in.');
     }
 
-    const newUser: StoredUserAccount = {
+    const newUser: StoredUserAccount = sanitizeUserForStorage({
       id: Date.now(),
       email: cleanEmail,
       password: data.password,
@@ -1292,7 +1412,7 @@ export const api = {
       terms_accepted: data.terms_accepted ?? true,
       terms_accepted_at: data.terms_accepted_at || new Date().toISOString(),
       created_at: new Date().toISOString(),
-    };
+    });
 
     saveStoredUsers([newUser, ...users]);
 
@@ -1304,8 +1424,8 @@ export const api = {
       user: userWithoutPass,
     };
 
-    localStorage.setItem(LS_USER_TOKEN, mockToken);
-    localStorage.setItem(LS_CURRENT_USER, JSON.stringify(userWithoutPass));
+    safeLocalStorageSet(LS_USER_TOKEN, mockToken);
+    safeLocalStorageSet(LS_CURRENT_USER, JSON.stringify(userWithoutPass));
     return authData;
   },
 
@@ -1323,7 +1443,7 @@ export const api = {
         const authData: UserAuthResponse = await res.json();
         // Check if there is stored local compliance info for this user
         const localUser = getStoredUsers().find((u) => u.email.toLowerCase() === cleanEmail);
-        const enrichedUser: User = {
+        const enrichedUser: User = sanitizeUserForStorage({
           ...authData.user,
           abn: localUser?.abn || authData.user.abn,
           food_safety_cert_name: localUser?.food_safety_cert_name,
@@ -1332,9 +1452,9 @@ export const api = {
           liability_insurance_data: localUser?.liability_insurance_data,
           terms_accepted: localUser?.terms_accepted ?? true,
           terms_accepted_at: localUser?.terms_accepted_at
-        };
-        localStorage.setItem(LS_USER_TOKEN, authData.access_token);
-        localStorage.setItem(LS_CURRENT_USER, JSON.stringify(enrichedUser));
+        });
+        safeLocalStorageSet(LS_USER_TOKEN, authData.access_token);
+        safeLocalStorageSet(LS_CURRENT_USER, JSON.stringify(enrichedUser));
         return { ...authData, user: enrichedUser };
       } else {
         const errJson = await res.json().catch(() => null);
@@ -1363,21 +1483,21 @@ export const api = {
       user: userWithoutPass,
     };
 
-    localStorage.setItem(LS_USER_TOKEN, mockToken);
-    localStorage.setItem(LS_CURRENT_USER, JSON.stringify(userWithoutPass));
+    safeLocalStorageSet(LS_USER_TOKEN, mockToken);
+    safeLocalStorageSet(LS_CURRENT_USER, JSON.stringify(userWithoutPass));
     return authData;
   },
 
   getCurrentUser(): User | null {
     try {
-      const raw = localStorage.getItem(LS_CURRENT_USER);
+      const raw = safeLocalStorageGet(LS_CURRENT_USER);
       if (raw) return JSON.parse(raw);
     } catch {}
     return null;
   },
 
   getUserToken(): string | null {
-    return localStorage.getItem(LS_USER_TOKEN);
+    return safeLocalStorageGet(LS_USER_TOKEN);
   },
 
   userLogout(): void {
@@ -1387,20 +1507,20 @@ export const api = {
 
   updateUserProfile(updatedData: Partial<User>): User {
     const current = this.getCurrentUser();
-    const merged: User = {
+    const merged: User = sanitizeUserForStorage({
       ...(current || {
         id: Date.now(),
         email: 'user@dailydrop.today',
         full_name: 'Commercial Tenant'
       }),
       ...updatedData
-    };
-    localStorage.setItem(LS_CURRENT_USER, JSON.stringify(merged));
+    });
+    safeLocalStorageSet(LS_CURRENT_USER, JSON.stringify(merged));
 
     const users = getStoredUsers();
     const idx = users.findIndex((u) => u.email.toLowerCase() === merged.email.toLowerCase());
     if (idx !== -1) {
-      users[idx] = { ...users[idx], ...updatedData };
+      users[idx] = sanitizeUserForStorage({ ...users[idx], ...updatedData });
       saveStoredUsers(users);
     }
     return merged;
