@@ -18,6 +18,21 @@
 
 var PERTH_TZ = "Australia/Perth";
 
+function escapeHtml(str) {
+  return String(str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function isAuthorizedWebhook(secretProvided) {
+  var expected = PropertiesService.getScriptProperties().getProperty("WEBHOOK_SECRET");
+  if (!expected) return true; // Configure WEBHOOK_SECRET in Apps Script Project Properties to enforce
+  return secretProvided === expected;
+}
+
 function setupSheetHeaders() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   
@@ -185,15 +200,15 @@ function doPost(e) {
                   'After payment is verified, your slot will be locked in and your electronic door entry PIN will be sent.' +
                 '</p>' +
               '</div>' +
-              '<p style="font-size: 14px; margin-top: 0;">Hi <strong>' + custName + '</strong>,</p>' +
+              '<p style="font-size: 14px; margin-top: 0;">Hi <strong>' + escapeHtml(custName) + '</strong>,</p>' +
               '<p style="font-size: 13px; color: #374151; line-height: 1.5;">' +
                 'Thank you for booking with Daily Drop Commercial Kitchen. Here is your reservation summary:' +
               '</p>' +
               '<table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px;">' +
-                '<tr style="border-bottom: 1px solid #F3F4F6;"><td style="padding: 8px 0; color: #6B7280;">Reference Code:</td><td style="padding: 8px 0; font-weight: bold; font-family: monospace; color: #112F21;">' + refCode + '</td></tr>' +
-                '<tr style="border-bottom: 1px solid #F3F4F6;"><td style="padding: 8px 0; color: #6B7280;">Booking Date:</td><td style="padding: 8px 0; font-weight: bold;">' + (data.booking_date || 'N/A') + '</td></tr>' +
-                '<tr style="border-bottom: 1px solid #F3F4F6;"><td style="padding: 8px 0; color: #6B7280;">Time & Duration:</td><td style="padding: 8px 0; font-weight: bold;">' + (data.start_time || '09:00') + ' AWST (' + duration + ' Hours)</td></tr>' +
-                '<tr style="border-bottom: 1px solid #F3F4F6;"><td style="padding: 8px 0; color: #6B7280;">Business / ABN:</td><td style="padding: 8px 0; font-weight: bold;">' + (data.business_name || 'N/A') + ' (' + (data.abn || 'ABN on file') + ')</td></tr>' +
+                '<tr style="border-bottom: 1px solid #F3F4F6;"><td style="padding: 8px 0; color: #6B7280;">Reference Code:</td><td style="padding: 8px 0; font-weight: bold; font-family: monospace; color: #112F21;">' + escapeHtml(refCode) + '</td></tr>' +
+                '<tr style="border-bottom: 1px solid #F3F4F6;"><td style="padding: 8px 0; color: #6B7280;">Booking Date:</td><td style="padding: 8px 0; font-weight: bold;">' + escapeHtml(data.booking_date || 'N/A') + '</td></tr>' +
+                '<tr style="border-bottom: 1px solid #F3F4F6;"><td style="padding: 8px 0; color: #6B7280;">Time & Duration:</td><td style="padding: 8px 0; font-weight: bold;">' + escapeHtml(data.start_time || '09:00') + ' AWST (' + duration + ' Hours)</td></tr>' +
+                '<tr style="border-bottom: 1px solid #F3F4F6;"><td style="padding: 8px 0; color: #6B7280;">Business / ABN:</td><td style="padding: 8px 0; font-weight: bold;">' + escapeHtml(data.business_name || 'N/A') + ' (' + escapeHtml(data.abn || 'ABN on file') + ')</td></tr>' +
                 '<tr style="border-bottom: 1px solid #F3F4F6;"><td style="padding: 8px 0; color: #6B7280;">Rental Total:</td><td style="padding: 8px 0; font-weight: bold; color: #112F21;">$' + total.toFixed(2) + ' AUD (incl. GST)</td></tr>' +
                 '<tr style="border-bottom: 1px solid #F3F4F6;"><td style="padding: 8px 0; color: #6B7280;">Security Bond:</td><td style="padding: 8px 0; font-weight: bold;">$' + bond.toFixed(2) + ' AUD (refundable)</td></tr>' +
                 '<tr><td style="padding: 8px 0; color: #6B7280;">Kitchen Access:</td><td style="padding: 8px 0; font-weight: bold; color: #166534;">All-Inclusive Commercial Kitchen Cookline</td></tr>' +
@@ -204,8 +219,8 @@ function doPost(e) {
                 '<p style="margin: 3px 0; font-size: 12px;"><strong>Account Name:</strong> Daily Drop Commercial Kitchens Pty Ltd</p>' +
                 '<p style="margin: 3px 0; font-size: 12px;"><strong>BSB:</strong> 066-125</p>' +
                 '<p style="margin: 3px 0; font-size: 12px;"><strong>Account Number:</strong> 1098 7654</p>' +
-                '<p style="margin: 3px 0; font-size: 12px;"><strong>PayID:</strong> payments@dailydrop.today</p>' +
-                '<p style="margin: 6px 0 0; font-size: 12px; color: #ED8533;"><strong>Reference to quote:</strong> <span style="font-family: monospace; font-size: 13px; font-weight: bold;">' + refCode + '</span></p>' +
+                '<p style="margin: 3px 0; font-size: 12px;"><strong>PayID:</strong> hello@dailydrop.today</p>' +
+                '<p style="margin: 6px 0 0; font-size: 12px; color: #ED8533;"><strong>Reference to quote:</strong> <span style="font-family: monospace; font-size: 13px; font-weight: bold;">' + escapeHtml(refCode) + '</span></p>' +
               '</div>' +
               '<p style="font-size: 12px; color: #6B7280; line-height: 1.5; margin-bottom: 0;">' +
                 'Questions? Contact our kitchen manager on <strong>0479 175 705</strong> or email <strong>hello@dailydrop.today</strong>.' +
@@ -373,6 +388,9 @@ function doPost(e) {
 
 // Handle GET requests (Strictly uses getDisplayValues to eliminate timezone conversion bugs)
 function doGet(e) {
+  if (!isAuthorizedWebhook(e && e.parameter && e.parameter.secret)) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Unauthorized" })).setMimeType(ContentService.MimeType.JSON);
+  }
   setupSheetHeaders();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var action = (e && e.parameter && e.parameter.action) || "get_all";

@@ -1,172 +1,60 @@
 const Booking = require('../models/Booking');
+const BookingSlot = require('../models/BookingSlot');
 const StorageBooking = require('../models/StorageBooking');
 const Invoice = require('../models/Invoice');
 const { queryGeminiWatchdog } = require('../services/geminiService');
+const { createInvoiceForBooking, createInvoiceForStorage } = require('../services/invoiceService');
+const { calculateBookingPricing } = require('../services/pricingService');
 const { isShiftWithin24Hours } = require('../utils/dateUtils');
+const { generateDoorPin } = require('../config/constants');
 
 /**
- * @desc    Get all commercial invoices (generated from bookings & storage leases)
+ * @desc    Get persisted ATO invoices (Admins see all; Hirers see strictly their own)
  * @route   GET /api/invoices
  */
 const getInvoices = async (req, res, next) => {
   try {
-    const bookings = await Booking.find().sort({ booking_date: -1, createdAt: -1 });
-    const storages = await StorageBooking.find().sort({ start_date: -1 });
-    const manualInvoices = await Invoice.find().sort({ createdAt: -1 });
+    const isAdmin = req.user && (req.user.role === 'staff_admin' || req.user.role === 'super_admin');
 
-    const invoices = [];
-
-    // 1. Generate Invoices from Kitchen Bookings
-    bookings.forEach((b, idx) => {
-      const rentalAmount = Number(b.total_price || 167.20);
-      const deposit = Number(b.security_deposit || 750.0);
-      const isPaid = b.payment_status === 'paid';
-      const isRejected = b.status === 'rejected' || b.status === 'cancelled';
-
-      let status = 'pending';
-      if (isRejected) status = 'void';
-      else if (isPaid) status = 'paid';
-      else if (b.reference_code === 'DD-BK-77953') status = 'overdue';
-
-      // AI Risk Assessment
-      let riskLevel = 'low';
-      let riskReason = 'Payment confirmed and reconciled.';
-      let recommendedAction = 'Shift ready. Door keypad PIN active: 4892#';
-
-      const isShiftSoon = isShiftWithin24Hours(b.booking_date) || b.reference_code === 'DD-BK-77953' || b.reference_code === 'DD-BK-83068';
-
-      if (status === 'pending' || status === 'overdue') {
-        if (isShiftSoon) {
-          riskLevel = 'critical';
-          riskReason = 'Shift starts today / within 24 hours. Kitchen station reserved without verified payment.';
-          recommendedAction = 'Send Priority WhatsApp Nudge or Auto-Release slot immediately to free up commercial bay.';
-        } else {
-          riskLevel = 'high';
-          riskReason = 'Provisional hold approaching 48-hour policy window without bank transfer match.';
-          recommendedAction = 'Autonomous AI payment reminder queued. Send PayID details.';
+    // Backfill any legacy seeded bookings/storages that don't yet have a persisted Invoice document
+    if (isAdmin) {
+      const existingRefs = new Set((await Invoice.find().select('booking_reference').lean()).map((i) => i.booking_reference));
+      const bookings = await Booking.find().lean();
+      for (const b of bookings) {
+        if (!existingRefs.has(b.reference_code)) {
+          const pricing = calculateBookingPricing(b.duration_hours || 4, {
+            hourly_rental_rate: b.hourly_rate || 38,
+            min_rental_hours: 4,
+            cleaning_fee: b.cleaning_fee || 0,
+            security_deposit: b.security_deposit || 750,
+          });
+          const inv = await createInvoiceForBooking(b, pricing);
+          if (b.payment_status === 'paid') {
+            inv.status = 'paid';
+            inv.paid_at = b.paid_at || new Date();
+            await inv.save();
+          } else if (b.status === 'rejected' || b.status === 'cancelled') {
+            inv.status = 'void';
+            await inv.save();
+          }
         }
-      } else if (status === 'void') {
-        riskLevel = 'low';
-        riskReason = 'Booking was rejected/cancelled. Slot released to inventory.';
-        recommendedAction = 'No further action required.';
       }
 
-      const invNum = `INV-2026-BK${String(100 + idx).padStart(3, '0')}`;
-      const issueDate = b.booking_date || '2026-10-18';
+      const storages = await StorageBooking.find().lean();
+      for (const s of storages) {
+        if (!existingRefs.has(s.reference_code)) {
+          const inv = await createInvoiceForStorage(s);
+          if (s.payment_status === 'paid') {
+            inv.status = 'paid';
+            inv.paid_at = new Date();
+            await inv.save();
+          }
+        }
+      }
+    }
 
-      invoices.push({
-        id: invNum,
-        invoice_number: invNum,
-        booking_reference: b.reference_code,
-        booking_type: 'kitchen_rental',
-        customer_name: b.full_name || 'Chef Hirer',
-        business_name: b.business_name || '',
-        abn: b.abn || '51 824 753 556',
-        email: b.email,
-        phone: b.phone,
-        issue_date: issueDate,
-        due_date: issueDate,
-        service_date_range: `${b.booking_date}, ${b.start_time} – ${b.end_time} (${b.duration_hours || 4} hrs)`,
-        line_items: [
-          {
-            description: `Commercial Kitchen Shift Rental (${b.duration_hours || 4} hrs @ $38.00/hr + GST)`,
-            quantity: b.duration_hours || 4,
-            unit_price: 38.00,
-            total: rentalAmount,
-          },
-          {
-            description: 'Food Safety Supervisor & WA Food Act 2008 Compliance Kit',
-            quantity: 1,
-            unit_price: 0.00,
-            total: 0.00,
-          },
-          {
-            description: 'Commercial Kitchen Security Bond (Refundable post-shift inspection)',
-            quantity: 1,
-            unit_price: deposit,
-            total: deposit,
-          },
-        ],
-        rental_amount: rentalAmount,
-        cleaning_fee: 0,
-        security_deposit: deposit,
-        subtotal: rentalAmount,
-        gst: Number((rentalAmount * 0.1).toFixed(2)),
-        total_amount: rentalAmount,
-        status,
-        payment_method: isPaid ? 'PayID Direct Bank Transfer' : undefined,
-        paid_at: isPaid ? b.paid_at || `${issueDate}T14:22:00Z` : undefined,
-        reconciled_by_ai: isPaid,
-        ai_risk_level: riskLevel,
-        ai_risk_reason: riskReason,
-        ai_recommended_action: recommendedAction,
-        reminder_sent_count: status === 'overdue' ? 2 : status === 'pending' ? 1 : 0,
-        last_reminder_at: status === 'overdue' ? '2 hours ago' : undefined,
-        hold_expires_at: `${issueDate}T23:59:00`,
-        notes: b.admin_notes || undefined,
-      });
-    });
-
-    // 2. Generate Invoices from Commercial Storage Leases
-    storages.forEach((s, idx) => {
-      const isPaid = s.payment_status === 'paid';
-      const invNum = `INV-2026-ST${String(200 + idx).padStart(3, '0')}`;
-      const status = isPaid ? 'paid' : 'pending';
-      const storageRent = Number(s.total_price || 220.0);
-      const bond = Number(s.security_deposit || 200.0);
-
-      invoices.push({
-        id: invNum,
-        invoice_number: invNum,
-        booking_reference: s.reference_code,
-        booking_type: 'storage_lease',
-        customer_name: s.full_name,
-        business_name: s.business_name || 'Commercial Tenant',
-        abn: s.abn || '51 824 753 556',
-        email: s.email,
-        phone: s.phone,
-        issue_date: s.start_date,
-        due_date: s.start_date,
-        service_date_range: `${s.start_date} to ${s.end_date} (Monthly Auto-Renew)`,
-        line_items: [
-          {
-            description: `${s.bay_name} Rental (Monthly Lease)`,
-            quantity: 1,
-            unit_price: storageRent,
-            total: storageRent,
-          },
-          {
-            description: 'Storage Security Bond (Refundable held in escrow)',
-            quantity: 1,
-            unit_price: bond,
-            total: bond,
-          },
-        ],
-        rental_amount: storageRent,
-        cleaning_fee: 0,
-        security_deposit: bond,
-        subtotal: storageRent,
-        gst: Number((storageRent * 0.1).toFixed(2)),
-        total_amount: storageRent,
-        status,
-        payment_method: isPaid ? 'Direct Bank Transfer / PayID' : undefined,
-        paid_at: isPaid ? `${s.start_date}T09:00:00Z` : undefined,
-        reconciled_by_ai: isPaid,
-        ai_risk_level: isPaid ? 'low' : 'medium',
-        ai_risk_reason: isPaid
-          ? 'Storage bay lease active. Bond securely held in escrow.'
-          : 'Storage lease pending tenant initial payment.',
-        ai_recommended_action: isPaid
-          ? 'Bay access active: 4892#'
-          : 'Send storage check-in instructions and PayID.',
-        reminder_sent_count: isPaid ? 0 : 1,
-        hold_expires_at: `${s.start_date}T18:00:00`,
-      });
-    });
-
-    // 3. Merge manual invoices
-    manualInvoices.forEach((mi) => invoices.push(mi));
-
+    const filter = isAdmin ? {} : { email: String(req.user?.email || '').toLowerCase() };
+    const invoices = await Invoice.find(filter).sort({ createdAt: -1 });
     return res.json(invoices);
   } catch (err) {
     next(err);
@@ -174,7 +62,7 @@ const getInvoices = async (req, res, next) => {
 };
 
 /**
- * @desc    Update invoice status (Mark paid, void/release slot)
+ * @desc    Update persisted invoice status (Mark paid, void/release slot)
  * @route   PATCH /api/invoices/:invoiceId/status
  */
 const updateInvoiceStatus = async (req, res, next) => {
@@ -182,53 +70,98 @@ const updateInvoiceStatus = async (req, res, next) => {
     const { invoiceId } = req.params;
     const { status, payment_method, notes } = req.body;
 
-    // Check if it's a booking invoice
-    if (invoiceId.includes('BK')) {
-      const invIdx = parseInt(invoiceId.replace(/\D/g, ''), 10) - 100;
-      const bookings = await Booking.find().sort({ booking_date: -1, createdAt: -1 });
-      const b = bookings[invIdx];
-      if (b) {
+    const invoice = await Invoice.findOne({
+      $or: [
+        { invoice_number: invoiceId },
+        ...(invoiceId.match(/^[0-9a-fA-F]{24}$/) ? [{ _id: invoiceId }] : []),
+      ],
+    });
+
+    if (!invoice) {
+      return res.status(404).json({ success: false, error: `Invoice ${invoiceId} not found.` });
+    }
+
+    if (status) invoice.status = status;
+    if (payment_method) invoice.payment_method = payment_method;
+    if (notes !== undefined) invoice.notes = notes;
+    if (status === 'paid') {
+      invoice.paid_at = new Date();
+    }
+    await invoice.save();
+
+    // Sync linked Booking or StorageBooking
+    if (invoice.booking_type === 'kitchen_rental') {
+      const booking = await Booking.findOne({ reference_code: invoice.booking_reference });
+      if (booking) {
         if (status === 'paid') {
-          b.payment_status = 'paid';
-          b.paid_at = new Date();
-          b.payment_method = payment_method || 'PayID Direct Bank Transfer';
-          b.status = 'confirmed';
+          booking.payment_status = 'paid';
+          booking.paid_at = invoice.paid_at;
+          booking.payment_method = payment_method || 'PayID Direct Bank Transfer';
+          booking.status = 'confirmed';
+          if (!booking.door_access_pin) {
+            const pin = generateDoorPin();
+            booking.door_access_pin = pin;
+            booking.door_pin_code = pin;
+          }
         } else if (status === 'void') {
-          b.status = 'cancelled';
-          b.admin_notes = notes || 'Voided by Super Admin';
+          booking.status = 'cancelled';
+          booking.admin_notes = notes || 'Voided by Super Admin';
+          await BookingSlot.deleteMany({ booking_id: booking._id });
         }
-        await b.save();
-        return res.json({ success: true, message: `Booking invoice ${invoiceId} updated to ${status}` });
+        await booking.save();
+      }
+    } else if (invoice.booking_type === 'storage_lease') {
+      const storage = await StorageBooking.findOne({ reference_code: invoice.booking_reference });
+      if (storage) {
+        if (status === 'paid') {
+          storage.payment_status = 'paid';
+          storage.status = 'confirmed';
+        } else if (status === 'void') {
+          storage.status = 'cancelled';
+        }
+        await storage.save();
       }
     }
 
-    return res.json({ success: true, message: `Invoice ${invoiceId} updated to ${status}` });
+    return res.json({ success: true, invoice, message: `Invoice ${invoice.invoice_number} updated to ${status}` });
   } catch (err) {
     next(err);
   }
 };
 
 /**
- * @desc    Ask Agentic AI Copilot (Gemini / Watchdog)
+ * @desc    Ask Agentic AI Copilot (Gemini / Watchdog) — Admin Only, Real Ledger Data
  * @route   POST /api/invoices/ai-query
  */
 const askAiCopilot = async (req, res, next) => {
   try {
     const { query } = req.body;
-    const bookings = await Booking.find();
-    const storages = await StorageBooking.find();
+    const invoices = await Invoice.find({ status: { $ne: 'void' } }).lean();
+    const bookings = await Booking.find().lean();
 
-    const totalInvoiced = bookings.reduce((sum, b) => sum + (b.total_price || 0), 0) + 400;
-    const paidRevenue = bookings.filter((b) => b.payment_status === 'paid').reduce((sum, b) => sum + (b.total_price || 0), 0) + 400;
-    const pendingAmount = totalInvoiced - paidRevenue;
-    const urgent = bookings.filter((b) => isShiftWithin24Hours(b.booking_date) && b.payment_status !== 'paid');
+    const totalInvoiced = invoices.reduce((sum, inv) => sum + (Number(inv.total_amount) || 0), 0);
+    const paidRevenue = invoices
+      .filter((inv) => inv.status === 'paid')
+      .reduce((sum, inv) => sum + (Number(inv.total_amount) || 0), 0);
+    const pendingAmount = Math.max(0, totalInvoiced - paidRevenue);
+    const bondsHeld = invoices
+      .filter((inv) => inv.status === 'paid')
+      .reduce((sum, inv) => sum + (Number(inv.security_deposit) || 0), 0);
+
+    const urgent = bookings.filter(
+      (b) =>
+        b.status !== 'cancelled' &&
+        b.status !== 'rejected' &&
+        b.payment_status !== 'paid' &&
+        isShiftWithin24Hours(b.booking_date, b.start_time)
+    );
 
     const ctx = {
       totalInvoicedAUD: totalInvoiced.toFixed(2),
       paidRevenueAUD: paidRevenue.toFixed(2),
       pendingRevenueAUD: pendingAmount.toFixed(2),
-      bondsHeldAUD: '950.00',
-      totalInvoicesCount: bookings.length + storages.length,
+      bondsHeldAUD: bondsHeld.toFixed(2),
+      totalInvoicesCount: invoices.length,
       urgentAttentionCount: urgent.length,
       urgentTenants: urgent.map((u) => ({
         tenant: u.full_name,

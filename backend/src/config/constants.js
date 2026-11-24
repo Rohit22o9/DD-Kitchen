@@ -43,18 +43,30 @@ module.exports = {
     }
   ],
 
-  // ATO Registered Entity & Banking Details
+  // ATO Registered Entity & Verified Banking Details (Single Source of Truth)
   LEGAL_ENTITY: 'Daily Drop Commercial Kitchens Pty Ltd',
   ABN: process.env.FACILITY_ABN || '51 824 753 556',
   EMAIL: process.env.FACILITY_EMAIL || 'hello@dailydrop.today',
   PAYID: process.env.FACILITY_PAYID || 'hello@dailydrop.today',
-  BANK_NAME: 'National Australia Bank (NAB)',
-  BSB: process.env.FACILITY_BSB || '066-000',
-  ACCOUNT_NUMBER: process.env.FACILITY_ACCOUNT || '1234 5678',
+  BANK_NAME: process.env.FACILITY_BANK_NAME || 'Commonwealth Bank (CBA)',
+  BSB: process.env.FACILITY_BSB || '066-125',
+  ACCOUNT_NUMBER: process.env.FACILITY_ACCOUNT || '1098 7654',
 
   // Operating Hours (24/7 commercial access for approved caterers)
   OPERATING_START: '00:00',
   OPERATING_END: '23:59',
+
+  // Helper to resolve JWT Secret safely
+  getJwtSecret: () => {
+    if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('FATAL: JWT_SECRET environment variable must be set in production.');
+    }
+    return 'dev_only_dailydrop_jwt_secret_do_not_use_in_prod';
+  },
+
+  // Generate unique 4-digit keypad PIN per confirmed & paid booking
+  generateDoorPin: () => `${Math.floor(1000 + Math.random() * 9000)}#`,
 
   // User Roles
   ROLES: {

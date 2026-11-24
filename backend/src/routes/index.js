@@ -16,10 +16,15 @@ router.use('/', invoiceRoutes);
 router.use('/', adminRoutes);
 router.use('/', enquiryRoutes);
 
-// Health check endpoint
+const mongoose = require('mongoose');
+
+// Health check endpoint (verifies live MongoDB connectivity)
 router.get('/health', (req, res) => {
-  res.json({
-    status: 'healthy',
+  const dbReady = mongoose.connection.readyState === 1;
+  const statusCode = dbReady ? 200 : 503;
+  res.status(statusCode).json({
+    status: dbReady ? 'healthy' : 'degraded',
+    database: dbReady ? 'connected' : 'disconnected',
     service: 'Daily Drop Commercial Kitchen Rental API',
     engine: 'Node.js Express + MongoDB (MVC)',
     timezone: process.env.PERTH_TIMEZONE || 'Australia/Perth',

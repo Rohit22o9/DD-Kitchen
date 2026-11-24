@@ -190,19 +190,19 @@ export const BookingConfirmationModal: React.FC<BookingConfirmationModalProps> =
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 text-xs">
             <div>
               <span className="text-gray-500">Bank:</span>
-              <p className="font-bold text-brand-dark">Commonwealth Bank of Australia</p>
+              <p className="font-bold text-brand-dark">Commonwealth Bank (CBA)</p>
             </div>
             <div>
               <span className="text-gray-500">Account Name:</span>
-              <p className="font-bold text-brand-dark">Daily Drop Commercial Kitchens</p>
+              <p className="font-bold text-brand-dark">Daily Drop Commercial Kitchens Pty Ltd</p>
             </div>
             <div>
               <span className="text-gray-500">BSB:</span>
-              <p className="font-mono font-bold text-brand-dark text-sm">066-123</p>
+              <p className="font-mono font-bold text-brand-dark text-sm">066-125</p>
             </div>
             <div>
               <span className="text-gray-500">Account Number:</span>
-              <p className="font-mono font-bold text-brand-dark text-sm">1234 5678</p>
+              <p className="font-mono font-bold text-brand-dark text-sm">1098 7654</p>
             </div>
             <div>
               <span className="text-gray-500">Required Description / Reference:</span>
@@ -212,7 +212,7 @@ export const BookingConfirmationModal: React.FC<BookingConfirmationModalProps> =
             </div>
             <div>
               <span className="text-gray-500">Or Fast Pay via PayID:</span>
-              <p className="font-bold text-brand-dark">payments@dailydrop.today</p>
+              <p className="font-bold text-brand-dark">hello@dailydrop.today</p>
             </div>
           </div>
 

@@ -113,6 +113,18 @@ const bookingSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    door_access_pin: {
+      type: String,
+      default: '',
+    },
+    user_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      index: true,
+    },
+    hold_expires_at: {
+      type: Date,
+    },
     admin_notes: {
       type: String,
       default: '',
@@ -124,6 +136,8 @@ const bookingSchema = new mongoose.Schema(
     toObject: { virtuals: true },
   }
 );
+
+bookingSchema.index({ booking_date: 1, status: 1 });
 
 // Virtual for formatted id
 bookingSchema.virtual('id').get(function () {

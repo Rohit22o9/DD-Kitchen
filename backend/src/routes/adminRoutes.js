@@ -14,29 +14,30 @@ const {
   getEnquiries,
   updateEnquiryStatus,
 } = require('../controllers/adminController');
+const { verifyToken, requireAdmin, requireSuperAdmin } = require('../middlewares/authMiddleware');
 
-// Staff Admin Auth
+// Staff Admin Auth (public login)
 router.post('/admin/login', adminLogin);
 
-// Super Admin Auth
+// Super Admin Auth (public login)
 router.post('/superadmin/login', superAdminLogin);
 
-// Admin Operations
-router.get('/admin/dashboard-stats', getDashboardStats);
-router.get('/admin/bookings', getAdminBookings);
-router.patch('/admin/bookings/:id/status', updateBookingStatus);
-router.delete('/admin/bookings/:id', deleteBooking);
+// Protected Admin Operations (require valid Staff Admin or Super Admin JWT)
+router.get('/admin/dashboard-stats', verifyToken, requireAdmin, getDashboardStats);
+router.get('/admin/bookings', verifyToken, requireAdmin, getAdminBookings);
+router.patch('/admin/bookings/:id/status', verifyToken, requireAdmin, updateBookingStatus);
+router.delete('/admin/bookings/:id', verifyToken, requireAdmin, deleteBooking);
 
 // Blocked Maintenance Slots
-router.get('/admin/blocked-slots', getBlockedSlots);
-router.post('/admin/blocked-slots', createBlockedSlot);
-router.delete('/admin/blocked-slots/:id', deleteBlockedSlot);
+router.get('/admin/blocked-slots', verifyToken, requireAdmin, getBlockedSlots);
+router.post('/admin/blocked-slots', verifyToken, requireAdmin, createBlockedSlot);
+router.delete('/admin/blocked-slots/:id', verifyToken, requireAdmin, deleteBlockedSlot);
 
-// Pricing and Settings
-router.put('/admin/config', updateConfig);
+// Pricing and Settings (Super Admin or Staff Admin)
+router.put('/admin/config', verifyToken, requireAdmin, updateConfig);
 
 // Enquiries
-router.get('/admin/enquiries', getEnquiries);
-router.patch('/admin/enquiries/:id/status', updateEnquiryStatus);
+router.get('/admin/enquiries', verifyToken, requireAdmin, getEnquiries);
+router.patch('/admin/enquiries/:id/status', verifyToken, requireAdmin, updateEnquiryStatus);
 
 module.exports = router;

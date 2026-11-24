@@ -1,10 +1,9 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-
-const JWT_SECRET = process.env.JWT_SECRET || 'dailydrop_commercial_kitchen_jwt_secret_perth_2026_super_secure_key';
+const { getJwtSecret } = require('../config/constants');
 
 /**
- * Middleware to verify JWT token
+ * Middleware to verify JWT token strictly against MongoDB User records
  */
 const verifyToken = async (req, res, next) => {
   try {
@@ -17,14 +16,7 @@ const verifyToken = async (req, res, next) => {
     }
 
     const token = authHeader.split(' ')[1];
-    
-    // Support mock dev tokens if needed
-    if (token.startsWith('dd_usr_') || token.startsWith('dd_adm_')) {
-      req.user = { id: 'mock-user', role: token.startsWith('dd_adm_') ? 'staff_admin' : 'hirer' };
-      return next();
-    }
-
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, getJwtSecret());
     const user = await User.findById(decoded.id).select('-password');
     if (!user) {
       return res.status(401).json({ success: false, error: 'User no longer exists.' });
@@ -38,10 +30,28 @@ const verifyToken = async (req, res, next) => {
 };
 
 /**
- * Middleware requiring Staff Admin or Super Admin
+ * Optional auth middleware: attaches req.user if a valid token is present, otherwise continues
+ */
+const optionalAuth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      const decoded = jwt.verify(token, getJwtSecret());
+      const user = await User.findById(decoded.id).select('-password');
+      if (user) req.user = user;
+    }
+  } catch {
+    // Ignore invalid optional token
+  }
+  next();
+};
+
+/**
+ * Middleware requiring Staff Admin or Super Admin (assumes verifyToken already ran or runs it)
  */
 const requireAdmin = (req, res, next) => {
-  verifyToken(req, res, () => {
+  const checkRole = () => {
     if (req.user && (req.user.role === 'staff_admin' || req.user.role === 'super_admin')) {
       return next();
     }
@@ -49,14 +59,17 @@ const requireAdmin = (req, res, next) => {
       success: false,
       error: 'Permission denied. Requires administrative privileges.',
     });
-  });
+  };
+
+  if (req.user) return checkRole();
+  return verifyToken(req, res, checkRole);
 };
 
 /**
  * Middleware requiring Super Admin (Executive Director)
  */
 const requireSuperAdmin = (req, res, next) => {
-  verifyToken(req, res, () => {
+  const checkRole = () => {
     if (req.user && req.user.role === 'super_admin') {
       return next();
     }
@@ -64,11 +77,15 @@ const requireSuperAdmin = (req, res, next) => {
       success: false,
       error: 'Permission denied. Requires Super Admin Executive privileges.',
     });
-  });
+  };
+
+  if (req.user) return checkRole();
+  return verifyToken(req, res, checkRole);
 };
 
 module.exports = {
   verifyToken,
+  optionalAuth,
   requireAdmin,
   requireSuperAdmin,
 };

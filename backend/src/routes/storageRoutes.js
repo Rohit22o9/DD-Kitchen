@@ -5,9 +5,10 @@ const {
   createStorageBooking,
   updateStorageStatus,
 } = require('../controllers/storageController');
+const { verifyToken, requireAdmin } = require('../middlewares/authMiddleware');
 
-router.get('/storage-bookings', getStorageBookings);
-router.post('/storage-bookings', createStorageBooking);
-router.patch('/storage-bookings/:refCode/status', updateStorageStatus);
+router.get('/storage-bookings', verifyToken, getStorageBookings);
+router.post('/storage-bookings', verifyToken, createStorageBooking);
+router.patch('/storage-bookings/:refCode/status', verifyToken, requireAdmin, updateStorageStatus);
 
 module.exports = router;

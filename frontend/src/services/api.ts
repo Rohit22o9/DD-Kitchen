@@ -295,8 +295,8 @@ export const formatDisplayDate = (val?: string | Date): string => {
   try {
     const parts = clean.split('-');
     if (parts.length === 3) {
-      // Use noon to prevent +/- 1 day boundary drift
-      const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12, 0, 0);
+      // 04:00 UTC is 12:00 noon AWST (UTC+8), preventing +/- 1 day drift in any global browser timezone
+      const d = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 4, 0, 0));
       return d.toLocaleDateString('en-AU', {
         timeZone: PERTH_TIMEZONE,
         weekday: 'short',
@@ -797,48 +797,28 @@ export const api = {
       payment_status: 'unpaid',
     };
 
-    // 1. Send live row directly to Google Sheets Webhook!
-    await postToGoogleSheet({
-      action: 'create_booking',
-      reference_code: refCode,
-      full_name: data.full_name,
-      business_name: data.business_name || '',
-      abn: data.abn || '',
-      email: data.email,
-      phone: data.phone ? (data.phone.startsWith('+') ? "'" + data.phone : data.phone) : '',
-      booking_date: data.booking_date,
-      start_time: data.start_time,
-      duration_hours: data.duration_hours,
-      base_cost: subtotal,
-      gst_amount: gst,
-      total_cost: total,
-      security_deposit: 750.0,
-      intended_use: data.intended_use,
-      team_size: data.team_size,
-      equipment_requirements: data.equipment_requirements,
-      additional_notes: data.additional_notes || '',
-      status: 'pending_approval',
+    const token = this.getUserToken();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    // Backend is the single source of truth for pricing, concurrency locks, and Google Sheets sync
+    const res = await fetch(`${API_BASE}/bookings`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(data),
     });
 
-    // 2. Also try API if running
-    try {
-      const res = await fetch(`${API_BASE}/bookings`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (res.ok) {
-        const apiBooking = await res.json();
-        const stored = getStoredBookings();
-        saveStoredBookings([apiBooking, ...stored]);
-        return apiBooking;
-      }
-    } catch {}
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => null);
+      throw new Error(
+        errJson?.error || errJson?.detail || errJson?.message || `Booking failed (HTTP ${res.status})`
+      );
+    }
 
-    // 3. Save locally
+    const apiBooking = await res.json();
     const stored = getStoredBookings();
-    saveStoredBookings([newBooking, ...stored]);
-    return newBooking;
+    saveStoredBookings([apiBooking, ...stored]);
+    return apiBooking;
   },
 
   async getBookingByRef(referenceCode: string): Promise<Booking> {
@@ -908,50 +888,45 @@ export const api = {
 
   // Admin endpoints
   async adminLogin(username: string, password: string): Promise<{ access_token: string; username: string }> {
-    try {
-      const res = await fetch(`${API_BASE}/admin/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
-      if (res.ok) return await res.json();
-    } catch {}
+    const res = await fetch(`${API_BASE}/admin/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
 
-    // Standalone fallback: Accepts admin / DailyDropAdmin2026! or admin / admin
-    if (username.trim() === 'admin' && (password === 'DailyDropAdmin2026!' || password === 'admin' || password === 'DailyDrop2026')) {
-      const token = `dd_jwt_${Date.now()}`;
-      return { access_token: token, username: 'admin' };
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => null);
+      throw new Error(errJson?.error || errJson?.detail || 'Invalid admin credentials.');
     }
 
-    throw new Error('Invalid admin credentials. (Default: username "admin", password "DailyDropAdmin2026!")');
+    const data = await res.json();
+    return {
+      access_token: data.access_token,
+      username: data.user?.email || username,
+    };
   },
 
   // Super Admin Dedicated Auth (Separate from regular operations admin)
   async superAdminLogin(username: string, password: string): Promise<{ access_token: string; username: string; role: string }> {
-    try {
-      const res = await fetch(`${API_BASE}/superadmin/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
-      if (res.ok) return await res.json();
-    } catch {}
+    const res = await fetch(`${API_BASE}/superadmin/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
 
-    const u = username.trim().toLowerCase();
-    const p = password.trim();
-
-    // Distinct Super Admin credentials for executive / director oversight:
-    const validSuperAdmins = ['superadmin', 'director', 'director@dailydrop.today', 'rohit@dailydrop.today'];
-    const validSuperPasswords = ['superadmin2026', 'SuperAdmin2026!', 'director123', 'superadmin'];
-
-    if (validSuperAdmins.includes(u) && validSuperPasswords.includes(p)) {
-      const token = `dd_super_jwt_${Date.now()}`;
-      localStorage.setItem('dd_superadmin_token', token);
-      localStorage.setItem('dd_superadmin_user', u);
-      return { access_token: token, username: u, role: 'superadmin' };
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => null);
+      throw new Error(errJson?.error || errJson?.detail || 'Invalid Super Admin credentials.');
     }
 
-    throw new Error('Invalid Super Admin credentials. (Use username: "superadmin", password: "superadmin2026")');
+    const data = await res.json();
+    localStorage.setItem('dd_superadmin_token', data.access_token);
+    localStorage.setItem('dd_superadmin_user', data.user?.email || username);
+    return {
+      access_token: data.access_token,
+      username: data.user?.email || username,
+      role: data.user?.role || 'super_admin',
+    };
   },
 
   getSuperAdminToken(): string | null {
@@ -1154,8 +1129,9 @@ export const api = {
         return updated;
       } else {
         const errJson = await res.json().catch(() => null);
-        if (errJson && errJson.detail) {
-          throw new Error(errJson.detail);
+        const msg = errJson?.error || errJson?.detail || errJson?.message;
+        if (msg) {
+          throw new Error(msg);
         }
       }
     } catch (err: any) {
@@ -1405,8 +1381,9 @@ export const api = {
         return { ...authData, user: enrichedUser };
       } else {
         const errJson = await res.json().catch(() => null);
-        if (errJson?.detail) {
-          throw new Error(errJson.detail);
+        const msg = errJson?.error || errJson?.detail || errJson?.message;
+        if (msg) {
+          throw new Error(msg);
         }
       }
     } catch (err: any) {
@@ -1483,8 +1460,9 @@ export const api = {
         return { ...authData, user: enrichedUser };
       } else {
         const errJson = await res.json().catch(() => null);
-        if (errJson?.detail) {
-          throw new Error(errJson.detail);
+        const msg = errJson?.error || errJson?.detail || errJson?.message;
+        if (msg) {
+          throw new Error(msg);
         }
       }
     } catch (err: any) {
@@ -1789,247 +1767,40 @@ export const api = {
   // SUPER ADMIN INVOICES & AGENTIC AI MONITOR
   // ==========================================
   async getInvoices(): Promise<Invoice[]> {
-    let bookings = getStoredBookings();
-    try {
-      const live = await this.getAdminBookings('superadmin');
-      if (live && live.length > 0) {
-        bookings = live;
-      }
-    } catch {}
+    const token = localStorage.getItem('dd_superadmin_token') || localStorage.getItem('dd_admin_token') || this.getUserToken();
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const storages = getStoredStorageBookings();
-    
-    // Custom invoices created by Super Admin
-    let customInvoices: Invoice[] = [];
-    try {
-      const raw = localStorage.getItem('dd_custom_invoices');
-      if (raw) customInvoices = JSON.parse(raw);
-    } catch {}
-
-    const invoices: Invoice[] = [];
-
-    // 1. Generate Invoices from Kitchen Bookings
-    bookings.forEach((b, idx) => {
-      const rentalAmount = Number(b.total_price || b.total_cost || 167.20);
-      const deposit = Number(b.security_deposit || 750.0);
-      const isPaid = b.payment_status === 'paid';
-      const isRejected = b.status === 'rejected' || b.status === 'cancelled';
-      
-      let status: InvoiceStatus = 'pending';
-      if (isRejected) status = 'void';
-      else if (isPaid) status = 'paid';
-      else if (b.reference_code === 'DD-BK-77953') status = 'overdue';
-      
-      // Calculate AI Risk Assessment
-      let riskLevel: AIRiskLevel = 'low';
-      let riskReason = 'Payment confirmed and reconciled.';
-      let recommendedAction = 'Shift ready. Door keypad PIN active: 4892#';
-
-      const todayStr = normalizeDate(new Date());
-      const isShiftSoon = b.booking_date === todayStr || b.reference_code === 'DD-BK-77953' || b.reference_code === 'DD-BK-83068';
-
-      if (status === 'pending' || status === 'overdue') {
-        if (isShiftSoon) {
-          riskLevel = 'critical';
-          riskReason = 'Shift starts today / in under 24 hours. Station reserved without verified payment.';
-          recommendedAction = 'Send Priority WhatsApp Nudge or Auto-Release slot immediately to free up commercial bay.';
-        } else {
-          riskLevel = 'high';
-          riskReason = 'Provisional hold approaching 48-hour policy window without bank transfer match.';
-          recommendedAction = 'Autonomous AI payment reminder queued. Send PayID details.';
-        }
-      } else if (status === 'void') {
-        riskLevel = 'low';
-        riskReason = 'Booking was rejected/cancelled. Slot released to inventory.';
-        recommendedAction = 'No further action required.';
-      }
-
-      const invNum = `INV-2026-BK${String(100 + idx).padStart(3, '0')}`;
-      const issueDate = b.booking_date ? b.booking_date : '2026-10-18';
-      
-      invoices.push({
-        id: invNum,
-        invoice_number: invNum,
-        booking_reference: b.reference_code,
-        booking_type: 'kitchen_rental',
-        customer_name: b.full_name || 'Chef Hirer',
-        business_name: b.business_name || 'Commercial Kitchen Hirer',
-        abn: (b as any).abn || '51 824 753 556',
-        email: b.email,
-        phone: b.phone,
-        issue_date: issueDate,
-        due_date: issueDate,
-        service_date_range: `${b.booking_date}, ${b.start_time} – ${b.end_time} (${b.duration_hours || 4} hrs)`,
-        line_items: [
-          {
-            description: `Commercial Kitchen Shift Rental (${b.duration_hours || 4} hrs @ $38.00/hr + GST)`,
-            quantity: b.duration_hours || 4,
-            unit_price: 38.00,
-            total: rentalAmount
-          },
-          {
-            description: 'Food Safety Supervisor & WA Food Act 2008 Compliance Kit',
-            quantity: 1,
-            unit_price: 0.00,
-            total: 0.00
-          },
-          {
-            description: 'Commercial Kitchen Security Bond (Refundable post-shift inspection)',
-            quantity: 1,
-            unit_price: deposit,
-            total: deposit
-          }
-        ],
-        rental_amount: rentalAmount,
-        cleaning_fee: 0,
-        security_deposit: deposit,
-        subtotal: rentalAmount,
-        gst: Number((rentalAmount * 0.1).toFixed(2)),
-        total_amount: rentalAmount,
-        status,
-        payment_method: isPaid ? 'PayID Direct Bank Transfer' : undefined,
-        paid_at: isPaid ? `${issueDate}T14:22:00Z` : undefined,
-        reconciled_by_ai: isPaid,
-        ai_risk_level: riskLevel,
-        ai_risk_reason: riskReason,
-        ai_recommended_action: recommendedAction,
-        reminder_sent_count: status === 'overdue' ? 2 : (status === 'pending' ? 1 : 0),
-        last_reminder_at: status === 'overdue' ? '2 hours ago' : undefined,
-        hold_expires_at: `${issueDate}T23:59:00`,
-        notes: b.admin_notes || undefined
-      });
-    });
-
-    // 2. Generate Invoices from Commercial Storage Leases
-    storages.forEach((s, idx) => {
-      const isPaid = s.payment_status === 'paid';
-      const invNum = `INV-2026-ST${String(200 + idx).padStart(3, '0')}`;
-      const status: InvoiceStatus = isPaid ? 'paid' : 'pending';
-      const storageRent = Number(s.total_price || 220.0);
-      const bond = Number(s.security_deposit || 200.0);
-
-      invoices.push({
-        id: invNum,
-        invoice_number: invNum,
-        booking_reference: s.reference_code,
-        booking_type: 'storage_lease',
-        customer_name: s.full_name,
-        business_name: s.business_name || 'Food Business Hirer',
-        abn: s.abn || '54 123 456 789',
-        email: s.email,
-        phone: s.phone,
-        issue_date: s.start_date,
-        due_date: s.start_date,
-        service_date_range: `Bay #${s.bay_number} (${s.storage_type.replace('_', ' ')}): ${s.start_date} → ${s.end_date}`,
-        line_items: [
-          {
-            description: `Commercial Storage Lease: Bay #${s.bay_number} (${s.storage_type.replace('_', ' ')}) - ${s.duration_type}`,
-            quantity: s.duration_days,
-            unit_price: s.daily_rate,
-            total: storageRent
-          },
-          {
-            description: 'Commercial Storage Security Bond (Keypad Access & Temperature Lock)',
-            quantity: 1,
-            unit_price: bond,
-            total: bond
-          }
-        ],
-        rental_amount: storageRent,
-        cleaning_fee: 0,
-        security_deposit: bond,
-        subtotal: storageRent,
-        gst: Number((storageRent * 0.1).toFixed(2)),
-        total_amount: storageRent,
-        status,
-        payment_method: isPaid ? 'Direct Bank Transfer / PayID' : undefined,
-        paid_at: isPaid ? `${s.start_date}T09:00:00Z` : undefined,
-        reconciled_by_ai: isPaid,
-        ai_risk_level: isPaid ? 'low' : 'medium',
-        ai_risk_reason: isPaid ? 'Storage bay lease active. Bond securely held in escrow.' : 'Storage lease pending tenant initial payment.',
-        ai_recommended_action: isPaid ? 'Bay 1 access code active: 4892#' : 'Send storage check-in instructions and PayID.',
-        reminder_sent_count: isPaid ? 0 : 1,
-        hold_expires_at: `${s.start_date}T18:00:00`
-      });
-    });
-
-    // 3. Merge custom invoices
-    customInvoices.forEach((ci) => {
-      invoices.push(ci);
-    });
-
-    return invoices;
+    const res = await fetch(`${API_BASE}/invoices`, { headers });
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => null);
+      throw new Error(errJson?.error || errJson?.detail || 'Failed to load invoices from server.');
+    }
+    return await res.json();
   },
-
   async updateInvoiceStatus(
     invoiceId: string,
     status: InvoiceStatus,
     paymentMethod: string = 'PayID Direct Bank Transfer',
     notes?: string
   ): Promise<Invoice | null> {
-    const invoices = await this.getInvoices();
-    const inv = invoices.find((i) => i.id === invoiceId || i.invoice_number === invoiceId);
-    if (!inv) return null;
+    const token = localStorage.getItem('dd_superadmin_token') || localStorage.getItem('dd_admin_token');
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    inv.status = status;
-    if (status === 'paid') {
-      inv.paid_at = new Date().toISOString();
-      inv.payment_method = paymentMethod;
-      inv.reconciled_by_ai = true;
-      inv.ai_risk_level = 'low';
-      inv.ai_risk_reason = 'Payment verified via Super Admin & AI Reconciliation.';
-      inv.ai_recommended_action = 'Slot locked. Door keypad PIN active.';
-    } else if (status === 'void' || status === 'refunded') {
-      inv.ai_risk_level = 'low';
-      inv.ai_risk_reason = `Invoice marked as ${status.toUpperCase()}. Slot released in inventory.`;
+    const res = await fetch(`${API_BASE}/invoices/${encodeURIComponent(invoiceId)}/status`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ status, payment_method: paymentMethod, notes }),
+    });
+
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => null);
+      throw new Error(errJson?.error || errJson?.detail || 'Failed to update invoice status.');
     }
 
-    if (notes) inv.notes = notes;
-
-    // Update underlying booking or storage booking
-    if (inv.booking_reference.startsWith('DD-BK')) {
-      const bookings = getStoredBookings();
-      const bIdx = bookings.findIndex((b) => b.reference_code === inv.booking_reference);
-      if (bIdx !== -1) {
-        if (status === 'paid') {
-          bookings[bIdx].payment_status = 'paid';
-          bookings[bIdx].status = 'confirmed';
-        } else if (status === 'void') {
-          bookings[bIdx].status = 'rejected';
-        } else if (status === 'refunded') {
-          bookings[bIdx].payment_status = 'refunded';
-          bookings[bIdx].status = 'rejected';
-        }
-        saveStoredBookings(bookings);
-      }
-    } else if (inv.booking_reference.startsWith('DD-ST')) {
-      const storages = getStoredStorageBookings();
-      const sIdx = storages.findIndex((s) => s.reference_code === inv.booking_reference);
-      if (sIdx !== -1) {
-        if (status === 'paid') {
-          storages[sIdx].payment_status = 'paid';
-          storages[sIdx].status = 'confirmed';
-        } else if (status === 'void') {
-          storages[sIdx].status = 'cancelled';
-        }
-        saveStoredStorageBookings(storages);
-      }
-    }
-
-    // Persist in custom invoices storage if it's custom or override
-    try {
-      const raw = localStorage.getItem('dd_custom_invoices');
-      let customList: Invoice[] = raw ? JSON.parse(raw) : [];
-      const cIdx = customList.findIndex((c) => c.id === invoiceId);
-      if (cIdx !== -1) {
-        customList[cIdx] = inv;
-      } else {
-        customList.push(inv);
-      }
-      localStorage.setItem('dd_custom_invoices', JSON.stringify(customList));
-    } catch {}
-
-    return inv;
+    const data = await res.json();
+    return data.invoice || null;
   },
 
   async createCustomInvoice(data: Partial<Invoice>): Promise<Invoice> {

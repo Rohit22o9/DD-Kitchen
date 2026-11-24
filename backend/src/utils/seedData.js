@@ -14,7 +14,7 @@ const seedDatabase = async () => {
     console.log('[Seeder] Connecting to MongoDB...');
     await connectDB();
 
-    // 1. Seed Kitchen Config
+    // 1. Seed Kitchen Config (always ensure default facility config exists)
     const configCount = await KitchenConfig.countDocuments();
     if (configCount === 0) {
       await KitchenConfig.create({
@@ -30,14 +30,20 @@ const seedDatabase = async () => {
       console.log('✓ Seeded Kitchen Config ($38.00/hr + GST)');
     }
 
-    // 2. Seed Users
+    // Never seed demo users or mock bookings in production
+    if (process.env.NODE_ENV === 'production') {
+      console.log('[Seeder] Production mode detected — skipping demo data seeding.');
+      return;
+    }
+
+    // 2. Seed Users (Development/Demo only)
     const userCount = await User.countDocuments();
     if (userCount === 0) {
       await User.create([
         {
           full_name: 'Michael Davies',
           email: 'demo@dailydrop.today',
-          password: 'kitchen123',
+          password: 'kitchen1234',
           business_name: 'Perth Catering Co.',
           abn: '54 123 456 789',
           phone: '+61 412 345 678',
@@ -47,30 +53,20 @@ const seedDatabase = async () => {
           terms_accepted: true,
         },
         {
-          full_name: 'Rohit',
-          email: 'rratnaparkhi3@gmail.com',
-          password: 'kitchen123',
-          business_name: 'ABC Kitchen',
-          abn: '12 312 312 312',
-          phone: '+61 0412345862',
-          role: 'hirer',
-          food_safety_cert_name: 'FSS_Rohit_WA.pdf',
-          liability_insurance_name: 'CGU_Liability_10M.pdf',
-          terms_accepted: true,
-        },
-        {
           full_name: 'Operations Manager',
           email: 'admin@dailydrop.today',
-          password: 'kitchen2026',
+          password: process.env.SEED_ADMIN_PASSWORD || 'kitchen2026',
           role: 'staff_admin',
           business_name: 'Daily Drop Operations',
+          terms_accepted: true,
         },
         {
           full_name: 'Executive Director',
           email: 'director@dailydrop.today',
-          password: 'director2026',
+          password: process.env.SEED_DIRECTOR_PASSWORD || 'director2026',
           role: 'super_admin',
           business_name: 'Daily Drop Ventures Pty Ltd',
+          terms_accepted: true,
         },
       ]);
       console.log('✓ Seeded Initial Users (Hirers & Admins)');
@@ -139,18 +135,19 @@ const seedDatabase = async () => {
           base_price: 152.00,
           total_price: 167.20,
           security_deposit: 750.00,
-          status: 'approved',
+          status: 'confirmed',
           payment_status: 'paid',
           paid_at: new Date('2026-10-18T14:22:00Z'),
-          door_pin_code: '4892#',
+          door_pin_code: '7314#',
+          door_access_pin: '7314#',
         },
         {
           reference_code: 'DD-BK-77953',
-          full_name: 'Rohit',
-          business_name: 'ABC Kitchen',
+          full_name: 'Demo Caterer',
+          business_name: 'Swan River Kitchen',
           abn: '12 312 312 312',
-          email: 'rratnaparkhi3@gmail.com',
-          phone: '+61 0412345862',
+          email: 'demo@dailydrop.today',
+          phone: '+61 412 345 678',
           booking_date: '2026-10-20',
           start_time: '09:00',
           end_time: '13:00',
@@ -161,15 +158,14 @@ const seedDatabase = async () => {
           security_deposit: 750.00,
           status: 'approved',
           payment_status: 'unpaid',
-          door_pin_code: '4892#',
         },
         {
           reference_code: 'DD-BK-83068',
-          full_name: 'Rohit',
-          business_name: 'ABC Kitchen',
+          full_name: 'Demo Caterer',
+          business_name: 'Swan River Kitchen',
           abn: '12 312 312 312',
-          email: 'rratnaparkhi3@gmail.com',
-          phone: '+61 0412345862',
+          email: 'demo@dailydrop.today',
+          phone: '+61 412 345 678',
           booking_date: '2026-11-24',
           start_time: '09:00',
           end_time: '13:00',
@@ -180,15 +176,14 @@ const seedDatabase = async () => {
           security_deposit: 750.00,
           status: 'pending',
           payment_status: 'unpaid',
-          door_pin_code: '4892#',
         },
         {
           reference_code: 'DD-BK-49503',
-          full_name: 'Rohit',
-          business_name: 'ABC Kitchen',
+          full_name: 'Demo Caterer',
+          business_name: 'Swan River Kitchen',
           abn: '12 312 312 312',
-          email: 'rratnaparkhi3@gmail.com',
-          phone: '+61 0412345862',
+          email: 'demo@dailydrop.today',
+          phone: '+61 412 345 678',
           booking_date: '2026-11-26',
           start_time: '09:00',
           end_time: '13:00',
@@ -199,7 +194,6 @@ const seedDatabase = async () => {
           security_deposit: 750.00,
           status: 'pending',
           payment_status: 'unpaid',
-          door_pin_code: '4892#',
         },
       ]);
       console.log('✓ Seeded Kitchen Bookings (including Rohit & Michael Davies)');

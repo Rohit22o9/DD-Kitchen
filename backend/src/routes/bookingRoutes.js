@@ -7,11 +7,12 @@ const {
   createBooking,
   getBookingByRef,
 } = require('../controllers/bookingController');
+const { verifyToken } = require('../middlewares/authMiddleware');
 
 router.get('/config', getConfig);
 router.get('/availability', getAvailability);
 router.get('/month-availability', getMonthAvailability);
-router.post('/bookings', createBooking);
-router.get('/bookings/:referenceCode', getBookingByRef);
+router.post('/bookings', verifyToken, createBooking);
+router.get('/bookings/:referenceCode', verifyToken, getBookingByRef);
 
 module.exports = router;

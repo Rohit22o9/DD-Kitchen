@@ -3,6 +3,8 @@ require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
 const { connectDB } = require('./config/db');
 const seedDatabase = require('./utils/seedData');
@@ -12,15 +14,51 @@ const errorHandler = require('./middlewares/errorMiddleware');
 const app = express();
 const PORT = process.env.PORT || 8000;
 
-// Enable CORS for frontend clients
+// Security headers
+app.use(helmet());
+
+// CORS Allowlist
+const defaultOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:4173'];
+const allowedOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
+  : defaultOrigins;
+
 app.use(
   cors({
-    origin: '*',
+    origin: (origin, callback) => {
+      // Allow same-origin / server-to-server / curl without Origin in dev, or explicit allowlist
+      if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS policy'));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   })
 );
+
+// Rate limiting on auth and booking mutations
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many authentication attempts. Please try again later.' },
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many requests. Please slow down.' },
+});
+
+app.use('/api/auth', authLimiter);
+app.use('/api/admin/login', authLimiter);
+app.use('/api/superadmin/login', authLimiter);
+app.use('/api', apiLimiter);
 
 // Body parsers
 app.use(express.json({ limit: '10mb' }));

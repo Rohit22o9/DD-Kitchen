@@ -81,8 +81,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onGoToCustomerPortal,
   onGoToSuperAdmin 
 }) => {
-  // Auth state
-  const [token, setToken] = useState<string | null>(localStorage.getItem('dd_admin_token') || 'demo_admin_token');
+  // Auth state (must authenticate with real JWT token)
+  const [token, setToken] = useState<string | null>(localStorage.getItem('dd_admin_token'));
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);

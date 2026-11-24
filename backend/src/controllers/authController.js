@@ -1,12 +1,12 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Booking = require('../models/Booking');
+const { getJwtSecret } = require('../config/constants');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dailydrop_commercial_kitchen_jwt_secret_perth_2026_super_secure_key';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 const generateToken = (id, role) => {
-  return jwt.sign({ id, role }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+  return jwt.sign({ id, role }, getJwtSecret(), { expiresIn: JWT_EXPIRES_IN });
 };
 
 /**
@@ -24,9 +24,25 @@ const signup = async (req, res, next) => {
       phone,
       food_safety_cert_name,
       liability_insurance_name,
+      terms_accepted,
     } = req.body;
 
+    if (!full_name || !String(full_name).trim()) {
+      return res.status(400).json({ success: false, error: 'Full name is required.' });
+    }
+
     const cleanEmail = String(email || '').trim().toLowerCase();
+    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      return res.status(400).json({ success: false, error: 'A valid email address is required.' });
+    }
+
+    if (!password || String(password).length < 8) {
+      return res.status(400).json({ success: false, error: 'Password must be at least 8 characters long.' });
+    }
+
+    if (terms_accepted !== true) {
+      return res.status(400).json({ success: false, error: 'You must accept the Commercial Kitchen Terms & Conditions.' });
+    }
 
     // Check if user already exists
     const existing = await User.findOne({ email: cleanEmail });
@@ -38,7 +54,7 @@ const signup = async (req, res, next) => {
     }
 
     const user = await User.create({
-      full_name: full_name.trim(),
+      full_name: String(full_name).trim(),
       email: cleanEmail,
       password,
       business_name: business_name || '',
@@ -72,6 +88,10 @@ const login = async (req, res, next) => {
     const { email, password } = req.body;
     const cleanEmail = String(email || '').trim().toLowerCase();
 
+    if (!cleanEmail || !password) {
+      return res.status(400).json({ success: false, error: 'Email and password are required.' });
+    }
+
     const user = await User.findOne({ email: cleanEmail });
     if (!user) {
       return res.status(401).json({
@@ -101,18 +121,36 @@ const login = async (req, res, next) => {
 };
 
 /**
- * @desc    Get user's own bookings by email
+ * @desc    Get user's own bookings by email (authenticated & ownership-checked)
  * @route   GET /api/auth/bookings-by-email
  */
 const getBookingsByEmail = async (req, res, next) => {
   try {
-    const email = String(req.query.email || req.user?.email || '').trim().toLowerCase();
-    if (!email) {
+    const requestedEmail = String(req.query.email || req.user?.email || '').trim().toLowerCase();
+    const isAdmin = req.user && (req.user.role === 'staff_admin' || req.user.role === 'super_admin');
+
+    if (!isAdmin && requestedEmail !== String(req.user?.email || '').toLowerCase()) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied. You can only view your own bookings.',
+      });
+    }
+
+    if (!requestedEmail) {
       return res.json([]);
     }
 
-    const bookings = await Booking.find({ email }).sort({ booking_date: 1, start_time: 1 });
-    return res.json(bookings);
+    const bookings = await Booking.find({ email: requestedEmail }).sort({ booking_date: 1, start_time: 1 });
+    // Redact door_access_pin unless booking is both paid and confirmed
+    const safeBookings = bookings.map((b) => {
+      const obj = b.toObject();
+      if (!(obj.payment_status === 'paid' && obj.status === 'confirmed')) {
+        delete obj.door_access_pin;
+      }
+      return obj;
+    });
+
+    return res.json(safeBookings);
   } catch (err) {
     next(err);
   }

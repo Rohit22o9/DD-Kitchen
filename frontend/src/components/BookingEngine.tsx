@@ -464,8 +464,8 @@ export const BookingEngine: React.FC<BookingEngineProps> = ({
                       </label>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                         {[
-                          { hours: 2, label: '2 Hours', price: '$100', badge: 'Standard' },
-                          { hours: 4, label: '4 Hours', price: '$152', badge: 'Most Popular' },
+                          { hours: 4, label: '4 Hours', price: '$152', badge: 'Min Shift' },
+                          { hours: 6, label: '6 Hours', price: '$204', badge: 'Popular' },
                           { hours: 8, label: '8 Hours', price: '$256', badge: 'Best Value' },
                           { hours: 12, label: '12 Hours', price: '$360', badge: 'Full Day' },
                         ].map((tier) => (

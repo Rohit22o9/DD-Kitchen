@@ -27,17 +27,19 @@ const connectDB = async () => {
     }
     return;
   } catch (err) {
-    if (isAtlas) {
-      console.error(`\n[Database] ❌ MongoDB Atlas Connection Failed: ${err.message}`);
-      console.error('[Database] Common Atlas fixes:');
-      console.error('  1. In MongoDB Atlas -> Network Access: Add IP Address -> "Allow Access from Anywhere" (0.0.0.0/0).');
-      console.error('  2. In MongoDB Atlas -> Database Access: Check that your database username and password are correct.');
-      console.error('  3. Ensure special characters in your password are URL encoded (e.g. @ -> %40).\n');
+    if (isAtlas || process.env.NODE_ENV === 'production') {
+      console.error(`\n[Database] ❌ MongoDB Connection Failed: ${err.message}`);
+      if (isAtlas) {
+        console.error('[Database] Common Atlas fixes:');
+        console.error('  1. In MongoDB Atlas -> Network Access: Add IP Address -> "Allow Access from Anywhere" (0.0.0.0/0).');
+        console.error('  2. In MongoDB Atlas -> Database Access: Check that your database username and password are correct.');
+        console.error('  3. Ensure special characters in your password are URL encoded (e.g. @ -> %40).\n');
+      }
       throw err;
     }
 
     console.warn(`[Database] Standard local MongoDB connection to ${uri} failed: ${err.message}`);
-    console.log('[Database] Initiating in-memory MongoDB environment for seamless local development...');
+    console.log('[Database] Initiating in-memory MongoDB environment for local development only...');
 
     try {
       const { MongoMemoryServer } = require('mongodb-memory-server');
