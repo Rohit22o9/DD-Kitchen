@@ -1,0 +1,15 @@
+{
+  "name": "daily-drop-commercial-kitchen",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Daily Drop Commercial Kitchen & Storage platform — React + Express + MongoDB",
+  "scripts": {
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "test": "npm --prefix backend test",
+    "build": "npm --prefix frontend run build",
+    "create-admin": "npm --prefix backend run create-admin",
+    "seed:demo": "npm --prefix backend run seed:demo"
+  },
+  "license": "UNLICENSED"
+}

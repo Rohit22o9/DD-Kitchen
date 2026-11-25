@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Drop Commercial Kitchens - Official Logo Assets</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: #F4F6F8;
+      color: #112F21;
+      padding: 32px 16px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 800;
+      color: #112F21;
+      margin-bottom: 8px;
+    }
+    p.subtitle {
+      font-size: 14px;
+      color: #556B60;
+      max-width: 650px;
+      margin: 0 auto;
+    }
+    
+    /* Interactive Background Tester Bar */
+    .tester-bar {
+      background: #ffffff;
+      border: 1px solid #E2E8F0;
+      border-radius: 16px;
+      padding: 16px 20px;
+      margin-bottom: 28px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
+    .tester-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #112F21;
+    }
+    .swatches {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+    .swatch-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 10px;
+      border: 1px solid #CBD5E1;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      background: #F8FAFC;
+      transition: all 0.2s;
+    }
+    .swatch-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+    .color-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,0,0,0.15);
+    }
+    .custom-picker {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .custom-picker input[type="color"] {
+      border: none;
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      cursor: pointer;
+      background: none;
+    }
+
+    /* Logo Cards Grid */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 24px;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 20px;
+      border: 1px solid #E2E8F0;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+      display: flex;
+      flex-col: column;
+    }
+    .preview-box {
+      height: 180px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      transition: background 0.3s ease;
+      position: relative;
+    }
+    .preview-box img {
+      max-width: 90%;
+      max-height: 80%;
+      object-fit: contain;
+    }
+    .card-body {
+      padding: 20px;
+      background: #ffffff;
+      border-top: 1px solid #F1F5F9;
+    }
+    .badge-tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+    .tag-light { background: #EBF5EE; color: #112F21; }
+    .tag-dark { background: #112F21; color: #ffffff; }
+    .tag-any { background: #FFF3EB; color: #ED8533; }
+    .tag-mono { background: #F1F5F9; color: #475569; }
+    
+    h3 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: #112F21;
+    }
+    p.desc {
+      font-size: 12px;
+      color: #64748B;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+    .actions {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-download {
+      flex: 1;
+      text-align: center;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 8px 12px;
+      border-radius: 10px;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: #112F21;
+      color: #ffffff;
+    }
+    .btn-primary:hover {
+      background: #1C4632;
+    }
+    .btn-secondary {
+      background: #F8FAFC;
+      color: #334155;
+      border: 1px solid #CBD5E1;
+    }
+    .btn-secondary:hover {
+      background: #F1F5F9;
+    }
+
+    footer.note {
+      text-align: center;
+      font-size: 12px;
+      color: #64748B;
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid #E2E8F0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1>Daily Drop Commercial Kitchens</h1>
+      <p class="subtitle">Official Brand Logo Assets with 100% transparent backgrounds for light, dark, and custom background colors.</p>
+      <div style="margin-top: 16px;">
+        <a href="logo_pack/Daily_Drop_Logos_Transparent_Pack.zip" download="Daily_Drop_Logos_Transparent_Pack.zip" class="btn-download btn-primary" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; font-size: 13px;">
+          <span>📦 Download All Logos in 1-Click (.ZIP)</span>
+        </a>
+      </div>
+    </header>
+
+    <!-- Interactive Background Preview Tool -->
+    <div class="tester-bar">
+      <span class="tester-label">🎨 Test logos against background:</span>
+      <div class="swatches">
+        <button class="swatch-btn" onclick="setBg('#FFFFFF')">
+          <span class="color-dot" style="background:#FFFFFF;"></span> White
+        </button>
+        <button class="swatch-btn" onclick="setBg('#FBFBF6')">
+          <span class="color-dot" style="background:#FBFBF6;"></span> Cream
+        </button>
+        <button class="swatch-btn" onclick="setBg('#112F21')">
+          <span class="color-dot" style="background:#112F21;"></span> Forest Green
+        </button>
+        <button class="swatch-btn" onclick="setBg('#1C252E')">
+          <span class="color-dot" style="background:#1C252E;"></span> Charcoal
+        </button>
+        <button class="swatch-btn" onclick="setBg('#000000')">
+          <span class="color-dot" style="background:#000000;"></span> Black
+        </button>
+        <button class="swatch-btn" onclick="setBg('#ED8533')">
+          <span class="color-dot" style="background:#ED8533;"></span> Orange
+        </button>
+      </div>
+      <div class="custom-picker">
+        <span>Custom Hex:</span>
+        <input type="color" id="picker" value="#FFFFFF" onchange="setBg(this.value)">
+      </div>
+    </div>
+
+    <!-- Cards Grid -->
+    <div class="grid">
+
+      <!-- Card 1: Standard Logo for Light Backgrounds -->
+      <div class="card">
+        <div class="preview-box test-preview" style="background: #FFFFFF;">
+          <img src="logo_pack/daily_drop_logo_for_light_bg.png" alt="Daily Drop Logo for Light Backgrounds">
+        </div>
+        <div class="card-body">
+          <span class="badge-tag tag-light">For Light Backgrounds</span>
+          <h3>Standard Color Logo</h3>
+          <p class="desc">Dark Green text (#112F21) + Vibrant Orange (#ED8533) on 100% transparent background. Perfect for white paper, documents, light websites.</p>
+          <div class="actions">
+            <a href="logo_pack/daily_drop_logo_for_light_bg.png" download="daily_drop_logo_for_light_bg.png" class="btn-download btn-primary">Download PNG</a>
+            <a href="logo_pack/daily_drop_logo_for_light_bg.svg" download="daily_drop_logo_for_light_bg.svg" class="btn-download btn-secondary">Download SVG</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2: Inverted Logo for Dark Backgrounds -->
+      <div class="card">
+        <div class="preview-box test-preview" style="background: #112F21;">
+          <img src="logo_pack/daily_drop_logo_for_dark_bg.png" alt="Daily Drop Logo for Dark Backgrounds">
+        </div>
+        <div class="card-body">
+          <span class="badge-tag tag-dark">For Dark Backgrounds</span>
+          <h3>Inverted White & Orange Logo</h3>
+          <p class="desc">Crisp White text (#FFFFFF) + Vibrant Orange (#ED8533) on 100% transparent background. Stands out boldly on dark green, black, navy, or dark photos.</p>
+          <div class="actions">
+            <a href="logo_pack/daily_drop_logo_for_dark_bg.png" download="daily_drop_logo_for_dark_bg.png" class="btn-download btn-primary">Download PNG</a>
+            <a href="logo_pack/daily_drop_logo_for_dark_bg.svg" download="daily_drop_logo_for_dark_bg.svg" class="btn-download btn-secondary">Download SVG</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3: Universal Badge (Fits on ANY background) -->
+      <div class="card">
+        <div class="preview-box test-preview" style="background: #1C252E;">
+          <img src="logo_pack/daily_drop_logo_universal_badge_any_bg.png" alt="Daily Drop Universal Pill Badge Logo">
+        </div>
+        <div class="card-body">
+          <span class="badge-tag tag-any">Universal (Fits 100% Anywhere)</span>
+          <h3>Universal Pill Badge Logo</h3>
+          <p class="desc">Self-contained rounded white badge with subtle border. Drop this on TOP of ANY background color, busy photograph, pattern, or flyer with guaranteed readability.</p>
+          <div class="actions">
+            <a href="logo_pack/daily_drop_logo_universal_badge_any_bg.png" download="daily_drop_logo_universal_badge.png" class="btn-download btn-primary">Download PNG</a>
+            <a href="logo_pack/daily_drop_logo_universal_badge_any_bg.svg" download="daily_drop_logo_universal_badge.svg" class="btn-download btn-secondary">Download SVG</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 4: All-White Monochrome -->
+      <div class="card">
+        <div class="preview-box test-preview" style="background: #112F21;">
+          <img src="logo_pack/daily_drop_logo_all_white_monochrome.png" alt="Daily Drop All-White Logo">
+        </div>
+        <div class="card-body">
+          <span class="badge-tag tag-mono">Single-Color White</span>
+          <h3>All-White Monochrome Logo</h3>
+          <p class="desc">100% Pure White silhouette on transparent background. Used for single-color screen printing, stamps, aprons, chef uniforms, and photo watermarks.</p>
+          <div class="actions">
+            <a href="logo_pack/daily_drop_logo_all_white_monochrome.png" download="daily_drop_logo_all_white.png" class="btn-download btn-primary">Download PNG</a>
+            <a href="logo_pack/daily_drop_logo_all_white_monochrome.svg" download="daily_drop_logo_all_white.svg" class="btn-download btn-secondary">Download SVG</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 5: All-Dark Monochrome -->
+      <div class="card">
+        <div class="preview-box test-preview" style="background: #FFFFFF;">
+          <img src="logo_pack/daily_drop_logo_all_dark_monochrome.png" alt="Daily Drop All-Dark Logo">
+        </div>
+        <div class="card-body">
+          <span class="badge-tag tag-mono">Single-Color Dark</span>
+          <h3>All-Dark Monochrome Logo</h3>
+          <p class="desc">100% Deep Forest Green (#112F21) silhouette on transparent background. Used for black-and-white print documents, paper receipts, invoices, and laser engraving.</p>
+          <div class="actions">
+            <a href="logo_pack/daily_drop_logo_all_dark_monochrome.png" download="daily_drop_logo_all_dark.png" class="btn-download btn-primary">Download PNG</a>
+            <a href="logo_pack/daily_drop_logo_all_dark_monochrome.svg" download="daily_drop_logo_all_dark.svg" class="btn-download btn-secondary">Download SVG</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 6: Standalone Icon (Square) -->
+      <div class="card">
+        <div class="preview-box test-preview" style="background: #FBFBF6;">
+          <img src="logo_pack/daily_drop_icon_square_transparent.png" alt="Daily Drop App Icon" style="max-height: 120px;">
+        </div>
+        <div class="card-body">
+          <span class="badge-tag tag-any">Icon / Avatar (512x512)</span>
+          <h3>Standalone Cloche & Bag Icon</h3>
+          <p class="desc">High-resolution 512x512 square transparent icon. Perfect for WhatsApp/Instagram profile pictures, mobile app icon, favicon, or browser bookmarks.</p>
+          <div class="actions">
+            <a href="logo_pack/daily_drop_icon_square_transparent.png" download="daily_drop_icon_512x512.png" class="btn-download btn-primary">Download PNG</a>
+            <a href="logo_pack/daily_drop_icon_square_transparent.svg" download="daily_drop_icon.svg" class="btn-download btn-secondary">Download SVG</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <footer class="note">
+      <p>Daily Drop Commercial Kitchens • Unit 1, 1 Lichfield St, Victoria Park, Perth, WA 6101 • All files available in high-resolution PNG & vector SVG.</p>
+    </footer>
+  </div>
+
+  <script>
+    function setBg(color) {
+      document.querySelectorAll('.test-preview').forEach(el => {
+        el.style.backgroundColor = color;
+      });
+      document.getElementById('picker').value = color.startsWith('#') && color.length === 7 ? color : '#FFFFFF';
+    }
+  </script>
+</body>
+</html>

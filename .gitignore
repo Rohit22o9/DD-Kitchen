@@ -1,0 +1,26 @@
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+.npm
+
+# Environment files (never commit real values)
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Raw photo dumps
+extracted_assets/
+DD kitchen pics/
+*.HEIC

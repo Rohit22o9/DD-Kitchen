@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch: # "Run workflow" button in the Actions tab
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm audit --omit=dev --audit-level=high
+      - name: Tests (real MongoDB replica set via mongodb-memory-server)
+        run: npm test
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm run lint
+      - name: Type-check and build
+        run: npm run build
+        env:
+          VITE_API_BASE_URL: https://api.example.invalid/api
+
+  ui-smoke:
+    # Mounts the real React app against a real API + MongoDB replica set.
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Start a single-node replica set
+        run: |
+          docker run -d --name rs -p 27018:27018 mongo:8 --replSet rs0 --port 27018 --bind_ip_all
+          for i in $(seq 1 30); do docker exec rs mongosh --port 27018 --quiet --eval 'rs.initiate({_id:"rs0",members:[{_id:0,host:"127.0.0.1:27018"}]})' && break; sleep 2; done
+          sleep 5
+      - name: Start API
+        working-directory: backend
+        env:
+          NODE_ENV: production
+          PORT: 8000
+          MONGODB_URI: mongodb://127.0.0.1:27018/dailydrop_ci?replicaSet=rs0&directConnection=true
+          JWT_SECRET: ci-only-secret-0123456789-0123456789-0123
+          SELLER_ABN: '51 824 753 556'
+        run: |
+          npm ci --omit=dev
+          ADMIN_EMAIL=ops@example.test ADMIN_PASSWORD='ci-staff-password-123' ADMIN_ROLE=staff_admin node src/scripts/createAdmin.js
+          ADMIN_EMAIL=director@example.test ADMIN_PASSWORD='ci-director-password-123' ADMIN_ROLE=super_admin node src/scripts/createAdmin.js
+          nohup node src/server.js > /tmp/api.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:8000/api/health && break; sleep 1; done
+      - name: UI smoke tests
+        working-directory: frontend
+        env:
+          SMOKE_API: http://127.0.0.1:8000/api
+          SMOKE_STAFF: 'ops@example.test:ci-staff-password-123'
+          SMOKE_DIRECTOR: 'director@example.test:ci-director-password-123'
+        run: |
+          npm ci
+          npx vitest run
+      - if: failure()
+        run: cat /tmp/api.log
